@@ -11,7 +11,7 @@ export default function LoginPage () {
       </div>
     </div>
     <div className="flex-1 p-8">
-      <h2 className="text-xl font-semibold mb-6 text-black">Login</h2>
+      <h2 className="text-xl font-semibold mb-6 text-black">LOGIN</h2>
       <form>
         <div className="mb-4">
           <label htmlFor="username" className="block text-sm font-medium text-zinc-700">Username</label>
