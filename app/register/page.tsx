@@ -14,15 +14,15 @@ export default function RegisterPage () {
       <form>
         <div className="mb-4">
           <label htmlFor="username" className="block text-sm font-medium text-zinc-700">Username</label>
-          <input type="text" id="username" className="mt-1 block w-full border border-border rounded-md shadow-sm p-2" placeholder="Enter your username" required />
+          <input type="text" id="username" className="mt-1 block w-full border border-border rounded-md shadow-sm p-2 text-black  " placeholder="Enter your username" required />
         </div>
         <div className="mb-4">
           <label htmlFor="username" className="block text-sm font-medium text-zinc-700">Email</label>
-          <input type="email" id="Email" className="mt-1 block w-full border border-border rounded-md shadow-sm p-2" placeholder="Enter your Email" required />
+          <input type="email" id="Email" className="mt-1 block w-full border border-border rounded-md shadow-sm p-2 text-black" placeholder="Enter your Email" required />
         </div>
         <div className="mb-4">
           <label htmlFor="password" className="block text-sm font-medium text-zinc-700">Password</label>
-          <input type="password" id="password" className="mt-1 block w-full border border-border rounded-md shadow-sm p-2" placeholder="Enter your password" required />
+          <input type="password" id="password" className="mt-1 block w-full border border-border rounded-md shadow-sm p-2 text-black" placeholder="Enter your password" required />
         </div>
         
         <div className="flex items-center mb-4">
