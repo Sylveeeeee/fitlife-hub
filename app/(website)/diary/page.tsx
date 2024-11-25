@@ -1,21 +1,32 @@
 "use client";
 import { VscDiffAdded } from "react-icons/vsc";
 import { PiCaretLeft, PiCaretRight,PiCaretDownBold } from "react-icons/pi";
-//import DoughnutChart from '../components/DoughnutChart';
+import React, { useState } from 'react';
+//import DoughnutChart from "../components/DoughnutChart";
+import AddFoodtoDiary from "../components/AddFoodtoDiary";
+
 
 
 export default function Diary() {
-    const data = [300, 50, 100];
-    const labels = ['Red', 'Blue', 'Yellow'];
-    const colors = ['#FF6384', '#36A2EB', '#FFCE56'];
+    const [isModalOpen, setIsModalOpen] = useState(false);
+  
+    const openModal = () => {
+      setIsModalOpen(true);
+    };
+  
+    const closeModal = () => {
+      setIsModalOpen(false);
+    };
     return (
       <>
       <body className="bg-[#e2e2e2]"></body>
+      <div className=" "><AddFoodtoDiary isOpen={isModalOpen} closeModal={closeModal}/></div>
+      <div className="">
       <div className= "text-black font-mono flex justify-between mx-[200px]">
         <div className="flex w-[75%] flex-col">
         <div className="bg-white flex pl-[20]">
             <div className="flex items-center justify-between h-[50] flex-wrap">
-                <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]"><div className="mr-[6]"><VscDiffAdded /></div>FOOD</button>
+                <button onClick={openModal} className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]"><div className="mr-[6]"><VscDiffAdded /></div>FOOD</button>
                 <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]"><div className="mr-[6]"><VscDiffAdded /></div>EXERCISE</button>
                 <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]"><div className="mr-[6]"><VscDiffAdded /></div>BIOMETRIC</button>
                 <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]"><div className="mr-[6]"><VscDiffAdded /></div>NOTE</button>
@@ -84,7 +95,8 @@ export default function Diary() {
             <button className="text-[20px]"><PiCaretRight /></button>
             <button className="text-[20px]"><PiCaretDownBold/></button>
         </div>
-        </div>        
+        </div> 
+        </div>  
       </>
     );
   }
