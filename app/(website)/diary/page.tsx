@@ -32,14 +32,15 @@ export default function Diary() {
                 <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]"><div className="mr-[6]"><VscDiffAdded /></div>NOTE</button>
             </div>
         </div>
-            <div className="bg-white flex justify-between pl-[10] mt-[5] ml-[10] ">Uncategorized<button className="mr-[20]"><PiCaretDownBold/></button></div>
-            <div className="bg-white flex justify-between pl-[10] mt-[5] ml-[10] ">Breakfast<button className="mr-[20]"><PiCaretDownBold/></button></div>
-            <div className="bg-white flex justify-between pl-[10] mt-[5] ml-[10] ">Dinner<button className="mr-[20]"><PiCaretDownBold/></button></div>
-            <div className="bg-white flex justify-between pl-[10] mt-[5] ml-[10] ">Snacks<button className="mr-[20]"><PiCaretDownBold/></button></div>
+            <div className="bg-white flex justify-between pl-[10] mt-[7]  ">Uncategorized<button className="mr-[20]"><PiCaretDownBold/></button></div>
+            <div className="bg-white flex justify-between pl-[10] mt-[7]  ">Breakfast<button className="mr-[20]"><PiCaretDownBold/></button></div>
+            <div className="bg-white flex justify-between pl-[10] mt-[7]  ">Dinner<button className="mr-[20]"><PiCaretDownBold/></button></div>
+            <div className="bg-white flex justify-between pl-[10] mt-[7]  ">Snacks<button className="mr-[20]"><PiCaretDownBold/></button></div>
             <div className="bg-white flex pl-[20] mt-[20] w-full py-[20]">
                 <div className="w-[50%]">
                     <div className="h-[50] font-semibold text-[20px]">Energy Summary</div>
                     <div className="กราฟ">
+                        
                     
                     </div>
                 </div>
