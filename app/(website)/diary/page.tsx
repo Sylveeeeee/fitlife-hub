@@ -5,8 +5,6 @@ import React, { useState } from 'react';
 //import DoughnutChart from "../components/DoughnutChart";
 import AddFoodtoDiary from "../components/AddFoodtoDiary";
 
-
-
 export default function Diary() {
     const [isModalOpen, setIsModalOpen] = useState(false);
   
