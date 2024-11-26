@@ -99,9 +99,10 @@ const AddFoodtoDiary: React.FC<ModalProps> = ({ isOpen, closeModal }) => {
           ) : (
             foods.map((food) => (
               <div key={food.id} className="bg-[#00000009] pl-[10] py-[4]">
+                <div className="flex justify-between"> 
                 <div>{food.name}</div>
-                <div>{food.description}</div>
-                <div>{food.source}</div>
+                <div className="pr-[110] text-center">{food.source}</div>
+                </div>
               </div>
             ))
           )}
