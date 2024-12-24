@@ -15,11 +15,11 @@ export default function WebsiteLayout({
 }) {
     return (
       <>
-      <div className="w-full h-[100]  flex items-center justify-between">
+      <div className="w-full h-[100]  flex items-center justify-between shadow-md">
         <div className="">
           <div className = "  ml-[100]  text-[16px] font-mono text-[#000]">FITLIFE_HUB  </div>
         </div>
-        <div className="font-mono text-[#000] h-[100] items-center mr-[30] flex">
+        <div className="font-mono text-[#000] h-[100] items-center mr-[30] mt-[50px] flex">
             <button className = "py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent">HOME</button>
             <button className = "py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent">ABOUT</button>
             <button className = "py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent">BMI</button>
