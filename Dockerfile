@@ -1,25 +1,28 @@
-# Use the official Node.js image
+# เลือก base image
 FROM node
 
-WORKDIR /app
+# กำหนด directory เริ่มต้นใน container
+WORKDIR /usr/src/app
 
-# Copy only the package files (dependencies)
-COPY package*.json ./
+# คัดลอก package.json และ lock file
+COPY package.json ./
+COPY package-lock.json ./ 
 
-# Install dependencies
+# ติดตั้ง dependencies
 RUN npm install
 
-# Copy Prisma schema files (optional, only if needed for generating Prisma Client)
-COPY prisma ./prisma
+# ติดตั้ง Prisma CLI
+RUN npm install prisma @prisma/client
 
-# Build the Prisma client
+# คัดลอกโค้ดทั้งหมด
+COPY . ./
+
+# สร้าง Prisma Client และ build แอปพลิเคชัน
 RUN npx prisma generate
-
-# Copy the rest of the application code (optional, you can exclude specific files using .dockerignore)
-COPY . .
-
-# Build the Next.js app
 RUN npm run build
 
-# Start the application
+# เปิด port 3000
+EXPOSE 3000
+
+# กำหนดคำสั่งเริ่มต้น
 CMD ["npm", "start"]

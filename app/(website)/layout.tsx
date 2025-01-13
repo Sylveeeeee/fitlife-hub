@@ -9,7 +9,7 @@ export default function WebsiteLayout({
 }) {
     return (
       <>
-      <div className="w-full h-[100]  flex items-center justify-between shadow-md">
+      <div className="w-full h-[100]  flex items-center justify-between ">
         <div className="">
           <div className = "  ml-[100]  text-[16px] font-mono text-[#000]">FITLIFE_HUB  </div>
         </div>

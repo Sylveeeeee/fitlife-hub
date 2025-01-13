@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'; // นำเข้า Prisma Client
-import bcrypt from 'bcrypt'; // ใช้ bcryptjs สำหรับการเช็ครหัสผ่าน
+import bcrypt from 'bcryptjs'; // ใช้ bcryptjs สำหรับการเช็ครหัสผ่าน
 import jwt from 'jsonwebtoken'; // ใช้ JWT สำหรับสร้าง token
 
 const JWT_SECRET = process.env.JWT_SECRET || 'YCIFj64PmhasqT9lITr5Sq+6B/A1sOYq7/PC5QevZ5w='; // คีย์ลับจาก environment variables

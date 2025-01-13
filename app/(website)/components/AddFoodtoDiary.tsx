@@ -16,42 +16,33 @@ interface Food {
 
 const AddFoodtoDiary: React.FC<ModalProps> = ({ isOpen, closeModal }) => {
   const [foods, setFoods] = useState<Food[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>("All"); // ตั้งค่าเริ่มต้นเป็น "All"
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // เรียก API เพื่อดึงข้อมูลอาหารตามหมวดหมู่ที่เลือกและคำค้นหา
-  useEffect(() => {
-    const fetchFoods = async () => {
-      try {
-        const response = await fetch(
-          `/api/auth/foods?category=${selectedCategory}&search=${searchQuery}` // ส่งหมวดหมู่และคำค้นหาไปใน API
-        );
-        if (!response.ok) {
-          throw new Error("Failed to fetch foods");
-        }
-        const data = await response.json(); // แปลงข้อมูลที่ได้รับเป็น JSON
-        setFoods(data); // เซ็ตข้อมูลที่ได้จาก API
-      } catch (error) {
-        console.error("Error fetching foods:", error);
+  const fetchFoods = async (category: string, search: string) => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/auth/foods?category=${category}&search=${search}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch foods");
       }
-    };
-
-    if (isOpen) {
-      fetchFoods(); // โหลดข้อมูลเมื่อ modal เปิด
+      const data = await response.json();
+      setFoods(data);
+    } catch (error) {
+      console.error("Error fetching foods:", error);
+    } finally {
+      setIsLoading(false);
     }
-  }, [isOpen, selectedCategory, searchQuery]); // เมื่อ isOpen, selectedCategory หรือ searchQuery เปลี่ยนแปลงให้โหลดข้อมูลใหม่
-
-  if (!isOpen) return null; // หาก modal ปิดก็ไม่ต้องแสดงอะไร
-
-  // ฟังก์ชันที่ใช้เปลี่ยนหมวดหมู่ที่เลือก
-  const handleCategorySelect = (category: string) => {
-    setSelectedCategory(category); // เปลี่ยนหมวดหมู่ที่เลือก
   };
 
-  // ฟังก์ชันค้นหา
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value); // เปลี่ยนคำค้นหา
-  };
+  useEffect(() => {
+    if (isOpen) {
+      fetchFoods(selectedCategory, searchQuery);
+    }
+  }, [isOpen, selectedCategory, searchQuery]);
+
+  if (!isOpen) return null;
 
   return (
     <div
@@ -64,70 +55,45 @@ const AddFoodtoDiary: React.FC<ModalProps> = ({ isOpen, closeModal }) => {
       >
         <div className="flex justify-between">
           <h2 className="text-xl font-semibold">Add Food to Diary</h2>
-          <button onClick={closeModal} className="text-[26px] font-black">
+          <button onClick={closeModal} className="text-[26px] font-black" aria-label="Close modal">
             <IoMdClose />
           </button>
         </div>
 
-        <div className="py-[5]">
-          {/* ช่องค้นหาข้อมูล */}
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={handleSearchChange}
-            placeholder="Search for food"
-            className="border p-2 rounded mt-4 mb-4 w-full"
-          />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search for food"
+          className="border p-2 rounded mt-4 mb-4 w-full"
+          aria-label="Search for food"
+        />
+
+        <div className="flex space-x-2 mb-4">
+          {["All", "Favorites", "Common Foods", "Beverages"].map((category) => (
+            <CategoryButton
+              key={category}
+              category={category}
+              selectedCategory={selectedCategory}
+              onClick={() => setSelectedCategory(category)}
+            />
+          ))}
         </div>
 
-        <div className="mt-4">
-          <div className="flex mb-[5] mt-[9]">
-            <div className="">
-              {/* ปุ่มหมวดหมู่ */}
-              <div className="flex">
-                <CategoryButton
-                  category="All"
-                  selectedCategory={selectedCategory}
-                  onClick={handleCategorySelect}
-                />
-                <CategoryButton
-                  category="Favorites"
-                  selectedCategory={selectedCategory}
-                  onClick={handleCategorySelect}
-                />
-                <CategoryButton
-                  category="Common Foods"
-                  selectedCategory={selectedCategory}
-                  onClick={handleCategorySelect}
-                />
-                <CategoryButton
-                  category="Beverages"
-                  selectedCategory={selectedCategory}
-                  onClick={handleCategorySelect}
-                />
+        {isLoading ? (
+          <div className="text-center py-4">Loading...</div>
+        ) : foods.length === 0 ? (
+          <div className="text-center py-4">No foods available</div>
+        ) : (
+          foods.map((food) => (
+            <div key={food.id} className="bg-[#00000009] pl-[10] py-[4]">
+              <div className="flex justify-between">
+                <div>{food.name}</div>
+                <div className="pr-[110] text-center">{food.source}</div>
               </div>
             </div>
-          </div>
-
-          <div className="bg-[#0000001c] flex justify-between text-[18px] font-semibold pl-[10]">
-            <span className="py-[6]">Description</span>
-            <span className="py-[6] pr-[100]">Source</span>
-          </div>
-
-          {/* แสดงข้อมูลอาหาร */}
-          {foods.length === 0 ? (
-            <div className="text-center py-4">No foods available</div>
-          ) : (
-            foods.map((food) => (
-              <div key={food.id} className="bg-[#00000009] pl-[10] py-[4]">
-                <div className="flex justify-between">
-                  <div>{food.name}</div>
-                  <div className="pr-[110] text-center">{food.source}</div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+          ))
+        )}
       </div>
     </div>
   );

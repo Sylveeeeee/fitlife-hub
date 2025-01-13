@@ -1,32 +1,45 @@
 version: '3.1'
-
 services:
-  nextjs:
-    build:
-      context: .
-      dockerfile: Dockerfile
+  node-server:
+    build: . # ตำแหน่ง Dockerfile
     ports:
-      - "3000:3000"
-    environment:
-      DATABASE_URL: mysql://root:1234@db:3306/fitlifehub
+      - "3000:3000" # Next.js ใช้ port 3000 เป็นค่าเริ่มต้น
+    env_file:
+      - .env
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     volumes:
-      - .:/app
-      - /app/node_modules
-
+      - .:/usr/src/app # แชร์โค้ดทั้งหมดเพื่อรองรับการพัฒนา
+    command: sh -c "npx prisma generate && npm run dev" # ใช้ Prisma generate ก่อนรัน
   db:
     image: mariadb
     restart: always
+    env_file:
+      - .env
     environment:
-      MARIADB_ROOT_PASSWORD: root
-      MARIADB_DATABASE: fitlifehub
-      MARIADB_USER: root
-      MARIADB_PASSWORD: 1234
-    ports:
-      - "3306:3306"
+      MARIADB_ROOT_PASSWORD: ${DB_PASS}
     volumes:
+      - ./mysql:/docker-entrypoint-initdb.d:z
       - dbdata:/var/lib/mysql
-
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: mariadb-admin ping -h 127.0.0.1 -u ${DB_USER} --password=${DB_PASS}
+      start_period: 5s
+      interval: 5s
+      timeout: 5s
+      retries: 40
+  phpmyadmin:
+    image: phpmyadmin
+    restart: always
+    ports:
+      - "8080:80"
+    depends_on:
+      - db
+    environment:
+      PMA_HOST: ${DB_HOST}
+      PMA_USER: ${DB_USER}
+      PMA_PASSWORD: ${DB_PASS}
 volumes:
-  dbdata:
+  dbdata: {}
