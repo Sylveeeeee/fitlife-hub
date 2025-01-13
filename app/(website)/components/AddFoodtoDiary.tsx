@@ -17,12 +17,15 @@ interface Food {
 const AddFoodtoDiary: React.FC<ModalProps> = ({ isOpen, closeModal }) => {
   const [foods, setFoods] = useState<Food[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("All"); // ตั้งค่าเริ่มต้นเป็น "All"
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
-  // เรียก API เพื่อดึงข้อมูลอาหารตามหมวดหมู่ที่เลือก
+  // เรียก API เพื่อดึงข้อมูลอาหารตามหมวดหมู่ที่เลือกและคำค้นหา
   useEffect(() => {
     const fetchFoods = async () => {
       try {
-        const response = await fetch(`/api/foods?category=${selectedCategory}`); // ส่งหมวดหมู่ที่เลือกไปใน API
+        const response = await fetch(
+          `/api/auth/foods?category=${selectedCategory}&search=${searchQuery}` // ส่งหมวดหมู่และคำค้นหาไปใน API
+        );
         if (!response.ok) {
           throw new Error("Failed to fetch foods");
         }
@@ -36,13 +39,18 @@ const AddFoodtoDiary: React.FC<ModalProps> = ({ isOpen, closeModal }) => {
     if (isOpen) {
       fetchFoods(); // โหลดข้อมูลเมื่อ modal เปิด
     }
-  }, [isOpen, selectedCategory]); // เมื่อ isOpen หรือ selectedCategory เปลี่ยนแปลงให้โหลดข้อมูลใหม่
+  }, [isOpen, selectedCategory, searchQuery]); // เมื่อ isOpen, selectedCategory หรือ searchQuery เปลี่ยนแปลงให้โหลดข้อมูลใหม่
 
   if (!isOpen) return null; // หาก modal ปิดก็ไม่ต้องแสดงอะไร
 
   // ฟังก์ชันที่ใช้เปลี่ยนหมวดหมู่ที่เลือก
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category); // เปลี่ยนหมวดหมู่ที่เลือก
+  };
+
+  // ฟังก์ชันค้นหา
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value); // เปลี่ยนคำค้นหา
   };
 
   return (
@@ -60,8 +68,19 @@ const AddFoodtoDiary: React.FC<ModalProps> = ({ isOpen, closeModal }) => {
             <IoMdClose />
           </button>
         </div>
-        <div className="py-[5]">Search</div>
-        <div className="mt-">
+
+        <div className="py-[5]">
+          {/* ช่องค้นหาข้อมูล */}
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={handleSearchChange}
+            placeholder="Search for food"
+            className="border p-2 rounded mt-4 mb-4 w-full"
+          />
+        </div>
+
+        <div className="mt-4">
           <div className="flex mb-[5] mt-[9]">
             <div className="">
               {/* ปุ่มหมวดหมู่ */}
@@ -89,19 +108,21 @@ const AddFoodtoDiary: React.FC<ModalProps> = ({ isOpen, closeModal }) => {
               </div>
             </div>
           </div>
+
           <div className="bg-[#0000001c] flex justify-between text-[18px] font-semibold pl-[10]">
             <span className="py-[6]">Description</span>
             <span className="py-[6] pr-[100]">Source</span>
           </div>
+
           {/* แสดงข้อมูลอาหาร */}
           {foods.length === 0 ? (
             <div className="text-center py-4">No foods available</div>
           ) : (
             foods.map((food) => (
               <div key={food.id} className="bg-[#00000009] pl-[10] py-[4]">
-                <div className="flex justify-between"> 
-                <div>{food.name}</div>
-                <div className="pr-[110] text-center">{food.source}</div>
+                <div className="flex justify-between">
+                  <div>{food.name}</div>
+                  <div className="pr-[110] text-center">{food.source}</div>
                 </div>
               </div>
             ))

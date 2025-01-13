@@ -17,7 +17,6 @@ export default function Diary() {
     };
     return (
       <>
-      <body className="bg-[#e2e2e2]"></body>
       <div className=" "><AddFoodtoDiary isOpen={isModalOpen} closeModal={closeModal}/></div>
       <div className="">
       <div className= "text-black font-mono flex justify-between mx-[200px]">

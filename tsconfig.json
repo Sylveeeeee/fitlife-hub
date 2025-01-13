@@ -22,6 +22,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/(website)/components/DoughnutChart.tsx", "app/api/foods/route.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/(website)/components/DoughnutChart.tsx", "app/api/auth/foods/route.ts", "app/api/auth/register/route.ts", "app/api/login/login.js"],
   "exclude": ["node_modules"]
 }

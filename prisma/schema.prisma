@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id    BigInt  @id @default(autoincrement())
+  name  String  @unique
+  users users[] @relation("UserRole")
+
+  @@map("roles")
+}
+
+model users {
+  id             Int                   @id @default(autoincrement())
+  email          String                @unique(map: "email") @db.VarChar(255)
+  password       String                @db.VarChar(255)
+  username       String?               @unique @db.VarChar(100)
+  name           String?               @db.VarChar(100)
+  age            Int?
+  gender         users_gender?
+  weight         Float?                @db.Float
+  height         Float?                @db.Float
+  activity_level users_activity_level?
+  diet_goal      users_diet_goal?
+  created_at     DateTime?             @default(now()) @db.Timestamp(0)
+  updated_at     DateTime?             @default(now()) @db.Timestamp(0)
+  diet_goals     diet_goals[]
+  meal_records   meal_records[]
+  workouts       workouts[]
+
+  role   Role?   @relation("UserRole", fields: [roleId], references: [id], onDelete: Cascade)
+  roleId BigInt?
+}
+
+model diet_goals {
+  id             Int       @id @default(autoincrement())
+  user_id        Int
+  daily_calories Float     @db.Float
+  daily_protein  Float?    @default(0) @db.Float
+  daily_carbs    Float?    @default(0) @db.Float
+  daily_fat      Float?    @default(0) @db.Float
+  created_at     DateTime? @default(now()) @db.Timestamp(0)
+  updated_at     DateTime? @default(now()) @db.Timestamp(0)
+  users          users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "diet_goals_ibfk_1")
+
+  @@index([user_id], map: "user_id")
+}
+
+model foods {
+  id           Int                 @id @default(autoincrement())
+  name         String              @db.VarChar(255)
+  calories     Decimal?            @default(0.00) @db.Decimal(5, 2)
+  protein      Decimal?            @default(0.00) @db.Decimal(5, 2)
+  carbs        Decimal?            @default(0.00) @db.Decimal(5, 2)
+  fat          Decimal?            @default(0.00) @db.Decimal(5, 2)
+  created_at   DateTime?           @default(now()) @db.Timestamp(0)
+  updated_at   DateTime?           @default(now()) @db.Timestamp(0)
+  category     String?             @db.VarChar(255)
+  source       String?             @db.VarChar(255)
+  type_of_food foods_type_of_food?
+  meal_items   meal_items[]
+}
+
+model meal_items {
+  id             Int          @id @default(autoincrement())
+  meal_record_id Int
+  food_id        Int
+  quantity       Float        @db.Float
+  calories       Float        @db.Float
+  meal_records   meal_records @relation(fields: [meal_record_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "meal_items_ibfk_1")
+  foods          foods        @relation(fields: [food_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "meal_items_ibfk_2")
+
+  @@index([food_id], map: "food_id")
+  @@index([meal_record_id], map: "meal_record_id")
+}
+
+model meal_records {
+  id             Int                     @id @default(autoincrement())
+  user_id        Int
+  meal_type      meal_records_meal_type?
+  date           DateTime                @db.Date
+  total_calories Float?                  @default(0) @db.Float
+  created_at     DateTime?               @default(now()) @db.Timestamp(0)
+  updated_at     DateTime?               @default(now()) @db.Timestamp(0)
+  meal_items     meal_items[]
+  users          users                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "meal_records_ibfk_1")
+
+  @@index([user_id], map: "user_id")
+}
+
+model workouts {
+  id              Int      @id @default(autoincrement())
+  user_id         Int
+  activity        String   @db.VarChar(255)
+  duration        Int
+  calories_burned Float    @db.Float
+  date            DateTime @db.Date
+  users           users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "workouts_ibfk_1")
+
+  @@index([user_id], map: "user_id")
+}
+
+enum meal_records_meal_type {
+  breakfast
+  lunch
+  dinner
+  snack
+}
+
+enum users_gender {
+  male
+  female
+  other
+}
+
+enum users_activity_level {
+  sedentary
+  light
+  moderate
+  active
+  very_active @map("very active")
+}
+
+enum users_diet_goal {
+  weight_loss
+  muscle_gain
+  maintenance
+}
+
+enum foods_type_of_food {
+  Vegetarian
+  Non_Vegetarian @map("Non-Vegetarian")
+  Vegan
+  Gluten_Free    @map("Gluten-Free")
+}
