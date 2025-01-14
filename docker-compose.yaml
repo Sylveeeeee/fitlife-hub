@@ -18,12 +18,13 @@ services:
     env_file:
       - .env
     environment:
-      MARIADB_ROOT_PASSWORD: ${DB_PASS}
+      MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: fitlifehub
     volumes:
       - ./mysql:/docker-entrypoint-initdb.d:z
       - dbdata:/var/lib/mysql
     ports:
-      - "3307:3306"
+      - "3306:3306"
     healthcheck:
       test: mariadb-admin ping -h 127.0.0.1 -u ${DB_USER} --password=${DB_PASS}
       start_period: 5s

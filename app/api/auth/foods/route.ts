@@ -36,7 +36,20 @@ export async function GET(req: Request) {
 
     return NextResponse.json(foods) // ส่งข้อมูลกลับในรูปแบบ JSON
   } catch (error) {
-    console.error('Database error:', error)
-    return NextResponse.error()
+    if (error instanceof Error) {
+      console.error('Database error:', error.message)
+
+      return NextResponse.json(
+        { error: 'Internal Server Error', details: error.message },
+        { status: 500 }
+      )
+    } else {
+      console.error('Unknown error occurred:', error)
+
+      return NextResponse.json(
+        { error: 'Unknown error occurred' },
+        { status: 500 }
+      )
+    }
   }
 }
