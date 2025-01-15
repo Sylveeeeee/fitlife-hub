@@ -4,8 +4,6 @@ import { VscDiffAdded } from "react-icons/vsc";
 export default function Home() {
     return (
       <>
-      <body className="bg-[#e2e2e2]">
-      </body>
       <div className= "text-black font-mono flex flex-col mx-[200px]  ">
        <div className="py-[15] text-[24px] mt-[30px] font-semibold">Your Dashboard</div>
        <div className="bg-white w-auto flex justify-between pl-[30] rounded-[4npm install react-icons --save] ">
