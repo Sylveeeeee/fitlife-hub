@@ -11,7 +11,7 @@ export default function WebsiteLayout({
       <>
       <div className="w-full h-[100]  flex items-center justify-between ">
         <div className="">
-          <div className = "  ml-[100]  text-[16px] font-mono text-[#000]">FITLIFE_HUB ฟหกฟหก </div>
+          <div className = "  ml-[100]  text-[16px] font-mono text-[#000]">FITLIFE_HUB  </div>
         </div>
         <div className="font-mono text-[#000] h-[100] items-center mr-[30] flex">
         <Link href = "/">

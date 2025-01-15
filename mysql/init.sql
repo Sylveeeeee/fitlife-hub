@@ -18,6 +18,9 @@
 --
 -- Table structure for table `_prisma_migrations`
 --
+CREATE DATABASE IF NOT EXISTS fitlifehub;
+
+USE fitlifehub;
 
 DROP TABLE IF EXISTS `_prisma_migrations`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
