@@ -1,48 +1,46 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
-  
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // การใช้ useRouter ทำงานที่นี่จะทำให้มั่นใจว่าทำงานใน client side
-    }
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(''); // Reset error state
+    setError('');
     setSuccessMessage('');
 
     try {
-      // Log the data to check if email and password are correct
-      console.log({ email, password });
-
       const res = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json', // Ensure you're sending JSON
-        },
-        body: JSON.stringify({ email, password }), // Make sure data is correctly stringified
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
       });
 
-      // Check if the response is ok or not
       if (!res.ok) {
-        throw new Error('Invalid credentials');
+        const data: { message: string } = await res.json();
+        throw new Error(data.message || 'Login failed');
       }
 
-      const data = await res.json();
-      console.log('Login response data:', data);
-      localStorage.setItem('token', data.token); // Store token in localStorage
-      setSuccessMessage('Login successful');
+      const data = await res.json(); // รับข้อมูลจาก API รวมถึง role
+      setSuccessMessage('Login successful!');
+      setEmail('');
+      setPassword('');
+
+      // หน่วงเวลา 2 วินาที (2000ms) ก่อนพาไปหน้า
+      setTimeout(() => {
+        if (data.role === 'admin') {
+          router.push('/dashboard');  // ไปยังหน้า admin dashboard
+        } else {
+          router.push('/');  // ไปยังหน้าหลัก
+        }
+      }, 1000); // ปรับเวลาได้ตามต้องการ
 
     } catch (err) {
       if (err instanceof Error) {
@@ -60,10 +58,10 @@ export default function LoginPage() {
           <div className="text-center">
             <h1 className="text-2xl font-bold mb-4">LOGIN</h1>
             <Image
-              src="/sp2.png" 
-              alt="illustration" 
+              src="/sp2.png"
+              alt="illustration"
               width={500}
-              height={300} 
+              height={300}
             />
           </div>
         </div>

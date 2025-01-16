@@ -1,37 +1,60 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
 
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const { username, email, password } = await request.json();
+    const { email, password } = await req.json();
 
-    // ตรวจสอบว่าอีเมลมีในฐานข้อมูลหรือยัง
+    // ตรวจสอบข้อมูลที่ได้รับ
+    if (!email || !password) {
+      return new NextResponse('Invalid input', { status: 400 });
+    }
+
+    // ตรวจสอบว่าอีเมลมีการใช้งานแล้วหรือไม่
     const existingUser = await prisma.users.findUnique({
       where: { email },
     });
 
     if (existingUser) {
-      return new NextResponse('Email already exists', { status: 400 });
+      return new NextResponse('Email already registered', { status: 400 });
     }
 
-    // เข้ารหัสรหัสผ่าน
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // สร้างผู้ใช้ใหม่ในฐานข้อมูล
+    // สร้างผู้ใช้ใหม่
+    const role = await prisma.role.findUnique({ where: { name: 'user' } });
+    if (!role) {
+      throw new Error('Role not found');
+    }
+
     const newUser = await prisma.users.create({
       data: {
-        username,
         email,
         password: hashedPassword,
+        roleId: role.id,
       },
     });
 
-    return NextResponse.json({ message: 'Registration successful', user: newUser });
+    if (!newUser) {
+      throw new Error('Failed to create user');
+    }
+
+    // สร้าง JWT token
+    const token = jwt.sign(
+      { userId: newUser.id, role: role.name },
+      process.env.JWT_SECRET as string,
+      { expiresIn: '1h' }
+    );
+
+    // ส่งข้อมูลสำเร็จ
+    return NextResponse.json({ message: 'Registration successful', token });
   } catch (error) {
-    console.error(error);
+    console.error('Error:', error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
