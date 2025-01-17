@@ -2,7 +2,7 @@
 import { VscDiffAdded } from "react-icons/vsc";
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import Posts from "./components/Posts";
+import Posts from "./components/post";
 
 
 export default function Home() {

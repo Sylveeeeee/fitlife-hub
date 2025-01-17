@@ -1,8 +1,7 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import {prisma} from '@/lib/prisma'; // สร้าง Prisma Client ใน lib/prisma.ts
+const { prisma } = require('@/lib/prisma'); // นำเข้าจาก lib/prisma.js
 
 // Handle GET and POST Requests
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       // ดึงข้อมูลโพสต์ทั้งหมดจาก Prisma
