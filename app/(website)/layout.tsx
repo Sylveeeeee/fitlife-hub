@@ -69,7 +69,9 @@ export default function WebsiteLayout({
             <Link href="/diary">
               <button className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent">DIARY</button>
             </Link>
+            <Link href="/posts">
             <button className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent">POST</button>
+            </Link>
             <button className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent">BMI</button>
 
             {/* แสดงข้อมูลผู้ใช้หรือแสดง icon login */}
