@@ -1,52 +1,41 @@
-// pages/api/auth/posts.ts
-import { NextApiRequest, NextApiResponse } from 'next';
-import db from '@/lib/db'; // นำเข้าการเชื่อมต่อกับฐานข้อมูลจาก lib/db.ts
+import { NextRequest, NextResponse } from 'next/server'; // ใช้ NextRequest, NextResponse แทน NextApiRequest, NextApiResponse
+import db from '@/lib/db'; // เชื่อมต่อกับฐานข้อมูล
 
 // ฟังก์ชันเพื่อดึงข้อมูลโพสต์ทั้งหมด
-const getPosts = async (req: NextApiRequest, res: NextApiResponse) => {
-  try {
-    // ใช้ PrismaClient เพื่อดึงข้อมูลโพสต์ทั้งหมดจากฐานข้อมูล
-    const posts = await db.post.findMany({
-      orderBy: {
-        createdAt: 'desc', // เรียงลำดับจากโพสต์ล่าสุด
-      },
-    });
-    res.status(200).json(posts); // ส่งข้อมูลโพสต์กลับ
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Database error while fetching posts' });
+export async function GET() {
+    try {
+      const posts = await db.post.findMany({
+        orderBy: {
+          createdAt: 'desc', // เรียงลำดับจากโพสต์ล่าสุด
+        },
+      });
+      return NextResponse.json(posts); // ส่งข้อมูลโพสต์กลับ
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      return NextResponse.json({ error: 'Database error while fetching posts' }, { status: 500 });
+    }
   }
-};
+  
 
 // ฟังก์ชันเพื่อสร้างโพสต์ใหม่
-const createPost = async (req: NextApiRequest, res: NextApiResponse) => {
-  const { content } = req.body;
-  if (!content) {
-    return res.status(400).json({ error: 'Content is required' });
+export async function POST(req: NextRequest) {
+    const { content } = await req.json(); // ใช้ req.json() เพื่อดึงข้อมูล JSON จาก body ของคำขอ
+    
+    if (!content) {
+      return NextResponse.json({ error: 'Content is required' }, { status: 400 });
+    }
+  
+    try {
+      const newPost = await db.post.create({
+        data: {
+          content,
+          createdAt: new Date(),
+        },
+      });
+      return NextResponse.json(newPost, { status: 201 }); // ส่งข้อมูลโพสต์ใหม่กลับ
+    } catch (error) {
+      console.error('Error creating post:', error);
+      return NextResponse.json({ error: 'Database error while creating post' }, { status: 500 });
+    }
   }
-
-  try {
-    // ใช้ PrismaClient เพื่อสร้างโพสต์ใหม่ในฐานข้อมูล
-    const newPost = await db.post.create({
-      data: {
-        content,
-        createdAt: new Date(),
-      },
-    });
-    res.status(201).json(newPost); // ส่งข้อมูลโพสต์ใหม่กลับ
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Database error while creating post' });
-  }
-};
-
-// ฟังก์ชันสำหรับการจัดการ API
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === 'GET') {
-    return getPosts(req, res); // ดึงโพสต์ทั้งหมด
-  } else if (req.method === 'POST') {
-    return createPost(req, res); // สร้างโพสต์ใหม่
-  } else {
-    res.status(405).json({ error: 'Method not allowed' });
-  }
-}
+  
