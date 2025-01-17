@@ -8,7 +8,7 @@ interface Post {
 }
 
 export default function Post() {
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [, setPosts] = useState<Post[]>([]);
   const [content, setContent] = useState('');
 
   // ดึงข้อมูลโพสต์จาก API เมื่อ component โหลดครั้งแรก
