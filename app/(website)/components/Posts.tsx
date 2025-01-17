@@ -1,4 +1,4 @@
-"use cilent";
+'use client';
 import { useState, useEffect } from 'react';
 
 interface Post {
@@ -66,19 +66,11 @@ export default function Post() {
         />
         <button
           type="submit"
-          className="w-full py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 border-solid"
+          className="w-full py-2 bg-black text-white rounded-md hover:bg-[#000000d5] hover:text-white"
         >
-          Submit
+          SUBMIT
         </button>
       </form>
-      <div className="mt-8 space-y-4">
-        {posts.map((post) => (
-          <div key={post.id} className="p-4 border border-gray-200 rounded-md shadow-sm">
-            <p className="text-lg">{post.content}</p>
-            <small className="text-gray-500">{new Date(post.createdAt).toLocaleString()}</small>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

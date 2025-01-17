@@ -41,33 +41,26 @@ export default function PostPage() {
 
   return (
     <>
-    <div className= "text-black font-mono">
-      {posts.length === 0 ? (
-        <p>No posts available</p> // หากไม่มีโพสต์จะแสดงข้อความนี้
-      ) : (
-        posts.map((post) => (
-          <div key={post.id} className="max-w-sm rounded overflow-hidden shadow-lg bg-white ml-[100px] mb-4">
-            <img
-              className="w-full h-48 object-cover"
-              src="https://via.placeholder.com/400"
-              alt="Card Image"
-            />
-            <div className="px-6 py-4">
-              <h2 className="text-xl font-semibold mb-2">{post.content}</h2>
-              <p className="text-gray-700 text-base">{post.content}</p>
-            </div>                                                
-            <div className="px-6 py-4 flex justify-between items-center">
-              <span className="text-gray-500 text-sm">
-                {new Date(post.createdAt).toLocaleString()} {/* แสดงวันที่ */}
-              </span>
-              <button className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
-                Read More
-              </button>
-            </div>
-          </div>
-        ))
-      )}     
-    </div>
+    <div className="flex flex-wrap gap-4 justify-start ml-[140px]">
+  {posts.length === 0 ? (
+    <p>No posts available</p> // หากไม่มีโพสต์จะแสดงข้อความนี้
+  ) : (
+    posts.map((post) => (
+      <div key={post.id} className="w-[300px] h-auto rounded overflow-hidden shadow-lg bg-white">
+        <div className="px-6 py-4">
+          <p className="text-gray-700 text-base">{post.content}</p>
+        </div>                                                 
+        <div className="px-6 py-4 flex justify-between items-center">
+          <span className="text-gray-500 text-sm">
+            {new Date(post.createdAt).toLocaleString()} {/* แสดงวันที่ */}
+          </span>
+        </div>
+      </div>
+    ))
+  )}
+</div>
+
+
     </>
   );
 }
