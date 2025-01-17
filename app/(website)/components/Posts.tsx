@@ -2,9 +2,16 @@
 'use client';
 import { useState, useEffect } from 'react';
 
-export default function Home() {
-  const [posts, setPosts] = useState([]);
-  const [content, setContent] = useState('');
+// กำหนดประเภทของโพสต์
+interface Post {
+  id: number;
+  content: string;
+  createdAt: string;
+}
+
+export default function Post() {
+  const [posts, setPosts] = useState<Post[]>([]); // กำหนดประเภทของ posts
+  const [content, setContent] = useState<string>(''); // กำหนดประเภทของ content
 
   // ดึงข้อมูลโพสต์จาก API เมื่อ component โหลดครั้งแรก
   useEffect(() => {
@@ -13,8 +20,8 @@ export default function Home() {
 
   const fetchPosts = async () => {
     try {
-      const response = await fetch('/api/posts'); // เรียก API
-      const data = await response.json();
+      const response = await fetch('/api/auth/posts'); // เรียก API
+      const data: Post[] = await response.json(); // กำหนดประเภทของ data
       setPosts(data.reverse()); // เรียงโพสต์ใหม่จากล่าสุดไปเก่าสุด
     } catch (error) {
       console.error('Error fetching posts:', error);
@@ -30,7 +37,7 @@ export default function Home() {
 
     try {
       // ส่งข้อมูลโพสต์ไปยัง API
-      const response = await fetch('/api/posts', {
+      const response = await fetch('/api/auth/posts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -61,12 +68,16 @@ export default function Home() {
         <button type="submit">Submit</button>
       </form>
       <div>
-        {posts.map((post) => (
-          <div key={post.id}>
-            <p>{post.content}</p>
-            <small>{new Date(post.createdAt).toLocaleString()}</small>
-          </div>
-        ))}
+        {posts.length > 0 ? (
+          posts.map((post) => (
+            <div key={post.id}>
+              <p>{post.content}</p>
+              <small>{`Posted on: ${new Date(post.createdAt).toLocaleString()}`}</small>
+            </div>
+          ))
+        ) : (
+          <p>No posts yet. Write something to get started!</p>
+        )}
       </div>
     </div>
   );

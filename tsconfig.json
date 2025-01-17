@@ -22,6 +22,15 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/(website)/components/DoughnutChart.tsx", "app/api/auth/foods/route.ts", "app/api/auth/register/route.ts", "app/api/login/login.js"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "app/(website)/components/DoughnutChart.tsx",
+    "app/api/auth/foods/route.ts",
+    "app/api/auth/register/route.ts",
+    "node_modules/@prisma/client"
+        ],
   "exclude": ["node_modules"]
 }

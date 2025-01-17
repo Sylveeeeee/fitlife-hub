@@ -1,45 +1,9 @@
 'use client';
 import { VscDiffAdded } from "react-icons/vsc";
-import { useState, useEffect } from 'react';
-import axios from 'axios';
 import Posts from "./components/Posts";
 
 
 export default function Home() {
-    const [posts, setPosts] = useState([]);
-    const [content, setContent] = useState('');
-  
-    // ดึงข้อมูลโพสต์จาก API เมื่อ Component โหลดครั้งแรก
-    useEffect(() => {
-      fetchPosts();
-    }, []);
-  
-    const fetchPosts = async () => {
-      try {
-        const response = await axios.get('/api/posts'); // เรียก API
-        setPosts(response.data.reverse()); // เรียงโพสต์ใหม่จากล่าสุดไปเก่าสุด
-      } catch (error) {
-        console.error('Error fetching posts:', error);
-      }
-    };
-  
-    const handlePostSubmit = async (e: { preventDefault: () => void; }) => {
-      e.preventDefault();
-      if (!content.trim()) {
-        alert('Content cannot be empty!');
-        return;
-      }
-  
-      try {
-        await axios.post('/api/posts', { content }); // ส่งข้อมูลโพสต์ไปยัง API
-        setContent(''); // เคลียร์ input
-        fetchPosts(); // ดึงโพสต์ใหม่หลังจากเพิ่ม
-      } catch (error) {
-        console.error('Error creating post:', error);
-      }
-    };
-  
-  
     return (
       <>
       <div className= "text-black font-mono flex flex-col mx-[200px]  ">
