@@ -1,8 +1,8 @@
 import { useState } from 'react';
 
 const WaterTracker = () => {
-  const [glasses, setGlasses] = useState([]);
-  const maxGlasses = 8;
+    const [glasses, setGlasses] = useState<number[]>([]); // ระบุประเภทว่าเป็นอาร์เรย์ของ number
+    const maxGlasses = 8;
 
   const addGlass = () => {
     if (glasses.length < maxGlasses) {
@@ -19,13 +19,13 @@ const WaterTracker = () => {
   };
 
   return (
-    <div className='text-center m-[50px] p-[50] max-w-[500px] bg-white'>
-      <h1>Water Tracker</h1>
-      <div style={styles.glassContainer}>
+    <div className='text-center m-[20px] p-[20px] max-w-[450px] bg-white rounded-[10px]'>
+      <h1 className='text-[20px]'>WATER TRACKER</h1>
+      <div className='flex ml-[2px]'>
         {glasses.map((glass, index) => (
           <img
             key={index}
-            src="/water-glass.png" // รูปแก้วน้ำ
+            src="/glass.png" // รูปแก้วน้ำ
             alt="Water Glass"
             className="w-[70px]"
             style={styles.glass}
@@ -89,7 +89,7 @@ const styles = {
     cursor: 'pointer',
     borderRadius: '5px',
     border: 'none',
-    backgroundColor: '#0070f3',
+    backgroundColor: 'black',
     color: 'white',
     transition: 'opacity 0.2s',
   },

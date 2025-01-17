@@ -149,3 +149,10 @@ enum foods_type_of_food {
   Gluten_Free    @map("Gluten-Free")
 }
 
+model Glass {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  count     Int
+  createdAt DateTime @default(now())
+}
+
