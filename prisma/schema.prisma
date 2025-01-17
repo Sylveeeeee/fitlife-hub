@@ -140,3 +140,9 @@ enum foods_type_of_food {
   Vegan
   Gluten_Free    @map("Gluten-Free")
 }
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  content   String
+  createdAt DateTime @default(now())
+}
