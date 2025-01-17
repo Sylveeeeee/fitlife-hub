@@ -2,32 +2,35 @@ import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { z } from 'zod';
+import { serialize } from 'cookie';
 
 const prisma = new PrismaClient();
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET is not defined in environment variables');
+}
+
+const userSchema = z.object({
+  email: z.string().email('Invalid email format'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+});
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await req.json();
+    const data = await req.json();
+    const { email, password } = userSchema.parse(data);
 
-    // ตรวจสอบข้อมูลที่ได้รับ
-    if (!email || !password) {
-      return new NextResponse('Invalid input', { status: 400 });
-    }
-
-    // ตรวจสอบว่าอีเมลมีการใช้งานแล้วหรือไม่
-    const existingUser = await prisma.users.findUnique({
-      where: { email },
-    });
-
+    const existingUser = await prisma.users.findUnique({ where: { email } });
     if (existingUser) {
       return new NextResponse('Email already registered', { status: 400 });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 12);
 
-    // สร้างผู้ใช้ใหม่
-    const role = await prisma.role.findUnique({ where: { name: 'user' } });
+    const DEFAULT_ROLE = 'user';
+    const role = await prisma.role.findUnique({ where: { name: DEFAULT_ROLE } });
     if (!role) {
       throw new Error('Role not found');
     }
@@ -40,19 +43,24 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    if (!newUser) {
-      throw new Error('Failed to create user');
-    }
-
-    // สร้าง JWT token
     const token = jwt.sign(
       { userId: newUser.id, role: role.name },
-      process.env.JWT_SECRET as string,
+      process.env.JWT_SECRET as string,  // ใช้ process.env.JWT_SECRET
       { expiresIn: '1h' }
     );
+    
+    const cookie = serialize('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 3600,
+    });
 
-    // ส่งข้อมูลสำเร็จ
-    return NextResponse.json({ message: 'Registration successful', token });
+    const response = NextResponse.json({ message: 'Registration successful' });
+    response.headers.append('Set-Cookie', cookie);
+
+    return response;
   } catch (error) {
     console.error('Error:', error);
     return new NextResponse('Internal Server Error', { status: 500 });

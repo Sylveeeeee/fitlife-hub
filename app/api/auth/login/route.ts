@@ -1,17 +1,37 @@
-// app/api/auth/login/route.ts
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma'; // ใช้ Prisma Client
+import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { serialize } from 'cookie';
+import * as z from 'zod';
+
+// สร้าง schema สำหรับตรวจสอบข้อมูลที่ได้รับจาก client
+const LoginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters long'),
+});
 
 export async function POST(request: Request) {
-  const { email, password } = await request.json();
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET is not defined in the environment variables');
+  }
 
   try {
-    // ค้นหาผู้ใช้จากฐานข้อมูล พร้อมดึงข้อมูล role
+    const body = await request.json();
+
+    // ตรวจสอบความถูกต้องของข้อมูลที่ได้รับจาก client
+    const parsedBody = LoginSchema.safeParse(body);
+
+    if (!parsedBody.success) {
+      return NextResponse.json({ message: 'Invalid input', errors: parsedBody.error.errors }, { status: 400 });
+    }
+
+    const { email, password } = parsedBody.data;
+
+    // ค้นหาผู้ใช้จากฐานข้อมูล
     const user = await prisma.users.findUnique({
       where: { email },
-      include: { role: true }, // ดึงข้อมูล role ด้วย
+      include: { role: true },
     });
 
     if (!user) {
@@ -26,24 +46,34 @@ export async function POST(request: Request) {
 
     // สร้าง JWT token
     const token = jwt.sign(
-      { userId: user.id, role: user.role?.name }, // ใช้ role.name
+      { userId: user.id, role: user.role?.name },
       process.env.JWT_SECRET as string,
-      { expiresIn: '1h' }
+      { expiresIn: '1h' } // ตั้งเวลาให้หมดอายุหลัง 1 ชั่วโมง
     );
-
-    // ส่ง JWT token กลับไป
-    return NextResponse.json({
-      message: 'Login successful',
-      token,
-      role: user.role?.name, // ส่งชื่อ role กลับไป
+    console.log('Generated JWT token:', token);
+    // สร้างคุกกี้ที่เก็บ JWT token ด้วย httpOnly, secure, sameSite, และ path
+    const cookie = serialize('token', token, {
+      httpOnly: true,  // ป้องกันไม่ให้เข้าถึงจาก JavaScript
+      secure: process.env.NODE_ENV === 'production',  // ใช้ secure ใน production เท่านั้น
+      sameSite: 'strict',  // ช่วยป้องกัน CSRF
+      path: '/',  // กำหนด path ให้เป็น root
     });
 
+    // ส่งผลลัพธ์กลับไปพร้อมกับ JWT token ที่เก็บใน cookie
+    return new Response(JSON.stringify({ message: 'Login successful', role: user.role?.name }), {
+      status: 200,
+      headers: {
+        'Set-Cookie': cookie,  // ตั้งคุกกี้ใน header
+      },
+    });
   } catch (error) {
     // ตรวจสอบว่า error เป็น instance ของ Error
     if (error instanceof Error) {
-      return NextResponse.json({ message: 'Something went wrong', error: error.message }, { status: 500 });
+      console.error('Error during login:', error.message);
+      return NextResponse.json({ message: 'Internal server error', error: error.message }, { status: 500 });
     } else {
-      return NextResponse.json({ message: 'Something went wrong', error: 'Unknown error occurred' }, { status: 500 });
+      console.error('Unknown error during login:', error);
+      return NextResponse.json({ message: 'Internal server error', error: 'An unexpected error occurred' }, { status: 500 });
     }
   }
 }

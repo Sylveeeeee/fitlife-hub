@@ -11,11 +11,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  
+  const [loading, setLoading] = useState(false);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     setSuccessMessage('');
+    setLoading(true);
 
     try {
       const res = await fetch('/api/auth/login', {
@@ -24,31 +26,24 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const data: { message: string } = await res.json();
-        throw new Error(data.message || 'Login failed');
+        throw new Error(data?.message || 'Login failed');
       }
 
-      const data = await res.json();  // Get response data including role
       setSuccessMessage('Login successful!');
       setEmail('');
       setPassword('');
 
-      // Redirect after a short delay (1 second)
+      const redirectPath = data.role === 'admin' ? '/dashboard' : '/';
       setTimeout(() => {
-        if (data.role === 'admin') {
-          router.push('/dashboard');  // Admin dashboard
-        } else {
-          router.push('/');  // Main page
-        }
-      }, 1000); // Adjust delay as needed
-
+        router.push(redirectPath);
+      }, 1000);
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('Something went wrong');
-      }
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -58,12 +53,7 @@ export default function LoginPage() {
         <div className="flex-1 flex items-center justify-center p-8 bg-[#213A58] text-white">
           <div className="text-center">
             <h1 className="text-2xl font-bold mb-4">LOGIN</h1>
-            <Image
-              src="/sp2.png"
-              alt="illustration"
-              width={500}
-              height={300}
-            />
+            <Image src="/sp2.png" alt="illustration" width={500} height={300} />
           </div>
         </div>
         <div className="flex-1 p-8">
@@ -99,15 +89,20 @@ export default function LoginPage() {
             </div>
             <button 
               type="submit"
-              className="w-full bg-primary text-primary-foreground bg-black text-white hover:bg-transparent hover:text-black border-solid border-2 border-black p-2 rounded-md"
+              disabled={loading}
+              className={`w-full p-2 rounded-md ${
+                loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-black text-white hover:bg-transparent hover:text-black border-solid border-2 border-black'
+              }`}
             >
-              Login
+              {loading ? 'Logging in...' : 'Login'}
             </button>
           </form>
           {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
           {successMessage && <p className="mt-4 text-sm text-green-500">{successMessage}</p>}
-          <p className="mt-4 text-sm text-muted-foreground text-black">Don&apos;t have an account yet? <Link href="/register" className="text-primary underline underline-offset hover:text-slate-400">Create an account</Link></p>
-          <p className="mt-2 text-sm text-muted-foreground text-[#213A58]"><a href="#" className="text-primary">Forgot Password?</a></p>
+          <p className="mt-4 text-sm text-muted-foreground text-black">
+            Don&apos;t have an account yet? <Link href="/register" className="text-primary underline underline-offset hover:text-slate-400">Create an account</Link>
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground text-[#213A58]"><Link href="/forgot-password" className="text-primary">Forgot Password?</Link></p>
         </div>
       </div>
     </div>
