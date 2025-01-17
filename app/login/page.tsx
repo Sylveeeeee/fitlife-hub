@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -10,7 +11,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-
+  
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
@@ -28,19 +29,19 @@ export default function LoginPage() {
         throw new Error(data.message || 'Login failed');
       }
 
-      const data = await res.json(); // รับข้อมูลจาก API รวมถึง role
+      const data = await res.json();  // Get response data including role
       setSuccessMessage('Login successful!');
       setEmail('');
       setPassword('');
 
-      // หน่วงเวลา 2 วินาที (2000ms) ก่อนพาไปหน้า
+      // Redirect after a short delay (1 second)
       setTimeout(() => {
         if (data.role === 'admin') {
-          router.push('/dashboard');  // ไปยังหน้า admin dashboard
+          router.push('/dashboard');  // Admin dashboard
         } else {
-          router.push('/');  // ไปยังหน้าหลัก
+          router.push('/');  // Main page
         }
-      }, 1000); // ปรับเวลาได้ตามต้องการ
+      }, 1000); // Adjust delay as needed
 
     } catch (err) {
       if (err instanceof Error) {
@@ -52,7 +53,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#e2e2e2]">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#e2e2e2] font-mono">
       <div className="flex flex-col md:flex-row bg-white rounded-lg shadow-lg overflow-hidden">
         <div className="flex-1 flex items-center justify-center p-8 bg-[#213A58] text-white">
           <div className="text-center">
@@ -105,7 +106,7 @@ export default function LoginPage() {
           </form>
           {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
           {successMessage && <p className="mt-4 text-sm text-green-500">{successMessage}</p>}
-          <p className="mt-4 text-sm text-muted-foreground text-black">Don&apos;t have an account yet? <a href="#" className="text-primary">Create an account</a></p>
+          <p className="mt-4 text-sm text-muted-foreground text-black">Don&apos;t have an account yet? <Link href="/register" className="text-primary underline underline-offset hover:text-slate-400">Create an account</Link></p>
           <p className="mt-2 text-sm text-muted-foreground text-[#213A58]"><a href="#" className="text-primary">Forgot Password?</a></p>
         </div>
       </div>

@@ -51,7 +51,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#f5f5f5]">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#f5f5f5] font-mono">
       <div className="flex flex-col md:flex-row bg-white rounded-lg shadow-lg overflow-hidden w-full max-w-4xl">
         {/* Left Section (Image) */}
         <div className="flex-1 flex items-center justify-center p-8 bg-[#213A58] text-white">
