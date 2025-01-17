@@ -1,7 +1,6 @@
 'use client';
 import { VscDiffAdded } from "react-icons/vsc";
 import Posts from "./components/Posts";
-import WaterTracker from "./components/WaterTracker";
 
 
 export default function Home() {
@@ -19,8 +18,7 @@ export default function Home() {
         </div>
        </div>
        <Posts />
-       <WaterTracker />
         </div>        
       </>
     );
-  } 
+}
