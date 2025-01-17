@@ -108,7 +108,7 @@ model workouts {
   @@index([user_id], map: "user_id")
 }
 
-model Post {
+model post {
   id        Int      @id @default(autoincrement())
   content   String
   createdAt DateTime @default(now())
@@ -149,8 +149,3 @@ enum foods_type_of_food {
   Gluten_Free    @map("Gluten-Free")
 }
 
-model Post {
-  id        Int      @id @default(autoincrement())
-  content   String
-  createdAt DateTime @default(now())
-}
