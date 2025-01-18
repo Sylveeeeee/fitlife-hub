@@ -31,7 +31,11 @@ export async function POST(request: Request) {
     // ค้นหาผู้ใช้จากฐานข้อมูล
     const user = await prisma.users.findUnique({
       where: { email },
-      include: { role: true },
+      select: {  // ใช้ select แทน include
+        id: true,
+        password: true,
+        role: true,  // ถ้าหาก role เป็น relation, ใช้ select ในกรณีนี้
+      },
     });
 
     if (!user) {
@@ -46,26 +50,28 @@ export async function POST(request: Request) {
 
     // สร้าง JWT token
     const token = jwt.sign(
-      { userId: user.id, role: user.role?.name },
-      process.env.JWT_SECRET as string,
-      { expiresIn: '1h' } // ตั้งเวลาให้หมดอายุหลัง 1 ชั่วโมง
+      { userId: user.id.toString() }, // แปลง BigInt เป็น string
+      process.env.JWT_SECRET!,
+      { expiresIn: '1h' }
     );
+    
     console.log('Generated JWT token:', token);
     // สร้างคุกกี้ที่เก็บ JWT token ด้วย httpOnly, secure, sameSite, และ path
     const cookie = serialize('token', token, {
       httpOnly: true,  // ป้องกันไม่ให้เข้าถึงจาก JavaScript
       secure: process.env.NODE_ENV === 'production',  // ใช้ secure ใน production เท่านั้น
-      sameSite: 'strict',  // ช่วยป้องกัน CSRF
-      path: '/',  // กำหนด path ให้เป็น root
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 60 * 60,  // กำหนด path ให้เป็น root
     });
-
-    // ส่งผลลัพธ์กลับไปพร้อมกับ JWT token ที่เก็บใน cookie
+    
     return new Response(JSON.stringify({ message: 'Login successful', role: user.role?.name }), {
       status: 200,
       headers: {
         'Set-Cookie': cookie,  // ตั้งคุกกี้ใน header
       },
     });
+    
   } catch (error) {
     // ตรวจสอบว่า error เป็น instance ของ Error
     if (error instanceof Error) {

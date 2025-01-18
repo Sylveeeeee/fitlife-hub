@@ -1,20 +1,27 @@
-import { NextResponse } from 'next/server';
-import { serialize } from 'cookie';
+import { NextRequest, NextResponse } from 'next/server';
 
-export function POST() {
-  // ลบคุกกี้ที่เก็บ JWT token
-  const cookie = serialize('token', '', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    path: '/',
-    maxAge: -1,  // ตั้งค่าให้หมดอายุทันที
-  });
+export async function POST(req: NextRequest) {  // ใช้ 'req' ตามปกติ
+  try {
+    // สมมติว่าคุณต้องการตรวจสอบค่า cookie จาก req
+    const token = req.cookies.get('token');
+    if (!token) {
+      return NextResponse.json({ message: 'Token not found' }, { status: 401 });
+    }
 
-  return new NextResponse('Logged out successfully', {
-    status: 200,
-    headers: {
-      'Set-Cookie': cookie,
-    },
-  });
+    return NextResponse.json(
+      { message: 'Logged out successfully' },
+      {
+        status: 200,
+        headers: {
+          'Set-Cookie': `token=; Path=/; HttpOnly; Secure; Max-Age=0; SameSite=Strict;`,
+        },
+      }
+    );
+  } catch (error) {
+    console.error('Logout error:', error);
+    return NextResponse.json(
+      { message: 'An error occurred while logging out' },
+      { status: 500 }
+    );
+  }
 }

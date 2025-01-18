@@ -2,13 +2,11 @@
 import { FiUser } from "react-icons/fi";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import Cookies from "js-cookie";
-import { jwtDecode } from "jwt-decode";
 
-// สร้าง interface สำหรับโครงสร้าง payload
 interface JwtPayload {
-  userId: number;
+  userId: bigint;
   role: string;
+  email: string;
 }
 
 export default function WebsiteLayout({
@@ -20,49 +18,76 @@ export default function WebsiteLayout({
   const [isPopupOpen, setIsPopupOpen] = useState(false);
 
   useEffect(() => {
-    const token = Cookies.get("token");
-    if (token) {
+    const fetchUserData = async () => {
       try {
-        const decoded = jwtDecode<JwtPayload>(token);
-        console.log("Decoded payload:", decoded);
+        const response = await fetch('/api/auth/protected', {
+          method: 'GET',
+          credentials: 'include', // ส่ง httpOnly cookie ไปพร้อมกับ request
+        });
 
-        if (decoded.userId) {
-          // เรียก API เพื่อดึงข้อมูลผู้ใช้จาก Server
-          fetch(`/api/auth/getUser?userId=${decoded.userId}`)
-            .then(response => response.json())
-            .then(data => {
-              if (data && data.role) {
-                setUser({
-                  userId: data.id,
-                  role: data.role,
-                });
-              } else {
-                console.error("User not found or no role in user data");
-                setUser(null);
-              }
-            })
-            .catch((error) => {
-              console.error("Error fetching user from API:", error);
-              setUser(null);
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.userId && data.role) {
+            const role = typeof data.role === 'object' ? data.role.name : data.role;
+            console.log(data.role);
+
+            console.log('User data:', data);  
+            
+            setUser({
+              userId: data.userId,
+              role: data.role,
+              email: data.email,
             });
+            if (role.toLowerCase() === 'admin') {
+              console.log('User is an admin');
+            }
+          } else {
+            console.error("Invalid user data from server");
+            setUser(null);
+          }
+        } else if (response.status === 401) {
+          console.log("Unauthorized: No valid session");
+          setUser(null);
         } else {
-          console.error("UserId not found in token payload");
+          console.error("Unexpected server error:", response.status);
           setUser(null);
         }
       } catch (error) {
-        console.error("Error decoding token:", error);
+        console.error("Error fetching user data from server:", error);
         setUser(null);
       }
-    } else {
-      setUser(null);
-    }
+    };
+
+    fetchUserData();
   }, []);
 
-  const handleLogout = () => {
-    console.log("Logging out...");
-    Cookies.remove("token");
-    setUser(null);
-    window.location.href = "/login";
+  async function handleLogout() {
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to logout');
+      }
+
+      // ถ้าการ logout สำเร็จ
+      console.log('Logout successful');
+      window.location.reload();  // หรือคุณอาจจะใช้ redirect ไปหน้าอื่น
+    } catch (error) {
+      console.error(error);
+      alert('Error: Failed to logout');
+    }
+  }
+
+  const handleOutsideClick = (e: React.MouseEvent) => {
+    // ถ้าคลิกนอก component ให้ปิด popup
+    if (e.target === e.currentTarget) {
+      setIsPopupOpen(false);  // ปิด popup
+    }
   };
 
   const handlePopupToggle = () => {
@@ -75,33 +100,34 @@ export default function WebsiteLayout({
 
   return (
     <>
-      <div className="w-full h-[100] flex items-center justify-between">
+      <div className="w-full h-[100] flex items-center justify-between"
+        onClick={handleOutsideClick}>
         <div>
           <div className="ml-[100] text-[16px] font-mono text-[#000]">FITLIFE_HUB</div>
         </div>
         <div className="font-mono text-[#000] h-[100] items-center mr-[30] flex">
           <Link href="/">
-            <button className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent">
+            <button className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold">
               DASHBOARD
             </button>
           </Link>
           <Link href="/diary">
-            <button className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent">
+            <button className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold">
               DIARY
             </button>
           </Link>
           <Link href="/posts">
-            <button className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent">
+            <button className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold">
               POST
             </button>
           </Link>
-          <button className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent">
+          <button className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold">
             BMI
           </button>
           {user ? (
-            <div className="flex items-center relative">
+            <div className="flex items-center relative ">
               <button
-                className="h-[40] w-[120px] text-center rounded-full mx-[10px] flex justify-center items-center bg-[#213A58] text-white"
+                className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold"
                 onClick={handlePopupToggle}
               >
                 Account
@@ -119,31 +145,37 @@ export default function WebsiteLayout({
           )}
         </div>
       </div>
-
       {isPopupOpen && user && (
-        <div className="fixed top-10 right-10 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4 rounded-lg">
-          <div className="bg-white p-6 rounded-lg w-[300px]">
-            <h2 className="text-lg font-bold mb-4">User Profile</h2>
+        <div
+          className="fixed w-full h-full top-16 flex justify-center items-center font-mono text-[#000]"
+          onClick={handleOutsideClick}  // ทำการปิด modal เมื่อคลิกนอก
+        >
+          <div
+            className="bg-white p-6 w-[400px] shadow-lg fixed top-20 right-10"
+            onClick={(e) => e.stopPropagation()}  // หยุดการ propagate event
+          >
+            <h2 className="text-lg font-bold mb-4">Current Account</h2>
             <div>
-              <p>UserId: {user.userId}</p>
-              <p>Role: {user.role}</p>
+              <p>Email: {user.email}</p>
               <Link href="/edit-profile">
-                <button className="w-full bg-[#213A58] text-white mt-4 p-2 rounded-md">
+                <button className="w-full bg-[#000000] text-white mt-4 p-2 hover:shadow-md hover:shadow-[#000000cc] ">
                   Edit Profile
                 </button>
               </Link>
+              {/* แสดงปุ่ม Admin Dashboard หาก role เป็น admin */}
+              {user.role.toLowerCase() === 'admin' &&(
+                <Link href="/admin-dashboard">
+                  <button className="w-full bg-[#213A58] text-white mt-4 p-2 hover:shadow-md hover:shadow-[#213A58cc] ">
+                    Admin Dashboard
+                  </button>
+                </Link>
+              )}
             </div>
             <button
               onClick={handleLogout}
-              className="w-full bg-red-500 text-white mt-4 p-2 rounded-md"
+              className="w-full bg-red-500 text-white mt-4 p-2 hover:shadow-md hover:shadow-red-500"
             >
               Logout
-            </button>
-            <button
-              onClick={handlePopupToggle}
-              className="w-full bg-gray-300 text-black mt-4 p-2 rounded-md"
-            >
-              Close
             </button>
           </div>
         </div>
