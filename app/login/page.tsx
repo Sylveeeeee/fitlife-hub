@@ -36,10 +36,15 @@ export default function LoginPage() {
       setEmail('');
       setPassword('');
 
-      const redirectPath = data.role === 'admin' ? '/dashboard' : '/';
-      setTimeout(() => {
-        router.push(redirectPath);
-      }, 1000);
+      if (data.role) {
+        const redirectPath = data.role === 'admin' || data.role === 'user' ? '/' : '/dashboard';
+        setTimeout(() => {
+          router.push(redirectPath);
+        }, 1000);
+      } else {
+        console.error('User role is undefined or invalid');
+      }
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {

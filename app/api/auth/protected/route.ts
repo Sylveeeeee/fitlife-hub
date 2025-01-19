@@ -26,11 +26,16 @@ export async function GET(req: Request) {
     // ดึงข้อมูลผู้ใช้จากฐานข้อมูล
     const user = await prisma.users.findUnique({
       where: { id: userId },
+      
       select: {
         id: true,
-        role: true,
         email: true,
+        role: {
+          select: {
+            name: true,
+        },
       },
+    },
     });
 
     if (!user) {
@@ -40,7 +45,7 @@ export async function GET(req: Request) {
     // แปลง BigInt เป็น string ก่อนส่งกลับ
     return NextResponse.json({
       userId: user.id.toString(),  // แปลง user.id ที่เป็น BigInt เป็น string
-      role: user.role ? user.role.toString() : null, // แปลง role เป็น string ถ้ามี
+      role: user.role ? user.role.name : null, // ดึง name จาก role object
       email: user.email,
     });
   } catch (err) {

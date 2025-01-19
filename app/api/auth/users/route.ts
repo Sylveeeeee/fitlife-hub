@@ -1,54 +1,68 @@
-import { prisma } from "@/lib/prisma";
-import jwt, { JwtPayload } from "jsonwebtoken";
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import jwt from 'jsonwebtoken';
 
-// ฟังก์ชันตรวจสอบความถูกต้องของ Token
-const verifyToken = (token: string): JwtPayload | null => {
-  try {
-    // ดึงค่า secret key จาก environment variables
-    const secretKey = process.env.JWT_SECRET;
-
-    // ตรวจสอบว่า secret key มีอยู่หรือไม่
-    if (!secretKey) {
-      throw new Error("JWT secret key is missing in environment variables");
-    }
-
-    // ตรวจสอบความถูกต้องของ token
-    const decoded = jwt.verify(token, secretKey);
-    return decoded as JwtPayload; // แปลงค่าเป็น JwtPayload
-  } catch (error) {
-    // แสดงข้อผิดพลาดถ้ามีการตรวจสอบไม่สำเร็จ
-    console.error("Token verification error:", error);
-    return null;
+// ฟังก์ชันสำหรับแปลง BigInt เป็น string
+const bigIntToString = (data: unknown): unknown => {
+  if (data === null || data === undefined) return data; // ถ้าค่าเป็น null หรือ undefined ไม่ทำอะไร
+  if (typeof data === 'bigint') return data.toString(); // ถ้าเป็น BigInt ให้แปลงเป็น string
+  if (Array.isArray(data)) return data.map(bigIntToString); // ถ้าเป็น array ให้แปลงค่าภายใน array
+  if (typeof data === 'object' && data !== null) {
+    return Object.fromEntries(
+      Object.entries(data).map(([key, value]) => [key, bigIntToString(value)]) // ถ้าเป็น object ให้แปลงค่าภายใน object
+    );
   }
+  return data; // ถ้าค่าไม่ใช่ BigInt, array หรือ object ให้คืนค่าดั้งเดิม
 };
 
-export const GET = async (req: Request) => {
+export async function GET(req: Request) {
+  const cookies = req.headers.get('cookie');
+  if (!cookies) {
+    return NextResponse.json({ message: 'Unauthorized: No token provided' }, { status: 401 });
+  }
+
+  const token = cookies
+    .split(';')
+    .find(cookie => cookie.trim().startsWith('token='))
+    ?.split('=')[1];
+
+  if (!token) {
+    return NextResponse.json({ message: 'Unauthorized: No token provided' }, { status: 401 });
+  }
+
   try {
-    // รับ JWT Token จาก Header Authorization
-    const token = req.headers.get("Authorization")?.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload & { userId: string };
+    const userId = decoded.userId;  // ใช้ string สำหรับ userId
+    const user = await prisma.users.findUnique({
+      where: { id: Number(userId) },
+      select: { id: true, email: true, name: true, role: true },
+    });
 
-    // ตรวจสอบว่า token มีอยู่หรือไม่
-    if (!token) {
-      return new Response("Unauthorized: Token missing", { status: 401 });
+    if (!user) {
+      return NextResponse.json({ message: 'User not found' }, { status: 404 });
     }
 
-    // ตรวจสอบความถูกต้องของ token
-    const decoded = verifyToken(token);
-
-    // ถ้า token ไม่ถูกต้องหรือไม่มี role เป็น "admin"
-    if (!decoded || decoded.role !== "admin") {
-      return new Response("Forbidden: You do not have admin privileges", { status: 403 });
+    if (user.role.name !== 'admin') {
+      return NextResponse.json({ message: 'Forbidden: You do not have admin privileges' }, { status: 403 });
     }
 
-    // ดึงข้อมูลผู้ใช้ทั้งหมดจากฐานข้อมูล
+    // ดึงข้อมูลผู้ใช้ทั้งหมด
     const users = await prisma.users.findMany();
 
-    return new Response(JSON.stringify(users), { status: 200 });
+    // แปลง BigInt เป็น string ทุกค่าที่มีใน users
+    const usersWithStringIds = bigIntToString(users);
 
-  } catch (error) {
-    console.error("Error:", error);
+    // ดึงข้อมูลอาหารทั้งหมด
+    const foods = await prisma.foods.findMany();
 
-    // ส่งข้อผิดพลาดจากเซิร์ฟเวอร์
-    return new Response("Internal Server Error", { status: 500 });
+    // แปลง BigInt เป็น string ทุกค่าที่มีใน foods
+    const foodsWithStringIds = bigIntToString(foods);
+
+    // ส่งข้อมูลผู้ใช้และอาหารกลับไป
+    return NextResponse.json({ users: usersWithStringIds, foods: foodsWithStringIds });
+
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ message: 'Unauthorized: Invalid token' }, { status: 401 });
   }
-};
+}

@@ -29,9 +29,6 @@ export default function WebsiteLayout({
           const data = await response.json();
           if (data && data.userId && data.role) {
             const role = typeof data.role === 'object' ? data.role.name : data.role;
-            console.log(data.role);
-
-            console.log('User data:', data);  
             
             setUser({
               userId: data.userId,
@@ -39,7 +36,7 @@ export default function WebsiteLayout({
               email: data.email,
             });
             if (role.toLowerCase() === 'admin') {
-              console.log('User is an admin');
+
             }
           } else {
             console.error("Invalid user data from server");
@@ -164,7 +161,7 @@ export default function WebsiteLayout({
               </Link>
               {/* แสดงปุ่ม Admin Dashboard หาก role เป็น admin */}
               {user.role.toLowerCase() === 'admin' &&(
-                <Link href="/admin-dashboard">
+                <Link href="/admin/dashboard">
                   <button className="w-full bg-[#213A58] text-white mt-4 p-2 hover:shadow-md hover:shadow-[#213A58cc] ">
                     Admin Dashboard
                   </button>
