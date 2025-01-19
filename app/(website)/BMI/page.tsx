@@ -55,7 +55,7 @@ export default function Home() {
         </div>
         <button
           onClick={calculateBmi}
-          className="bg-blue-500 text-white py-2 px-6 rounded-md hover:bg-blue-600 transition-colors"
+          className="bg-black text-white py-2 px-6 rounded-md hover:bg-[#000000d4] transition-colors"
         >
           Calculate BMI
         </button>
