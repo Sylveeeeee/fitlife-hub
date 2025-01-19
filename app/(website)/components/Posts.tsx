@@ -56,7 +56,7 @@ export default function Post() {
 
   return (
     <div className="p-4">
-      <h1 className="w-full text-black text-[25px] font-bold mb-[1px] mt-[10px] ml-[7px]">DAILY POST</h1>
+      <h1 className="w-full text-black text-[25px] font-bold mb-[1px] mt-[10px] ml-[7px]">DAILY POST NOTE</h1>
       <form onSubmit={handlePostSubmit} className="space-y-4">
         <textarea
           value={content}

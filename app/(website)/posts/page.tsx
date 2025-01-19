@@ -41,12 +41,13 @@ export default function PostPage() {
 
   return (
     <>
-    <div className="flex flex-wrap gap-4 justify-start ml-[140px]">
+    <div className="flex flex-wrap gap-4 justify-start ml-[140px] font-mono">
   {posts.length === 0 ? (
     <p>No posts available</p> // หากไม่มีโพสต์จะแสดงข้อความนี้
   ) : (
     posts.map((post) => (
       <div key={post.id} className="w-[300px] h-auto rounded overflow-hidden shadow-lg bg-white">
+        <div className="bg-black w-auto pl-[10px]">NOTE </div>
         <div className="px-6 py-4">
           <p className="text-gray-700 text-base">{post.content}</p>
         </div>                                                 
