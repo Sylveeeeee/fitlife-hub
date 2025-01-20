@@ -12,6 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const glasses = await prisma.glass.findMany();
         res.status(200).json(glasses);
       } catch (error) {
+        const error
         res.status(500).json({ error: "Failed to fetch data" });
       }
       break;

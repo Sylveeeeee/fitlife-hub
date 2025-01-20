@@ -1,89 +1,147 @@
-"use client";
+'use client'
 
-import React, { useEffect, useState } from "react";
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+
+interface Food {
+  id: number;
+  name: string;
+  category: string;
+  calories: number;
+  price: number;
+}
 
 interface User {
-  id: string;  // เปลี่ยน id เป็น string
+  id: number;
   name: string;
   email: string;
 }
 
-export default function AdminPage() {
+export default function AdminDashboard() {
+  const [foods, setFoods] = useState<Food[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null); // null = กำลังโหลด
-  const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [totalFoods, setTotalFoods] = useState(0);
+  const [totalUsers, setTotalUsers] = useState(0);
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const res = await fetch('/api/auth/users', {
-          method: 'GET',
-          credentials: 'same-origin', // ใช้ credentials เพื่อให้ cookie ส่งไปกับ request
-        });
+    // Mock API data
+    setFoods([
+      { id: 1, name: 'Pizza', category: 'Main Dish', calories: 300, price: 8 },
+      { id: 2, name: 'Ice Cream', category: 'Dessert', calories: 200, price: 5 },
+      { id: 3, name: 'Salad', category: 'Healthy', calories: 100, price: 7 },
+    ]);
 
-        if (!res.ok) {
-          if (res.status === 403) {
-            setIsAdmin(false);
-            setError("Access Denied: You do not have admin privileges.");
-          } else if (res.status === 401) {
-            setIsAdmin(false);
-            setError("Unauthorized: Please log in.");
-          } else {
-            throw new Error(`Unexpected error: ${res.status}`);
-          }
-          return;
-        }
+    setUsers([
+      { id: 1, name: 'John Doe', email: 'john@example.com' },
+      { id: 2, name: 'Jane Smith', email: 'jane@example.com' },
+    ]);
 
-        const data = await res.json();
-        setUsers(data.users); // สมมติว่า API ส่งข้อมูลผู้ใช้ทั้งหมดใน field `users`
-        setIsAdmin(true);
-      } catch (err) {
-        console.error("Error fetching users:", err);
-        setError("Failed to fetch data. Please try again later.");
-        setIsAdmin(false);
-      }
-    };
-
-    fetchUsers();
-  }, []);  
-
-  if (isAdmin === null) {
-    return <div className="text-center">Loading...</div>; // กำลังโหลด
-  }
+    setCategories(['Main Dish', 'Dessert', 'Healthy', 'Beverage']);
+    setTotalFoods(3); // Mock data
+    setTotalUsers(2); // Mock data
+  }, []);
 
   return (
-    <div className="container mx-auto p-4 text-black font-mono">
-      <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
-      {isAdmin ? (
-        <table className="table-auto w-full border-collapse border border-gray-200">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="px-4 py-2 border-b">ID</th>
-              <th className="px-4 py-2 border-b">Name</th>
-              <th className="px-4 py-2 border-b">Email</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.length > 0 ? (
-              users.map((user) => (
-                <tr key={user.id}>
-                  <td className="border px-4 py-2">{user.id}</td>
-                  <td className="border px-4 py-2">{user.name}</td>
-                  <td className="border px-4 py-2">{user.email}</td>
+    <div className="min-h-screen text-black font-mono">
+      <div className="flex">
+        {/* Sidebar */}
+        <aside className="w-1/5 bg-gray-800 text-white p-4">
+          <h2 className="text-lg font-bold mb-4">Admin Dashboard</h2>
+          <ul>
+            <li className="mb-2">
+              <Link href="/admin/dashboard">
+                <div className="block px-2 py-1 hover:bg-gray-700">Dashboard</div>
+              </Link>
+            </li>
+            <li className="mb-2">
+              <Link href="/admin/manage-foods">
+                <div className="block px-2 py-1 hover:bg-gray-700">Manage Foods</div>
+              </Link>
+            </li>
+            <li className="mb-2">
+              <Link href="/admin/manage-users">
+                <div className="block px-2 py-1 hover:bg-gray-700">Manage Users</div>
+              </Link>
+            </li>
+          </ul>
+        </aside>
+
+        {/* Main Content */}
+        <main className="w-4/5 p-6">
+          <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+
+          {/* Stat Cards */}
+          <div className="grid grid-cols-4 gap-4 mb-6">
+            <div className="p-4 bg-blue-500 text-white rounded-lg shadow">
+              <h3 className="text-sm">Total Foods</h3>
+              <p className="text-lg font-bold">{totalFoods}</p>
+            </div>
+            <div className="p-4 bg-green-500 text-white rounded-lg shadow">
+              <h3 className="text-sm">Categories</h3>
+              <p className="text-lg font-bold">{categories.length}</p>
+            </div>
+            <div className="p-4 bg-orange-500 text-white rounded-lg shadow">
+              <h3 className="text-sm">Recently Added</h3>
+              <p className="text-lg font-bold">{foods[0]?.name}</p>
+            </div>
+            <div className="p-4 bg-red-500 text-white rounded-lg shadow">
+              <h3 className="text-sm">Total Users</h3>
+              <p className="text-lg font-bold">{totalUsers}</p>
+            </div>
+          </div>
+
+          {/* Food Table */}
+          <div className="mb-6">
+            <h2 className="text-lg font-bold mb-4">Food List</h2>
+            <table className="w-full bg-white rounded-lg shadow-md">
+              <thead>
+                <tr>
+                  <th className="text-left p-2">#</th>
+                  <th className="text-left p-2">Name</th>
+                  <th className="text-left p-2">Category</th>
+                  <th className="text-left p-2">Calories</th>
+                  <th className="text-left p-2">Price</th>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={3} className="border px-4 py-2 text-center">
-                  No users found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      ) : (
-        <div className="text-red-500">{error || "Access Denied"}</div>
-      )}
+              </thead>
+              <tbody>
+                {foods.map((food) => (
+                  <tr key={food.id}>
+                    <td className="p-2">{food.id}</td>
+                    <td className="p-2">{food.name}</td>
+                    <td className="p-2">{food.category}</td>
+                    <td className="p-2">{food.calories}</td>
+                    <td className="p-2">${food.price}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* User Table */}
+          <div>
+            <h2 className="text-lg font-bold mb-4">User List</h2>
+            <table className="w-full bg-white rounded-lg shadow-md">
+              <thead>
+                <tr>
+                  <th className="text-left p-2">#</th>
+                  <th className="text-left p-2">Name</th>
+                  <th className="text-left p-2">Email</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.id}>
+                    <td className="p-2">{user.id}</td>
+                    <td className="p-2">{user.name}</td>
+                    <td className="p-2">{user.email}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
