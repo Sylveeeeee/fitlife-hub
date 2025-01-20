@@ -59,33 +59,52 @@ const WaterTracker = () => {
   };
 
   return (
-    <div className='text-center m-[20px] p-[20px] max-w-[450px] bg-white rounded-[10px]'>
-      <h1 className='text-[20px]'>WATER TRACKER</h1>
-      <div className='flex ml-[2px]'>
+    <div className="text-center m-5 p-5 max-w-[600px] bg-white rounded-lg shadow-lg w-[550px]">
+      <h1 className="text-2xl font-bold mb-4">WATER TRACKER</h1>
+      <div className="flex flex-wrap justify-center gap-2 mb-4">
         {glasses.map((glass, index) => (
           <Image
             key={index}
             src="/glass.png"
             alt="Water Glass"
-            width={60}
+            width={50}
             height={70}
-            className="w-[50px] h-[60px] mt-[10px]"
+            className="w-[50px] h-[60px]"
           />
         ))}
       </div>
       {glasses.length >= maxGlasses && (
-        <p style={{ color: 'green', fontSize: '18px', fontWeight: 'bold' }}>
+        <p className="text-green-600 font-bold text-lg mb-4">
           You have reached your daily water intake goal!
         </p>
       )}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '20px' }}>
-        <button onClick={addGlass} disabled={glasses.length >= maxGlasses}>
+      <div className="flex justify-center gap-4">
+        <button
+          onClick={addGlass}
+          disabled={glasses.length >= maxGlasses}
+          className={`px-4 py-2 rounded-md text-white font-medium transition ${
+            glasses.length >= maxGlasses
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-black hover:bg-gray-700'
+          }`}
+        >
           + Add Glass
         </button>
-        <button onClick={removeGlass} disabled={glasses.length === 0}>
+        <button
+          onClick={removeGlass}
+          disabled={glasses.length === 0}
+          className={`px-4 py-2 rounded-md text-white font-medium transition ${
+            glasses.length === 0
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-black hover:bg-gray-700'
+          }`}
+        >
           - Remove Glass
         </button>
-        <button onClick={resetGlasses} style={{ backgroundColor: 'red' }}>
+        <button
+          onClick={resetGlasses}
+          className="px-4 py-2 rounded-md text-white bg-red-500 hover:bg-red-700 transition"
+        >
           Reset
         </button>
       </div>
