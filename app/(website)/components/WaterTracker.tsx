@@ -19,7 +19,7 @@ const WaterTracker = () => {
   };
 
   return (
-    <div className='text-center m-[20px] p-[20px] max-w-[450px] bg-white rounded-[10px]'>
+    <div className=' text-center m-[20px] p-[20px] max-w-[450px] bg-white rounded-[10px]'>
       <h1 className='text-[20px]'>WATER TRACKER</h1>
       <div className='flex ml-[2px]'>
         {glasses.map((glass, index) => (
@@ -69,7 +69,7 @@ const styles = {
   },
   glass: {
     width: '50px',
-    height: '80px',
+    height: '70px',
   },
   message: {
     color: 'green',

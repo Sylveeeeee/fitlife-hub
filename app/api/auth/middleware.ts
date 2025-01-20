@@ -1,38 +1,28 @@
-import { NextResponse, NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 import jwt from 'jsonwebtoken';
 
-// กำหนด interface สำหรับข้อมูลใน token ที่ถอดรหัส
-interface DecodedToken {
-  userId: string;
-  role: string;
-}
-
-// ขยายประเภทของ NextRequest เพื่อให้รองรับ property user
-interface CustomNextRequest extends NextRequest {
-  user?: DecodedToken; // เพิ่ม user ใน request
-}
-
 export function middleware(req: NextRequest) {
-  const token = req.cookies.get('token')?.value; // ใช้ .value เพื่อดึงค่าของ cookie ที่เป็น string
+  const token = req.cookies.get('token')?.value;
 
   if (!token) {
-    return NextResponse.json({ message: 'Authentication required' }, { status: 401 });
+    // Redirect ไปยังหน้า login หากไม่มี token
+    return NextResponse.redirect(new URL('/login', req.url));
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as DecodedToken; // ระบุประเภทให้กับ decoded
+    // ตรวจสอบ JWT
+    jwt.verify(token, process.env.JWT_SECRET!);
 
-    // กำหนดข้อมูล user ใน request โดยไม่ใช้ any
-    (req as CustomNextRequest).user = decoded;
-
+    // อนุญาตให้เข้าถึงหน้าเว็บ
     return NextResponse.next();
-  } catch (error) {
-    // ตรวจสอบว่า error เป็น instance ของ Error
-    if (error instanceof Error) {
-      return NextResponse.json({ message: 'Invalid token', error: error.message }, { status: 401 });
-    } else {
-      // จัดการกับ error ที่ไม่ทราบประเภท
-      return NextResponse.json({ message: 'Invalid token', error: 'An unknown error occurred' }, { status: 401 });
-    }
+  } catch (err) {
+    console.error("Invalid token:", err.message);
+    return NextResponse.redirect(new URL('/login', req.url));
   }
 }
+
+// ระบุเส้นทางที่ใช้ middleware
+export const config = {
+  matcher: ['/protected-page/:path*', '/another-protected/:path*'], // กำหนดเส้นทางที่ต้องตรวจสอบ
+};

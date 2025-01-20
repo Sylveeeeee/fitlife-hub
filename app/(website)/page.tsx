@@ -2,6 +2,7 @@
 import { VscDiffAdded } from "react-icons/vsc";
 import Posts from "./components/Posts";
 import WaterTracker from "./components/WaterTracker";
+import Card from "./components/Card";
 
 
 export default function Home() {
@@ -19,7 +20,15 @@ export default function Home() {
         </div>
        </div>
        <Posts />
-       <WaterTracker />
+       <div className="flex space-x-4">
+       <div className="flex-1 ">
+                <WaterTracker />
+            </div>
+            
+            {/* Card Component */}
+            <Card />
+        </div>
+       
         </div>        
       </>
     );
