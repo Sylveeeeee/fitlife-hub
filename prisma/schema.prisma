@@ -150,9 +150,8 @@ enum foods_type_of_food {
 }
 
 model Glass {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  count     Int
+  id     Int    @id @default(autoincrement())
+  userId Int
+  count  Int
   createdAt DateTime @default(now())
 }
-

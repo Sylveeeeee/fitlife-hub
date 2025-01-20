@@ -1,48 +1,65 @@
-import { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
 
-const prisma = new PrismaClient();
+// POST: เพิ่มแก้วน้ำใหม่
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { method } = req;
+    // ตรวจสอบว่ามี `userId` และ `count` หรือไม่
+    if (!body.userId || !body.count) {
+      return NextResponse.json({ error: "userId and count are required" }, { status: 400 });
+    }
 
-  switch (method) {
-    case "GET":
-      try {
-        const glasses = await prisma.glass.findMany();
-        res.status(200).json(glasses);
-      } catch (error) {
-        const error
-        res.status(500).json({ error: "Failed to fetch data" });
-      }
-      break;
+    // บันทึกข้อมูลในฐานข้อมูล
+    const glass = await prisma.glass.create({
+      data: {
+        userId: body.userId,
+        count: body.count,
+      },
+    });
 
-    case "POST":
-      try {
-        const { userId, count } = req.body;
-        const glass = await prisma.glass.create({
-          data: { userId, count },
-        });
-        res.status(201).json(glass);
-      } catch (error) {
-        res.status(500).json({ error: "Failed to create glass entry" });
-      }
-      break;
+    return NextResponse.json(glass, { status: 201 }); // ตอบกลับข้อมูลที่ถูกสร้าง
+  } catch (error) {
+    console.error("Error creating glass entry:", error);
+    return NextResponse.json({ error: "Failed to create glass entry" }, { status: 500 });
+  }
+}
 
-    case "DELETE":
-      try {
-        const { id } = req.body;
-        await prisma.glass.delete({
-          where: { id },
-        });
-        res.status(204).end();
-      } catch (error) {
-        res.status(500).json({ error: "Failed to delete glass entry" });
-      }
-      break;
+// DELETE: ลบแก้วน้ำ
+export async function DELETE(req: Request) {
+  try {
+    const body = await req.json();
 
-    default:
-      res.setHeader("Allow", ["GET", "POST", "DELETE"]);
-      res.status(405).end(`Method ${method} Not Allowed`);
+    // รีเซ็ตแก้วน้ำทั้งหมด
+    if (body.reset) {
+      await prisma.glass.deleteMany();
+      return NextResponse.json({ message: "All glasses reset" }, { status: 204 });
+    }
+
+    // ลบแก้วน้ำตาม `id`
+    if (!body.id) {
+      return NextResponse.json({ error: "ID is required" }, { status: 400 });
+    }
+
+    await prisma.glass.delete({
+      where: { id: body.id },
+    });
+
+    return NextResponse.json({ message: "Glass deleted" }, { status: 204 });
+  } catch (error) {
+    console.error("Error deleting glass entry:", error);
+    return NextResponse.json({ error: "Failed to delete glass entry" }, { status: 500 });
+  }
+}
+
+// GET: ดึงข้อมูลแก้วน้ำทั้งหมด
+export async function GET() {
+  try {
+    const glasses = await prisma.glass.findMany(); // ดึงข้อมูลจากตาราง glass
+    return NextResponse.json(glasses, { status: 200 }); // ส่งข้อมูลกลับไป
+  } catch (error) {
+    console.error("Error fetching glasses:", error);
+    return NextResponse.json({ error: "Failed to fetch glasses" }, { status: 500 });
   }
 }
