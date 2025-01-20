@@ -50,7 +50,9 @@ export async function POST(request: Request) {
 
     // สร้าง JWT token
     const token = jwt.sign(
-      { userId: user.id.toString() }, // แปลง BigInt เป็น string
+      { userId: user.id.toString(),
+        role: user.role.name,
+      }, // แปลง BigInt เป็น string
       process.env.JWT_SECRET!,
       { expiresIn: '1h' }
     );

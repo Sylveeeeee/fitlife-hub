@@ -41,40 +41,40 @@ export default function ManageFoods() {
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+  
     // ตรวจสอบข้อมูลที่จำเป็นในฟอร์ม
     if (!formData.name || formData.calories === undefined || formData.protein === undefined || formData.carbs === undefined || formData.fat === undefined) {
-      console.error('Invalid input: All fields are required.');
+      alert('Please fill in all the fields with valid data.');
       return;
     }
-
+  
     const method = isEditing && editId ? 'PUT' : 'POST';
     const url = isEditing && editId ? `/api/auth/foods/${editId}` : '/api/auth/foods';
     const body = JSON.stringify(formData);
-
-    console.log('Sending request to:', url);
-    console.log('Form Data:', formData);
-
+  
     const response = await fetch(url, {
       method,
       headers: {
         'Content-Type': 'application/json',
       },
       body,
+      credentials: 'include', // ส่ง cookies ไปพร้อมคำขอ
     });
-
+  
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`Failed to ${isEditing ? 'update' : 'add'} food:`, errorText);
+      alert(`Error: ${errorText}`); // แสดงข้อผิดพลาดจากเซิร์ฟเวอร์
       return;
     }
-
+  
     setIsEditing(false);
     setEditId(null);
     setFormData({});
     fetchFoods();
   };
-
+  
+  
   const handleEdit = (food: Food) => {
     setIsEditing(true);
     setEditId(food.id);
