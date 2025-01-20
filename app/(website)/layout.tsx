@@ -2,6 +2,7 @@
 import { FiUser } from "react-icons/fi";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 
 interface JwtPayload {
   userId: bigint;
@@ -29,14 +30,13 @@ export default function WebsiteLayout({
           const data = await response.json();
           if (data && data.userId && data.role) {
             const role = typeof data.role === 'object' ? data.role.name : data.role;
-            
+
             setUser({
               userId: data.userId,
               role: data.role,
               email: data.email,
             });
             if (role.toLowerCase() === 'admin') {
-
             }
           } else {
             console.error("Invalid user data from server");
@@ -97,10 +97,19 @@ export default function WebsiteLayout({
 
   return (
     <>
-      <div className="w-full h-[100] flex items-center justify-between"
-        onClick={handleOutsideClick}>
-        <div>
-          <div className="ml-[100] text-[16px] font-mono text-[#000]">FITLIFE_HUB</div>
+      <div
+        className="w-full h-[100] flex items-center justify-between"
+        onClick={handleOutsideClick}
+      >
+        <div className="flex items-center ml-[100]">
+          <Image
+            src="/gg.gif" // ใส่ Path ของรูปภาพของคุณ
+            alt="FitLifeHub Logo"
+            width={40} // ปรับขนาดของรูปภาพ
+            height={40} // ปรับขนาดของรูปภาพ
+            className="mr-2 rounded-[20px]"
+          />
+          <div className="text-[16px] font-mono text-[#000]">FITLIFE_HUB</div>
         </div>
         <div className="font-mono text-[#000] h-[100] items-center mr-[30] flex">
           <Link href="/">
@@ -118,9 +127,11 @@ export default function WebsiteLayout({
               POST
             </button>
           </Link>
-          <Link href="/BMI"><button className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold">
-            BMI
-          </button></Link>
+          <Link href="/BMI">
+            <button className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold">
+              BMI
+            </button>
+          </Link>
           {user ? (
             <div className="flex items-center relative ">
               <button
@@ -142,14 +153,16 @@ export default function WebsiteLayout({
           )}
         </div>
       </div>
+
+      {/* Popup */}
       {isPopupOpen && user && (
         <div
           className="fixed w-full h-full top-16 flex justify-center items-center font-mono text-[#000]"
-          onClick={handleOutsideClick}  // ทำการปิด modal เมื่อคลิกนอก
+          onClick={handleOutsideClick}
         >
           <div
             className="bg-white p-6 w-[400px] shadow-lg fixed top-20 right-10"
-            onClick={(e) => e.stopPropagation()}  // หยุดการ propagate event
+            onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-lg font-bold mb-4">Current Account</h2>
             <div>
@@ -159,8 +172,7 @@ export default function WebsiteLayout({
                   Edit Profile
                 </button>
               </Link>
-              {/* แสดงปุ่ม Admin Dashboard หาก role เป็น admin */}
-              {user.role.toLowerCase() === 'admin' &&(
+              {user.role.toLowerCase() === "admin" && (
                 <Link href="/admin/dashboard">
                   <button className="w-full bg-[#213A58] text-white mt-4 p-2 hover:shadow-md hover:shadow-[#213A58cc] ">
                     Admin Dashboard

@@ -1,13 +1,17 @@
 
 
+
 export default function Card() {
     return (
-        <div className="flex space-x-4 ">
-            
-            <div className="text-center m-[20px] p-[20px] max-w-[1000px] bg-white rounded-[10px] h-[270px] w-[570px]">
-            <h2 className="text-lg font-bold">Card Content</h2>
-            <p className="text-gray-600">Additional content for the card.</p>
-            </div> 
-          </div>
+      <div className="flex justify-center">
+        <div className="text-center m-5 p-5 max-w-lg bg-white rounded-lg h-[250px] w-[420px] shadow-lg flex flex-col items-center">
+          <img
+            src="/gg.gif" 
+            alt="Example"
+            className="w-24 h-24 rounded-full mb-4 "
+          />
+        </div>
+      </div>
     );
-}
+  }
+  

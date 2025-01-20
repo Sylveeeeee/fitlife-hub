@@ -41,30 +41,32 @@ export default function PostPage() {
 
   return (
     <>
-    <div className="flex flex-wrap gap-4 justify-start ml-[140px] font-mono">
-  {posts.length === 0 ? (
-    <p className="text-black text-[30px] flex items-center justify-center min-h-screen ml-[500px]">
-    No posts available!
-  </p>
-  // หากไม่มีโพสต์จะแสดงข้อความนี้
-  ) : (
-    posts.map((post) => (
-      <div key={post.id} className="w-[300px] h-auto rounded overflow-hidden shadow-lg bg-white">
-        <div className="bg-black w-auto pl-[10px]">NOTE </div>
-        <div className="px-6 py-4">
-          <p className="text-gray-700 text-base">{post.content}</p>
-        </div>                                                 
-        <div className="px-6 py-4 flex justify-between items-center">
-          <span className="text-gray-500 text-sm">
-            {new Date(post.createdAt).toLocaleString()} {/* แสดงวันที่ */}
-          </span>
-        </div>
+      <div className="flex flex-wrap gap-4 justify-start ml-[140px] font-mono">
+        {posts.length === 0 ? (
+          <p className="text-black text-[30px] flex items-center justify-center min-h-screen ml-[500px]">
+            No posts available!
+          </p>
+          // หากไม่มีโพสต์จะแสดงข้อความนี้
+        ) : (
+          posts.map((post) => (
+            <div key={post.id} className="w-[300px] h-auto rounded overflow-hidden shadow-lg bg-white">
+              <div className="bg-black text-white w-auto pl-[10px] py-1 font-bold">
+                NOTE
+              </div>
+              <div className="px-6 py-4">
+                <p className="text-gray-700 text-base break-words whitespace-pre-wrap">
+                  {post.content} {/* ข้อความจะตัดคำเมื่อเกินกรอบ */}
+                </p>
+              </div>                                                 
+              <div className="px-6 py-4 flex justify-between items-center">
+                <span className="text-gray-500 text-sm">
+                  {new Date(post.createdAt).toLocaleString()} {/* แสดงวันที่ */}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
       </div>
-    ))
-  )}
-</div>
-
-
     </>
   );
 }
