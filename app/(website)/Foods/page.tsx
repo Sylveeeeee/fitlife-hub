@@ -47,7 +47,7 @@ export default function CustomMeals() {
             type="text"
             value={mealName}
             onChange={(e) => setMealName(e.target.value)}
-            className="mt-4 block w-full rounded-lg border-gray-700 shadow-sm sm:text-lg p-3"
+            className="mt-4 block w-full rounded-lg border-gray-700 shadow-sm sm:text-lg p-3 text-black"
 
           />
         </div>
