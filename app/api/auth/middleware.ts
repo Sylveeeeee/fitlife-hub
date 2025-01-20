@@ -17,7 +17,14 @@ export function middleware(req: NextRequest) {
     // อนุญาตให้เข้าถึงหน้าเว็บ
     return NextResponse.next();
   } catch (err) {
-    console.error("Invalid token:", err.message);
+    // ตรวจสอบว่า err เป็น Error หรือไม่
+    if (err instanceof Error) {
+      console.error("Invalid token:", err.message);
+    } else {
+      console.error("Invalid token:", err);
+    }
+
+    // Redirect ไปยังหน้า login หาก token ไม่ถูกต้อง
     return NextResponse.redirect(new URL('/login', req.url));
   }
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-
+import Image from 'next/image';
 const WaterTracker = () => {
     const [glasses, setGlasses] = useState<number[]>([]); // ระบุประเภทว่าเป็นอาร์เรย์ของ number
     const maxGlasses = 8;
@@ -23,13 +23,15 @@ const WaterTracker = () => {
       <h1 className='text-[20px]'>WATER TRACKER</h1>
       <div className='flex ml-[2px]'>
         {glasses.map((glass, index) => (
-          <img
-            key={index}
-            src="/glass.png" // รูปแก้วน้ำ
-            alt="Water Glass"
-            className="w-[70px]"
-            style={styles.glass}
-          />
+  <Image
+  key={index}
+  src="/glass.png" // รูปภาพที่อยู่ใน public folder
+  alt="Water Glass"
+  width={70} // ระบุความกว้าง
+  height={70} // ระบุความสูง
+  style={styles.glass} // ใส่สไตล์แบบ custom
+  className="w-[70px]" // ใส่ Tailwind CSS class
+/>
         ))}
       </div>
       {glasses.length >= maxGlasses && (
