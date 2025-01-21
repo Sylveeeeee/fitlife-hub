@@ -11,32 +11,23 @@ async function verifyAdminRole(req: Request) {
 
   const token = cookies
     .split(';')
-    .find(cookie => cookie.trim().startsWith('auth-token=')) // ใช้ชื่อคุกกี้ที่ถูกต้องคือ 'auth-token'
-    ?.split('=')[1];
+    .find(cookie => cookie.trim().startsWith('auth-token='))?.split('=')[1];
 
   if (!token) {
     return NextResponse.json({ message: 'Unauthorized: No token provided' }, { status: 401 });
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string, role: string };
-
-    // แปลง userId จาก string เป็น number
-    const userId = Number(decoded.userId);
-
-    // ตรวจสอบ role
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string; role: string };
     if (decoded.role !== 'admin') {
       return NextResponse.json({ message: 'Forbidden: You do not have permission' }, { status: 403 });
     }
-
-    return { userId };
+    return { userId: Number(decoded.userId) };
   } catch (err) {
-    if (err instanceof jwt.TokenExpiredError) {
-      return NextResponse.json({ message: 'Unauthorized: Token expired' }, { status: 401 });
-    } else if (err instanceof jwt.JsonWebTokenError) {
-      return NextResponse.json({ message: 'Unauthorized: Invalid token' }, { status: 401 });
-    }
-    return NextResponse.json({ message: 'Unauthorized: Unknown error' }, { status: 401 });
+    return NextResponse.json(
+      { message: err instanceof jwt.TokenExpiredError ? 'Unauthorized: Token expired' : 'Unauthorized: Invalid token' },
+      { status: 401 }
+    );
   }
 }
 
@@ -46,21 +37,12 @@ export async function GET(req: Request) {
     const category = url.searchParams.get('category');
     const search = url.searchParams.get('search');
 
-    let query = {};
-
-    if (search) {
-      query = {
-        ...query,
-        OR: [
-          { name: { contains: search, mode: 'insensitive' } },
-          { description: { contains: search, mode: 'insensitive' } },
-        ],
-      };
-    }
-
-    if (category === 'Favorites') {
-      query = { ...query, is_favorite: true };
-    }
+    const query = {
+      ...(search
+        ? { OR: [{ name: { contains: search, mode: 'insensitive' } }, { description: { contains: search, mode: 'insensitive' } }] }
+        : {}),
+      ...(category === 'Favorites' ? { is_favorite: true } : {}),
+    };
 
     const foods = await prisma.foods.findMany({ where: query });
     return NextResponse.json(foods);
@@ -72,16 +54,16 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const adminCheck = await verifyAdminRole(req);
-  if ('message' in adminCheck) return adminCheck; // ถ้าเป็น error ให้ return ทันที
-
-  const body = await req.json();
-  const { name, calories, protein, carbs, fat, category, source } = body;
-
-  if (!name || calories === undefined || protein === undefined || carbs === undefined || fat === undefined) {
-    return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
-  }
+  if ('message' in adminCheck) return adminCheck;
 
   try {
+    const body = await req.json();
+    const { name, calories, protein, carbs, fat, category, source } = body;
+
+    if (!name || calories === undefined || protein === undefined || carbs === undefined || fat === undefined) {
+      return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
+    }
+
     const newFood = await prisma.foods.create({
       data: { name, calories, protein, carbs, fat, category, source },
     });
@@ -93,52 +75,9 @@ export async function POST(req: Request) {
   }
 }
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
-  try {
-    // ตรวจสอบสิทธิ์การเข้าถึง
-    const adminCheck = await verifyAdminRole(req);
-    if (adminCheck) return adminCheck;  // ส่งผลลัพธ์หากเป็น Unauthorized หรือ Forbidden
-
-    const foodId = Number(params.id);
-    const body = await req.json();
-    const { name, calories, protein, carbs, fat, category, source } = body;
-
-    // ตรวจสอบข้อมูลที่ได้รับจาก client
-    console.log('Received data for PUT:', body);
-
-    if (isNaN(foodId) || !name || calories === undefined || protein === undefined || carbs === undefined || fat === undefined) {
-      console.log('Invalid input data');
-      return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
-    }
-
-    // ตรวจสอบว่าอาหารที่ต้องการอัปเดตมีอยู่ในฐานข้อมูลหรือไม่
-    const foodExists = await prisma.foods.findUnique({ where: { id: foodId } });
-    if (!foodExists) {
-      console.log(`Food with ID ${foodId} not found`);
-      return NextResponse.json({ error: 'Food not found' }, { status: 404 });
-    }
-
-    // อัปเดตข้อมูลอาหาร
-    const updatedFood = await prisma.foods.update({
-      where: { id: foodId },
-      data: { name, calories, protein, carbs, fat, category, source },
-    });
-
-    console.log('Successfully updated food:', updatedFood);
-    return NextResponse.json(updatedFood);
-  } catch (error) {
-    // ตรวจสอบประเภทของ error และให้รายละเอียดที่ชัดเจน
-    console.error('Error during PUT request:', error);
-    if (error instanceof Error) {
-      return NextResponse.json({ error: 'Failed to update food', details: error.message }, { status: 500 });
-    } else {
-      return NextResponse.json({ error: 'Failed to update food', details: 'An unexpected error occurred' }, { status: 500 });
-    }
-  }
-}
 export async function DELETE(req: Request) {
   const adminCheck = await verifyAdminRole(req);
-  if ('message' in adminCheck) return adminCheck; // ถ้าเป็น error ให้ return ทันที
+  if ('message' in adminCheck) return adminCheck;
 
   const id = Number(new URL(req.url).pathname.split('/').pop());
 

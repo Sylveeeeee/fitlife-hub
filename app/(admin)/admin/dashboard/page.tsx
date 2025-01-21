@@ -60,7 +60,7 @@ export default function AdminDashboard() {
               </Link>
             </li>
             <li className="mb-2">
-              <Link href="/admin/manage-users">
+              <Link href="/admin/manage-user">
                 <div className="block px-2 py-1 hover:bg-gray-700">Manage Users</div>
               </Link>
             </li>

@@ -31,6 +31,6 @@
     "app/api/auth/foods/route.ts",
     "app/api/auth/register/route.ts",
     "node_modules/@prisma/client"
-        ],
+, "app/api/auth/foods/[id]"        ],
   "exclude": ["node_modules"]
 }
