@@ -129,7 +129,7 @@ export default function WebsiteLayout({
           </Link>
           <Link href="/BMI">
             <button className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold">
-              BMI
+              CALCULATOR
             </button>
           </Link>
           {user ? (

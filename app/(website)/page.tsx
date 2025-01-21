@@ -42,7 +42,7 @@ export default function Home() {
               © {new Date().getFullYear()} FitLife Hub. All rights reserved.
             </p>
             <p className="text-xs mt-2">
-              Made with ❤️ by JAMJAEW
+              Made with ❤️ by FITDREAM
             </p>
           </div>
         </footer>
