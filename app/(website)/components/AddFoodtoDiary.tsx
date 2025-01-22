@@ -14,9 +14,17 @@ interface Food {
 interface AddFoodToDiaryProps {
   isOpen: boolean;
   closeModal: () => void;
+  onAdd: (group: string, food: { 
+    name: string; 
+    servingSize: number; 
+    calories: number; 
+    protein: number; 
+    carbs: number; 
+    fat: number; 
+  }) => void;
 }
 
-const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal }) => {
+const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onAdd }) => {
   const [foods, setFoods] = useState<Food[]>([]);
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -26,19 +34,6 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal }) =
   const [error, setError] = useState<string | null>(null);
   const [diaryGroup, setDiaryGroup] = useState<string>("Uncategorized");
 
-  const handleAddToDiary = (group: string, food: { name: string; servingSize: number }) => {
-    setDiaryEntries((prevEntries) => ({
-      ...prevEntries,
-      [group]: [...prevEntries[group], food],
-    }));
-  };
-
-  interface AddFoodToDiaryProps {
-    isOpen: boolean;
-    closeModal: () => void;
-    onAdd: (group: string, food: { name: string; servingSize: number }) => void; // เพิ่ม onAdd
-  }
-  
 
   const fetchFoods = useCallback(async () => {
     setIsLoading(true);
@@ -194,7 +189,14 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal }) =
             <button
   onClick={() => {
     if (selectedFood) {
-      onAdd(diaryGroup, { name: selectedFood.name, servingSize });
+      onAdd(diaryGroup, {
+        name: selectedFood.name,
+        servingSize: servingSize,
+        calories: selectedFood.calories,
+        protein: selectedFood.protein,
+        carbs: selectedFood.carbs,
+        fat: selectedFood.fat,
+      });
       closeModal();
     }
   }}
