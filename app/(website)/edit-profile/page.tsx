@@ -2,40 +2,29 @@
 import { useState } from "react";
 
 export default function Profile() {
-  // ประกาศ state สำหรับข้อมูลโปรไฟล์
+  // State สำหรับข้อมูลโปรไฟล์ที่ปรับตาม Prisma schema
   const [profile, setProfile] = useState({
-    firstName: "",
-    lastName: "",
     email: "",
-    phone: "",
-    address: "",
-    nation: "",
+    password: "",
+    name: "",
+    age: "",
     gender: "",
-    language: "",
-    dob: { day: "", month: "", year: "" },
+    weight: "",
+    height: "",
+    activity_level: "",
+    diet_goal: "",
   });
 
-  
+  // handleInputChange สำหรับจัดการการเปลี่ยนแปลงในฟอร์ม
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleInputChange = (e: { target: { name: any; value: any; }; }) => {
     const { name, value } = e.target;
-
-    // ตรวจสอบหาก name เป็น dob เพื่อแยกการจัดการวันเดือนปีเกิด
-    if (name.startsWith("dob")) {
-      const dobField = name.replace("dob", "").toLowerCase();
-      setProfile({
-        ...profile,
-        dob: { ...profile.dob, [dobField]: value },
-      });
-    } else {
-      setProfile({ ...profile, [name]: value });
-    }
+    setProfile({ ...profile, [name]: value });
   };
 
-  
+  // saveProfile สำหรับบันทึกข้อมูลโปรไฟล์
   const saveProfile = async () => {
     try {
-      
       const response = await fetch("/api/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -54,35 +43,12 @@ export default function Profile() {
   };
 
   return (
-    <div className="font-mono p-6  min-h-screen">
+    <div className="font-mono p-6 min-h-screen">
       <div className="max-w-4xl mx-auto bg-white shadow-md rounded-lg">
         <div className="p-4 border-b">
           <h1 className="text-lg text-black font-bold">Edit Profile</h1>
         </div>
-        <div className="p-4 grid grid-cols-2 gap-4 text-black ">
-          
-          <div>
-            <label className="block text-sm font-medium ">First Name</label>
-            <input
-              type="text"
-              name="firstName"
-              value={profile.firstName}
-              onChange={handleInputChange}
-              className="mt-1 w-full p-2 border rounded"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium">Last Name</label>
-            <input
-              type="text"
-              name="lastName"
-              value={profile.lastName}
-              onChange={handleInputChange}
-              className="mt-1 w-full p-2 border rounded"
-            />
-          </div>
-          
+        <div className="p-4 grid grid-cols-2 gap-4 text-black">
           <div>
             <label className="block text-sm font-medium">Email</label>
             <input
@@ -90,43 +56,39 @@ export default function Profile() {
               name="email"
               value={profile.email}
               onChange={handleInputChange}
-              className="mt-1 w-full p-2 border text-black rounded"
+              className="mt-1 w-full p-2 border rounded"
             />
           </div>
-          
           <div>
-            <label className="block text-sm font-medium">Phone</label>
+            <label className="block text-sm font-medium">Password</label>
             <input
-              type="text"
-              name="phone"
-              value={profile.phone}
+              type="password"
+              name="password"
+              value={profile.password}
               onChange={handleInputChange}
               className="mt-1 w-full p-2 border rounded"
             />
           </div>
-        
           <div>
-            <label className="block text-sm font-medium">Address</label>
+            <label className="block text-sm font-medium">Name</label>
             <input
               type="text"
-              name="address"
-              value={profile.address}
+              name="name"
+              value={profile.name}
               onChange={handleInputChange}
               className="mt-1 w-full p-2 border rounded"
             />
           </div>
-          
           <div>
-            <label className="block text-sm font-medium">Nation</label>
+            <label className="block text-sm font-medium">Age</label>
             <input
-              type="text"
-              name="nation"
-              value={profile.nation}
+              type="number"
+              name="age"
+              value={profile.age}
               onChange={handleInputChange}
               className="mt-1 w-full p-2 border rounded"
             />
           </div>
-          
           <div>
             <label className="block text-sm font-medium">Gender</label>
             <select
@@ -135,51 +97,32 @@ export default function Profile() {
               onChange={handleInputChange}
               className="mt-1 w-full p-2 border rounded"
             >
+              <option value="">Select</option>
               <option value="Male">Male</option>
               <option value="Female">Female</option>
             </select>
           </div>
-       
           <div>
-            <label className="block text-sm font-medium">Language</label>
+            <label className="block text-sm font-medium">Weight (kg)</label>
             <input
-              type="text"
-              name="language"
-              value={profile.language}
+              type="number"
+              name="weight"
+              value={profile.weight}
               onChange={handleInputChange}
               className="mt-1 w-full p-2 border rounded"
             />
           </div>
-          
           <div>
-            <label className="block text-sm font-medium">Date of Birth</label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                name="dobDay"
-                placeholder="Day"
-                value={profile.dob.day}
-                onChange={handleInputChange}
-                className="mt-1 w-full p-2 border rounded"
-              />
-              <input
-                type="text"
-                name="dobMonth"
-                placeholder="Month"
-                value={profile.dob.month}
-                onChange={handleInputChange}
-                className="mt-1 w-full p-2 border rounded"
-              />
-              <input
-                type="text"
-                name="dobYear"
-                placeholder="Year"
-                value={profile.dob.year}
-                onChange={handleInputChange}
-                className="mt-1 w-full p-2 border rounded"
-              />
-            </div>
+            <label className="block text-sm font-medium">Height (cm)</label>
+            <input
+              type="number"
+              name="height"
+              value={profile.height}
+              onChange={handleInputChange}
+              className="mt-1 w-full p-2 border rounded"
+            />
           </div>
+         
         </div>
         <div className="p-4 border-t text-right">
           <button
