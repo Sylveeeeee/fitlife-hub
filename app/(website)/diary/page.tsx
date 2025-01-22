@@ -7,32 +7,55 @@ import AddFoodtoDiary from "../components/AddFoodtoDiary";
 
 export default function Diary() {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [diaryEntries, setDiaryEntries] = useState<{
+      [key: string]: { name: string; servingSize: number }[];
+    }>({
+      Uncategorized: [],
+      Breakfast: [],
+      Dinner: [],
+      Snacks: [],
+    });
   
-    const openModal = () => {
-      setIsModalOpen(true);
-    };
+    const openModal = () => setIsModalOpen(true);
+    const closeModal = () => setIsModalOpen(false);
   
-    const closeModal = () => {
-      setIsModalOpen(false);
+    const handleAddToDiary = (group: string, food: { name: string; servingSize: number }) => {
+      setDiaryEntries((prevEntries) => ({
+        ...prevEntries,
+        [group]: [...prevEntries[group], food],
+      }));
     };
+
     return (
       <>
-      <div className=" "><AddFoodtoDiary isOpen={isModalOpen} closeModal={closeModal}/></div>
+      <div className=" "><AddFoodtoDiary isOpen={isModalOpen} closeModal={closeModal} 
+      onAdd={(group, food) => {
+    setDiaryEntries((prevEntries) => ({
+      ...prevEntries,
+      [group]: [...prevEntries[group], food],
+    }));
+  }} /></div>
       <div className="">
       <div className= "text-black font-mono flex justify-between mx-[200px]">
         <div className="flex w-[75%] flex-col">
-        <div className="bg-white flex pl-[20]">
-            <div className="flex items-center justify-between h-[50] flex-wrap">
+        
+        <div className="bg-white flex pl-[20] mb-[7]">
+            <div className="flex items-center justify-between h-[50] flex-wrap ">
                 <button onClick={openModal} className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]"><div className="mr-[6]"><VscDiffAdded /></div>FOOD</button>
                 <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]"><div className="mr-[6]"><VscDiffAdded /></div>EXERCISE</button>
                 <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]"><div className="mr-[6]"><VscDiffAdded /></div>BIOMETRIC</button>
                 <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]"><div className="mr-[6]"><VscDiffAdded /></div>NOTE</button>
             </div>
         </div>
-            <div className="bg-white flex justify-between pl-[10] mt-[7]  ">Uncategorized<button className="mr-[20]"><PiCaretDownBold/></button></div>
-            <div className="bg-white flex justify-between pl-[10] mt-[7]  ">Breakfast<button className="mr-[20]"><PiCaretDownBold/></button></div>
-            <div className="bg-white flex justify-between pl-[10] mt-[7]  ">Dinner<button className="mr-[20]"><PiCaretDownBold/></button></div>
-            <div className="bg-white flex justify-between pl-[10] mt-[7]  ">Snacks<button className="mr-[20]"><PiCaretDownBold/></button></div>
+            <div className="bg-white flex justify-between pl-[10] mb-[7]  ">Uncategorized<button className="mr-[20]"><PiCaretDownBold/></button></div>
+            <div className="flex justify-between px-[10] mb-[7] ">
+                banana
+                <div className="">60 Kcal</div>
+            </div>
+            
+            <div className="bg-white flex justify-between pl-[10] mb-[7]  ">Breakfast<button className="mr-[20]"><PiCaretDownBold/></button></div>
+            <div className="bg-white flex justify-between pl-[10] mb-[7]  ">Dinner<button className="mr-[20]"><PiCaretDownBold/></button></div>
+            <div className="bg-white flex justify-between pl-[10] mb-[7]  ">Snacks<button className="mr-[20]"><PiCaretDownBold/></button></div>
             <div className="bg-white flex pl-[20] mt-[20] w-full py-[20]">
                 <div className="w-[50%]">
                     <div className="h-[50] font-semibold text-[20px]">Energy Summary</div>

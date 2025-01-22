@@ -24,6 +24,21 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal }) =
   const [activeTab, setActiveTab] = useState<string>("All");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [diaryGroup, setDiaryGroup] = useState<string>("Uncategorized");
+
+  const handleAddToDiary = (group: string, food: { name: string; servingSize: number }) => {
+    setDiaryEntries((prevEntries) => ({
+      ...prevEntries,
+      [group]: [...prevEntries[group], food],
+    }));
+  };
+
+  interface AddFoodToDiaryProps {
+    isOpen: boolean;
+    closeModal: () => void;
+    onAdd: (group: string, food: { name: string; servingSize: number }) => void; // เพิ่ม onAdd
+  }
+  
 
   const fetchFoods = useCallback(async () => {
     setIsLoading(true);
@@ -100,14 +115,14 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal }) =
         {/* Loading and Error States */}
         {isLoading && (
           <div className={`text-center mb-4 border rounded p-2 overflow-y-scroll  ${
-              selectedFood ? "h-[400px]" : "h-[630px]" 
+              selectedFood ? "h-[200px] md:h-[300px] lg:h-[400px]" : "h-[300px] md:h-[400px] lg:h-[500px]"
             }`}>
             <p className="text-blue-500">Loading foods...</p>
           </div>
         )}
         {error && (
           <div className={`text-center mb-4 text-red-500 border rounded p-2 overflow-y-scroll ${
-              selectedFood ? "h-[400px]" : "h-[630px]" 
+              selectedFood ? "h-[200px] md:h-[300px] lg:h-[400px]" : "h-[300px] md:h-[400px] lg:h-[500px]"
             }`}>
             <p>{error}</p>
           </div>
@@ -116,7 +131,7 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal }) =
         {/* Food List */}
         {!isLoading && !error && (
           <div className={`border rounded p-2 mb-4 overflow-y-scroll ${
-            selectedFood ? "h-[400px]" : "h-[630px]" 
+            selectedFood ? "h-[200px] md:h-[300px] lg:h-[400px]" : "h-[300px] md:h-[400px] lg:h-[500px]" 
           }`}>
             {foods.length === 0 ? (
               <div className="text-center ">
@@ -162,17 +177,31 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal }) =
                   className="border p-2 rounded w-full"
                   min="1"
                 />
+                <label className="block mt-4 mb-2">Diary Group:</label>
+        <select
+          value={diaryGroup}
+          onChange={(e) => setDiaryGroup(e.target.value)}
+          className="border p-2 rounded w-full"
+        >
+          <option value="Uncategorized">Uncategorized</option>
+          <option value="Breakfast">Breakfast</option>
+          <option value="Lunch">Lunch</option>
+          <option value="Dinner">Dinner</option>
+          <option value="Snacks">Snacks</option>
+        </select>
               </div>
             </div>
             <button
-              onClick={() => {
-                console.log("Added to diary:", { food: selectedFood, servingSize });
-                closeModal();
-              }}
-              className="mt-4 bg-green-500 text-white px-4 py-2 rounded"
-            >
-              Add to Diary
-            </button>
+  onClick={() => {
+    if (selectedFood) {
+      onAdd(diaryGroup, { name: selectedFood.name, servingSize });
+      closeModal();
+    }
+  }}
+  className="mt-4 bg-green-500 text-white px-4 py-2 rounded"
+>
+  Add to Diary
+</button>
           </div>
         )}
       </div>
