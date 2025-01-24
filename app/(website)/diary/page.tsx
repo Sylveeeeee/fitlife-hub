@@ -179,6 +179,7 @@ export default function Diary() {
         </div>
         </div> 
         </div>  
+          
       </>
     );
   }

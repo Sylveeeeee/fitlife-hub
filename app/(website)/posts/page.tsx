@@ -67,6 +67,8 @@ export default function PostPage() {
           ))
         )}
       </div>
+      
+      
     </>
   );
 }
