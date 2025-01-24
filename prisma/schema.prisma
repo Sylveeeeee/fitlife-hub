@@ -26,6 +26,7 @@ model users {
   gender         users_gender?
   weight         Float?                @db.Float
   height         Float?                @db.Float
+  birthday       DateTime?             @db.Date
   activity_level users_activity_level?
   diet_goal      users_diet_goal?
   created_at     DateTime?             @default(now()) @db.Timestamp(0)
@@ -39,6 +40,7 @@ model users {
 
   @@index([roleId], map: "users_roleId_fkey")
 }
+
 
 model diet_goals {
   id             Int       @id @default(autoincrement())
