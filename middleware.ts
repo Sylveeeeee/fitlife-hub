@@ -31,5 +31,5 @@ export function middleware(req: NextRequest) {
 
 // ระบุเส้นทางที่ใช้ middleware
 export const config = {
-  matcher: ['/protected-page/:path*', '/another-protected/:path*'], // กำหนดเส้นทางที่ต้องตรวจสอบ
+  matcher: ['/page/:path*', '/another-protected/:path*'], // กำหนดเส้นทางที่ต้องตรวจสอบ
 };

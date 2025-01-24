@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState, useEffect } from "react";
 import { Doughnut } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
@@ -25,7 +27,7 @@ const EnergySummary: React.FC<EnergySummaryProps> = ({ totals }) => {
   useEffect(() => {
     const fetchTargets = async () => {
       try {
-        const response = await fetch("/api/targets"); // API endpoint ที่ใช้
+        const response = await fetch("/api/auth/targets"); // API endpoint ที่ใช้
         const data = await response.json();
         setTargets(data); // บันทึกข้อมูล targets ใน state
       } catch (error) {

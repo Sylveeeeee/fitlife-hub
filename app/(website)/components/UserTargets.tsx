@@ -1,7 +1,7 @@
 // components/UserTargets.tsx
 import React from 'react';
 import { useUserContext } from '../contexts/UserContext';
-import { calculateTDEE, calculateMacroTargets } from '../utils/calculations';
+import { calculateTDEE, calculateMacroTargets } from '../../../utils/calculations';
 
 const UserTargets: React.FC = () => {
   const { userProfile } = useUserContext();

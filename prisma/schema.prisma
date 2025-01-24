@@ -8,7 +8,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model Role {
   id    BigInt  @id @default(autoincrement())
   name  String  @unique
@@ -23,7 +22,7 @@ model users {
   password       String                @db.VarChar(255)
   name           String?               @db.VarChar(100)
   age            Int?
-  gender         users_gender?
+  sex            users_sex? // เปลี่ยนจาก gender เป็น sex
   weight         Float?                @db.Float
   height         Float?                @db.Float
   birthday       DateTime?             @db.Date
@@ -41,10 +40,9 @@ model users {
   @@index([roleId], map: "users_roleId_fkey")
 }
 
-
 model diet_goals {
   id             Int       @id @default(autoincrement())
-  user_id        Int
+  user_id        Int       @unique
   daily_calories Float     @db.Float
   daily_protein  Float?    @default(0) @db.Float
   daily_carbs    Float?    @default(0) @db.Float
@@ -116,7 +114,6 @@ model post {
   createdAt DateTime @default(now())
 }
 
-
 enum meal_records_meal_type {
   breakfast
   lunch
@@ -124,18 +121,12 @@ enum meal_records_meal_type {
   snack
 }
 
-enum users_gender {
-  male
-  female
-  other
-}
-
 enum users_activity_level {
   sedentary
   light
   moderate
   active
-  very_active @map("very active")
+  veryActive
 }
 
 enum users_diet_goal {
@@ -152,8 +143,13 @@ enum foods_type_of_food {
 }
 
 model Glass {
-  id     Int    @id @default(autoincrement())
-  userId Int
-  count  Int
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  count     Int
   createdAt DateTime @default(now())
+}
+
+enum users_sex {
+  male
+  female
 }

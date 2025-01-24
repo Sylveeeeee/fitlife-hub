@@ -1,6 +1,6 @@
 // utils/calculations.ts
 
-interface UserProfile {
+export interface UserProfile {
     weight: number; // kg
     height: number; // cm
     age: number; // years
