@@ -72,5 +72,6 @@ export default function Post() {
         </button>
       </form>
     </div>
+    
   );
 }
