@@ -65,149 +65,136 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onA
 
   return (
     <div
-      onClick={closeModal}
-      className="fixed inset-0 bg-gray-700 bg-opacity-50 flex justify-center items-center font-mono"
-    >
-      <div
-        className="bg-white p-6 rounded shadow-lg text-black w-[80%] max-w-4xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between mb-4">
-          <h2 className="text-xl font-bold">Add Food to Diary</h2>
-          <button onClick={closeModal} className="text-[26px] font-black">
-            <IoMdClose />
+  onClick={closeModal}
+  className="fixed inset-0 bg-gray-700 bg-opacity-50 flex justify-center items-center font-mono"
+>
+  <div
+    className="bg-white p-4 sm:p-6 md:p-8 rounded shadow-lg text-black w-[95%] sm:w-[80%] md:w-[70%] lg:w-[60%] xl:w-[50%] max-h-[90%] overflow-y-auto"
+    onClick={(e) => e.stopPropagation()}
+  >
+    <div className="flex justify-between items-center mb-4">
+      <h2 className="text-lg sm:text-xl md:text-2xl font-bold">Add Food to Diary</h2>
+      <button onClick={closeModal} className="text-xl sm:text-2xl font-black">
+        <IoMdClose />
+      </button>
+    </div>
+
+    {/* Search Bar */}
+    <input
+      type="text"
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+      placeholder="Search all foods & recipes..."
+      className="border p-2 rounded mb-4 w-full text-sm md:text-base"
+    />
+
+    {/* Tabs */}
+    <div className="flex flex-wrap gap-2 mb-4">
+      {["All", "Favorites", "Main Dish", "Beverages", "Snack", "Fruit"].map(
+        (tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-3 py-2 text-sm md:text-base font-bold ${
+              activeTab === tab
+                ? "text-black border-b-2 border-black"
+                : "text-gray-500"
+            }`}
+          >
+            {tab}
           </button>
-        </div>
-  
-        {/* Search Bar */}
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search all foods & recipes..."
-          className="border p-2 rounded mb-4 w-full"
-        />
-  
-        {/* Tabs */}
-        <div className="flex  mb-4">
-          {["All", "Favorites", "Common Foods", "Beverages", "Supplements", "Brands", "Restaurants", ].map(
-            (tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 font-bold relative ${
-                  activeTab === tab
-                    ? "text-black after:content-[''] after:absolute after:left-0 after:right-0 after:bottom-[4px] after:h-[2px] after:bg-black"
-                    : "text-gray-500"
-                }`}
-              >
-                {tab}
-              </button>
-            )
-          )}
-        </div>
-  
-        {/* Loading and Error States */}
-        {isLoading && (
-          <div className={`text-center mb-4 border rounded p-2 overflow-y-scroll  ${
-              selectedFood ? "h-[200px] md:h-[300px] lg:h-[400px]" : "h-[300px] md:h-[400px] lg:h-[500px]"
-            }`}>
-            <p className="text-blue-500">Loading foods...</p>
-          </div>
-        )}
-        {error && (
-          <div className={`text-center mb-4 text-red-500 border rounded p-2 overflow-y-scroll ${
-              selectedFood ? "h-[200px] md:h-[300px] lg:h-[400px]" : "h-[300px] md:h-[400px] lg:h-[500px]"
-            }`}>
-            <p>{error}</p>
-          </div>
-        )}
-  
-        {/* Food List */}
+        )
+      )}
+    </div>
+
+    {/* Main Content */}
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Food List */}
+      <div className="border rounded p-2 overflow-y-auto h-[300px] sm:h-[400px] md:h-[420px]">
+        {isLoading && <p className="text-center text-blue-500">Loading foods...</p>}
+        {error && <p className="text-center text-red-500">{error}</p>}
         {!isLoading && !error && (
-          <div className={`border rounded p-2 mb-4 overflow-y-scroll ${
-            selectedFood ? "h-[200px] md:h-[300px] lg:h-[400px]" : "h-[300px] md:h-[400px] lg:h-[500px]" 
-          }`}>
+          <>
             {foods.length === 0 ? (
-              <div className="text-center ">
-                <p>No foods found. Try adjusting your search or category.</p>
-              </div>
+              <p className="text-center">No foods found. Try adjusting your search or category.</p>
             ) : (
               foods
-                .filter((food) => food.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                .filter((food) =>
+                  food.name.toLowerCase().includes(searchQuery.toLowerCase())
+                )
                 .map((food) => (
                   <div
-                  key={food.id}
-                  className={`flex justify-between items-center p-2 cursor-pointer ${
-                    selectedFood?.id === food.id ? "bg-gray-200" : "hover:bg-gray-100"
-                  }`}
+                    key={food.id}
+                    className={`flex justify-between items-center p-2 cursor-pointer ${
+                      selectedFood?.id === food.id
+                        ? "bg-gray-200"
+                        : "hover:bg-gray-100"
+                    }`}
                     onClick={() => setSelectedFood(food)}
                   >
-                    <div>{food.name}</div>
-                    <div>{food.source}</div>
+                    <div className="text-sm md:text-base">{food.name}</div>
+                    <div className="text-xs md:text-sm text-gray-500">{food.source}</div>
                   </div>
                 ))
             )}
-          </div>
-        )}
-  
-        {/* Selected Food Details */}
-        {selectedFood && (
-          <div className="border-t pt-4">
-            <h3 className="text-lg font-bold mb-2">{selectedFood.name}</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p>Calories: {selectedFood.calories} kcal</p>
-                <p>Protein: {selectedFood.protein} g</p>
-                <p>Net Carbs: {selectedFood.carbs} g</p>
-                <p>Fat: {selectedFood.fat} g</p>
-                <p>Source: {selectedFood.source}</p>
-              </div>
-              <div>
-                <label className="block mb-2">Serving Size:</label>
-                <input
-                  type="number"
-                  value={servingSize}
-                  onChange={(e) => setServingSize(Number(e.target.value))}
-                  className="border p-2 rounded w-full"
-                  min="1"
-                />
-                <label className="block mt-4 mb-2">Diary Group:</label>
-        <select
-          value={diaryGroup}
-          onChange={(e) => setDiaryGroup(e.target.value)}
-          className="border p-2 rounded w-full"
-        >
-          <option value="Uncategorized">Uncategorized</option>
-          <option value="Breakfast">Breakfast</option>
-          <option value="Lunch">Lunch</option>
-          <option value="Dinner">Dinner</option>
-          <option value="Snacks">Snacks</option>
-        </select>
-              </div>
-            </div>
-            <button
-  onClick={() => {
-    if (selectedFood) {
-      onAdd(diaryGroup, {
-        name: selectedFood.name,
-        servingSize: servingSize,
-        calories: selectedFood.calories,
-        protein: selectedFood.protein,
-        carbs: selectedFood.carbs,
-        fat: selectedFood.fat,
-      });
-      closeModal();
-    }
-  }}
-  className="mt-4 bg-green-500 text-white px-4 py-2 rounded"
->
-  Add to Diary
-</button>
-          </div>
+          </>
         )}
       </div>
+
+      {/* Selected Food Details */}
+      {selectedFood && (
+        <div className="border rounded p-4 sticky top-0 h-max">
+          <h3 className="text-lg sm:text-xl font-bold mb-2">{selectedFood.name}</h3>
+          <p className="text-[#ff1cd2]">Calories: {selectedFood.calories} kcal</p>
+          <p className="text-[#12ff3e]">Protein: {selectedFood.protein} g</p>
+          <p className="text-[#24fff4]">Net Carbs: {selectedFood.carbs} g</p>
+          <p className="text-[#ff2525]">Fat: {selectedFood.fat} g</p>
+          <p className="text-gray-500">Source: {selectedFood.source}</p>
+          <label className="block mt-4 mb-2 text-sm md:text-base">Serving Size:</label>
+          <input
+            type="number"
+            value={servingSize}
+            onChange={(e) => setServingSize(Number(e.target.value))}
+            className="border p-2 rounded w-full text-sm md:text-base"
+            min="1"
+          />
+          <label className="block mt-4 mb-2 text-sm md:text-base">Diary Group:</label>
+          <select
+            value={diaryGroup}
+            onChange={(e) => setDiaryGroup(e.target.value)}
+            className="border p-2 rounded w-full text-sm md:text-base"
+          >
+            <option value="Uncategorized">Uncategorized</option>
+            <option value="Breakfast">Breakfast</option>
+            <option value="Lunch">Lunch</option>
+            <option value="Dinner">Dinner</option>
+            <option value="Snacks">Snacks</option>
+          </select>
+          <button
+            onClick={() => {
+              if (selectedFood) {
+                onAdd(diaryGroup, {
+                  name: selectedFood.name,
+                  servingSize: servingSize,
+                  calories: selectedFood.calories,
+                  protein: selectedFood.protein,
+                  carbs: selectedFood.carbs,
+                  fat: selectedFood.fat,
+                });
+                closeModal();
+              }
+            }}
+            className="mt-4 bg-green-500 text-white px-4 py-2 rounded text-sm md:text-base"
+          >
+            Add to Diary
+          </button>
+        </div>
+      )}
     </div>
+  </div>
+</div>
+
+
   );  
 };
 
