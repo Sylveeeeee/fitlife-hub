@@ -1,8 +1,9 @@
-"use client";
+'use client'
+
 import React, { useEffect, useState } from "react";
 import { calculateTDEE, calculateMacroTargets } from "@/utils/calculations";
 import { UserProfile } from "@/utils/calculations";
-import DietGoalCalculation from "../components/DietGoalCalculation"
+import DietGoalCalculation from "../components/DietGoalCalculation";
 
 const TDEEPage = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -17,7 +18,10 @@ const TDEEPage = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await fetch("/api/auth/targets"); // ดึงข้อมูลจาก API
+        const response = await fetch("/api/auth/user", {
+          method: "GET",
+          credentials: "include", // ใช้ credentials ให้เบราว์เซอร์ส่งคุกกี้ด้วย
+        });
         const data: UserProfile = await response.json();
         setProfile(data);
 

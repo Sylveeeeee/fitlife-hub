@@ -167,9 +167,9 @@ export default function WebsiteLayout({
             <h2 className="text-lg font-bold mb-4">Current Account</h2>
             <div>
               <p>Email: {user.email}</p>
-              <Link href="/edit-profile">
+              <Link href="/profile">
                 <button className="w-full bg-[#000000] text-white mt-4 p-2 hover:shadow-md hover:shadow-[#000000cc] ">
-                  Edit Profile
+                  Targets+Profile
                 </button>
               </Link>
               {user.role.toLowerCase() === "admin" && (

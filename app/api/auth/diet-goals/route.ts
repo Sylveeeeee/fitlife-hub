@@ -1,66 +1,73 @@
-import { NextResponse } from "next/server";
-import jwt, { JwtPayload } from "jsonwebtoken";
-import { calculateTDEE, calculateMacroTargets } from "@/utils/calculations";
-import { getUserProfile } from "@/lib/userService";
-import { upsertDietGoals } from "@/lib/dietGoalsService";
+// api/auth/diet-goals.ts
+import { NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
+import { calculateTDEE, calculateMacroTargets } from '@/utils/calculations';
+import { getUserProfile } from '@/lib/userService';
+import { getDietGoals, upsertDietGoals } from '@/lib/dietGoalsService';
 
-// ประเภทสำหรับ JWT Token
-interface DecodedToken extends JwtPayload {
-  userId: string;
-  role: string;
-}
+// ฟังก์ชันในการดึงข้อมูลผู้ใช้จาก JWT
+async function getUserIdFromToken(request: Request) {
+  const authHeader = request.headers.get('Authorization');
+  const cookieHeader = request.headers.get('cookie');
+  let token: string | undefined = undefined;
 
-export async function POST(request: Request) {
-  if (!process.env.JWT_SECRET) {
-    throw new Error("JWT_SECRET is not defined in the environment variables");
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  } else if (cookieHeader) {
+    const cookies = Object.fromEntries(
+      cookieHeader.split(';').map((c) => c.trim().split('='))
+    );
+    token = cookies.token;
   }
 
+  if (!token) {
+    throw new Error('Authorization token is required');
+  }
+
+  const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string; role: string };
+  const userId = parseInt(decodedToken.userId, 10);
+  if (isNaN(userId)) {
+    throw new Error('Invalid user ID in token');
+  }
+
+  return userId;
+}
+
+// POST สำหรับอัปเดตเป้าหมายอาหาร
+export async function POST(request: Request) {
   try {
-    // ดึง Token จาก Header
-    const authHeader = request.headers.get("Authorization");
-    if (!authHeader) {
-      return NextResponse.json({ error: "Authorization header is required" }, { status: 401 });
-    }
+    const userId = await getUserIdFromToken(request);
 
-    const token = authHeader.split(" ")[1];
-    if (!token) {
-      return NextResponse.json({ error: "Token is missing" }, { status: 401 });
-    }
-
-    // ถอดรหัส Token
-    const decodedToken: DecodedToken = jwt.verify(token, process.env.JWT_SECRET!) as DecodedToken;
-
-    // ตรวจสอบ userId จาก Token
-    const userId = parseInt(decodedToken.userId, 10);
-    if (!userId) {
-      return NextResponse.json({ error: "Invalid Token" }, { status: 401 });
-    }
-
-    // ดึงข้อมูลผู้ใช้
+    // ดึงข้อมูลผู้ใช้จากฐานข้อมูล
     const userProfile = await getUserProfile(userId);
     if (!userProfile) {
-      return NextResponse.json({ error: "User profile not found" }, { status: 404 });
+      return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
     }
 
+    // ตรวจสอบว่าโปรไฟล์ผู้ใช้ครบถ้วนหรือไม่
     if (!userProfile.weight || !userProfile.height || !userProfile.age) {
       return NextResponse.json(
-        { error: "Incomplete user profile. Please provide weight, height, and age." },
+        { error: 'Incomplete user profile. Please provide weight, height, and age.' },
         { status: 400 }
       );
     }
 
-    // แปลงฟิลด์ข้อมูลให้ตรงกับ type ที่ `calculateTDEE` ต้องการ
+    if (userProfile.sex !== 'male' && userProfile.sex !== 'female') {
+      return NextResponse.json({ error: 'Invalid sex value. Must be either "male" or "female"' }, { status: 400 });
+    }
+
+    // คำนวณ TDEE และเป้าหมายการรับประทานอาหาร
     const formattedProfile = {
       weight: userProfile.weight,
       height: userProfile.height,
       age: userProfile.age,
-      sex: userProfile.sex === "male" || userProfile.sex === "female" ? userProfile.sex : "male",
-      activityLevel: userProfile.activity_level || "sedentary",
+      sex: userProfile.sex,
+      activityLevel: userProfile.activity_level || 'sedentary',
     };
-
     const tdee = calculateTDEE(formattedProfile);
     const { protein, carbs, fat } = calculateMacroTargets(tdee);
 
+    // อัปเดตหรือเพิ่มเป้าหมายการรับประทานอาหาร
     const updatedGoals = await upsertDietGoals(userId, {
       daily_calories: tdee,
       daily_protein: protein,
@@ -68,17 +75,47 @@ export async function POST(request: Request) {
       daily_fat: fat,
     });
 
-    return NextResponse.json(updatedGoals, { status: 200 });
-  } catch (error) {
-    if (error instanceof jwt.JsonWebTokenError) {
-      console.error("Invalid Token Error:", error.message);
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    if (!updatedGoals) {
+      return NextResponse.json({ error: 'Failed to update diet goals' }, { status: 500 });
     }
 
-    console.error("Error calculating or updating diet goals:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error. Please try again later." },
-      { status: 500 }
-    );
+    return NextResponse.json(updatedGoals, { status: 200 });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      // ถ้า error เป็นอินสแตนซ์ของ Error ให้เข้าถึง message
+      console.error('Error occurred:', error.message);
+      return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    } else {
+      // ถ้าไม่ใช่ Error (เช่น ข้อผิดพลาดที่ไม่คาดคิด)
+      console.error('Unknown error occurred:', error);
+      return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
   }
+  
+}
+
+// GET สำหรับดึงข้อมูลเป้าหมายอาหาร
+export async function GET(request: Request) {
+  try {
+    const userId = await getUserIdFromToken(request);
+
+    // ดึงข้อมูลเป้าหมายการรับประทานอาหารจากฐานข้อมูล
+    const dietGoals = await getDietGoals(userId);
+    if (!dietGoals) {
+      return NextResponse.json({ error: 'Diet goals not found for this user' }, { status: 404 });
+    }
+
+    return NextResponse.json(dietGoals, { status: 200 });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      // ถ้า error เป็นอินสแตนซ์ของ Error ให้เข้าถึง message
+      console.error('Error occurred:', error.message);
+      return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    } else {
+      // ถ้าไม่ใช่ Error (เช่น ข้อผิดพลาดที่ไม่คาดคิด)
+      console.error('Unknown error occurred:', error);
+      return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
+  }
+  
 }

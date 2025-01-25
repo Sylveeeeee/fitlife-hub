@@ -4,12 +4,23 @@ import { prisma } from "@/lib/prisma";
 // ดึงข้อมูลเป้าหมายอาหารของผู้ใช้
 export async function getDietGoals(userId: number) {
   try {
-    return await prisma.diet_goals.findFirst({
-      where: { user_id: userId }, // ใช้ findFirst แทน findUnique
+    const dietGoals = await prisma.diet_goals.findFirst({
+      where: { user_id: userId },
     });
-  } catch (error) {
-    console.error("Error fetching diet goals:", error);
-    throw new Error("Failed to fetch diet goals");
+
+    if (!dietGoals) {
+      throw new Error("Diet goals not found for this user");
+    }
+
+    return dietGoals;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error("Error fetching diet goals:", error.message);
+      throw new Error(error.message || "Failed to fetch diet goals");
+    } else {
+      console.error("Error fetching diet goals:", error);
+      throw new Error("Failed to fetch diet goals");
+    }
   }
 }
 
@@ -24,6 +35,10 @@ export async function upsertDietGoals(
   }
 ) {
   try {
+    if (!dietGoals.daily_calories) {
+      throw new Error("Daily calories is required");
+    }
+
     return await prisma.diet_goals.upsert({
       where: { user_id: userId },
       update: {
@@ -43,8 +58,13 @@ export async function upsertDietGoals(
         updated_at: new Date(),
       },
     });
-  } catch (error) {
-    console.error("Error upserting diet goals:", error);
-    throw new Error("Failed to update or create diet goals");
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error("Error upserting diet goals:", error.message);
+      throw new Error(error.message || "Failed to update or create diet goals");
+    } else {
+      console.error("Error upserting diet goals:", error);
+      throw new Error("Failed to update or create diet goals");
+    }
   }
 }

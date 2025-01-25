@@ -8,7 +8,7 @@ export async function getUserProfile(userId: number) {
       height: true,
       age: true,
       sex: true,
-      activityLevel: true,
+      activity_level: true,
     },
   });
 }
