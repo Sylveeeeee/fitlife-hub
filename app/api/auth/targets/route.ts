@@ -1,145 +1,114 @@
-import { NextResponse } from "next/server";
-import { getDietGoals, upsertDietGoals } from "@/lib/dietGoalsService";
-import * as z from "zod";
-import jwt from "jsonwebtoken";
+import { NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
+import { calculateTDEE, calculateMacroTargets } from '@/utils/calculations';
+import { getUserProfile } from '@/lib/userService';
+import { getDietGoals, upsertDietGoals } from '@/lib/dietGoalsService';
 
-const DietGoalsSchema = z.object({
-  daily_calories: z.number().positive(),
-  daily_protein: z.number().nonnegative(),
-  daily_carbs: z.number().nonnegative(),
-  daily_fat: z.number().nonnegative(),
-});
+// ฟังก์ชันในการดึงข้อมูลผู้ใช้จาก JWT
+async function getUserIdFromToken(request: Request) {
+  const authHeader = request.headers.get('Authorization');
+  const cookieHeader = request.headers.get('cookie');
+  let token: string | undefined = undefined;
 
-// ฟังก์ชันตรวจสอบ JWT Token
-function verifyToken(token: string) {
-  if (!process.env.JWT_SECRET) {
-    throw new Error("JWT_SECRET is not defined in environment variables");
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1];
+  } else if (cookieHeader) {
+    const cookies = Object.fromEntries(
+      cookieHeader.split(';').map((c) => c.trim().split('='))
+    );
+    token = cookies.token;
   }
 
-  try {
-    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
-    if (!decodedToken || typeof decodedToken !== 'object') {
-      throw new Error("Invalid token payload");
-    }
-    return decodedToken;
-  } catch (error) {
-    console.error("Error in token verification:", error);
-    throw new Error("Invalid or expired token");
+  if (!token) {
+    throw new Error('Authorization token is required');
   }
+
+  const decodedToken = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string; role: string };
+  const userId = parseInt(decodedToken.userId, 10);
+  if (isNaN(userId)) {
+    throw new Error('Invalid user ID in token');
+  }
+
+  return userId;
 }
 
-// ฟังก์ชันที่ใช้ดึง token จาก Cookie
-function getTokenFromCookies(request: Request): string | null {
-  const cookieHeader = request.headers.get("Cookie");
-  if (!cookieHeader) return null;
-
-  const cookies = cookieHeader.split(";").map(cookie => cookie.trim());
-  const tokenCookie = cookies.find(cookie => cookie.startsWith("token="));
-  return tokenCookie ? tokenCookie.split("=")[1] : null;
-}
-
-export async function GET(request: Request) {
+// POST สำหรับอัปเดตเป้าหมายอาหาร
+export async function POST(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
+    const userId = await getUserIdFromToken(request);
 
-    // ตรวจสอบ Token จาก Authorization Header หรือ Cookie
-    let token = null;
-    const authHeader = request.headers.get("Authorization");
-    if (authHeader?.startsWith("Bearer ")) {
-      token = authHeader.split(" ")[1]; // จาก Bearer token
-    } else {
-      token = getTokenFromCookies(request); // จาก Cookies
+    // ดึงข้อมูลผู้ใช้จากฐานข้อมูล
+    const userProfile = await getUserProfile(userId);
+    if (!userProfile) {
+      return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
     }
 
-    if (!token) {
-      return NextResponse.json({ error: "Authorization token is required" }, { status: 401 });
-    }
-
-    const decodedToken = verifyToken(token);
-
-    if (!decodedToken?.userId) {
-      return NextResponse.json({ error: "Invalid or missing token payload" }, { status: 401 });
-    }
-
-    // ตรวจสอบ userId
-    if (!userId) {
-      return NextResponse.json({ error: "User ID is required" }, { status: 400 });
-    }
-
-    const parsedUserId = parseInt(userId);
-    if (isNaN(parsedUserId)) {
-      return NextResponse.json({ error: "Invalid User ID format" }, { status: 400 });
-    }
-
-    const dietGoals = await getDietGoals(parsedUserId);
-    if (!dietGoals) {
+    // ตรวจสอบว่าโปรไฟล์ผู้ใช้ครบถ้วนหรือไม่
+    if (!userProfile.weight || !userProfile.height || !userProfile.age) {
       return NextResponse.json(
-        { error: "Diet goals not found for the given user ID" },
-        { status: 404 }
+        { error: 'Incomplete user profile. Please provide weight, height, and age.' },
+        { status: 400 }
       );
     }
 
-    return NextResponse.json(dietGoals, { status: 200 });
-  } catch (error) {
-    console.error("Error fetching diet goals:", error);
-
-    if (error instanceof jwt.JsonWebTokenError) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    if (userProfile.sex !== 'male' && userProfile.sex !== 'female') {
+      return NextResponse.json({ error: 'Invalid sex value. Must be either "male" or "female"' }, { status: 400 });
     }
 
-    return NextResponse.json(
-      { error: "An unexpected error occurred while fetching diet goals" },
-      { status: 500 }
-    );
+    // คำนวณ TDEE และเป้าหมายการรับประทานอาหาร
+    const formattedProfile = {
+      weight: userProfile.weight,
+      height: userProfile.height,
+      age: userProfile.age,
+      sex: userProfile.sex,
+      activityLevel: userProfile.activity_level || 'sedentary',
+    };
+    const tdee = calculateTDEE(formattedProfile);
+    const { protein, carbs, fat } = calculateMacroTargets(tdee);
+
+    // อัปเดตหรือเพิ่มเป้าหมายการรับประทานอาหาร
+    const updatedGoals = await upsertDietGoals(userId, {
+      daily_calories: tdee,
+      daily_protein: protein,
+      daily_carbs: carbs,
+      daily_fat: fat,
+    });
+
+    if (!updatedGoals) {
+      return NextResponse.json({ error: 'Failed to update diet goals' }, { status: 500 });
+    }
+
+    return NextResponse.json(updatedGoals, { status: 200 });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error occurred:', error.message);
+      return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    } else {
+      console.error('Unknown error occurred:', error);
+      return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
   }
 }
 
-// POST Handler
-export async function POST(request: Request) {
+// GET สำหรับดึงข้อมูลเป้าหมายอาหาร
+export async function GET(request: Request) {
   try {
-    const body = await request.json();
+    const userId = await getUserIdFromToken(request);
 
-    // ตรวจสอบ Token จาก Authorization Header หรือ Cookie
-    let token = null;
-    const authHeader = request.headers.get("Authorization");
-    if (authHeader?.startsWith("Bearer ")) {
-      token = authHeader.split(" ")[1]; // จาก Bearer token
+    // ดึงข้อมูลเป้าหมายการรับประทานอาหารจากฐานข้อมูล
+    const dietGoals = await getDietGoals(userId);
+    if (!dietGoals) {
+      return NextResponse.json({ error: 'Diet goals not found for this user' }, { status: 404 });
+    }
+
+    return NextResponse.json(dietGoals, { status: 200 });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error occurred:', error.message);
+      return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     } else {
-      token = getTokenFromCookies(request); // จาก Cookies
+      console.error('Unknown error occurred:', error);
+      return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
-
-    if (!token) {
-      return NextResponse.json({ error: "Authorization token is required" }, { status: 401 });
-    }
-
-    // ตรวจสอบความถูกต้องของ token
-    const decodedToken = verifyToken(token);
-    if (typeof decodedToken !== "object" || !decodedToken.userId) {
-      return NextResponse.json({ error: "Invalid or missing token payload" }, { status: 401 });
-    }
-
-    const userId = decodedToken.userId;
-
-    // ตรวจสอบข้อมูลใน body
-    if (!body.dietGoals) {
-      return NextResponse.json({ error: "dietGoals are required" }, { status: 400 });
-    }
-
-    const validationResult = DietGoalsSchema.safeParse(body.dietGoals);
-    if (!validationResult.success) {
-      return NextResponse.json({ error: "Invalid dietGoals format", details: validationResult.error.errors }, { status: 400 });
-    }
-
-    const updatedGoals = await upsertDietGoals(userId, validationResult.data);
-    return NextResponse.json(updatedGoals, { status: 200 });
-  } catch (error) {
-    console.error("Error updating diet goals:", error);
-
-    if (error instanceof jwt.JsonWebTokenError) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
-
-    return NextResponse.json({ error: "An unexpected error occurred while updating diet goals" }, { status: 500 });
   }
 }
