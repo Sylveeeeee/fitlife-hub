@@ -23,7 +23,7 @@ export const userSchema = z.object({
     (val) => (val ? parseFloat(val as string) : undefined),
     z.number().positive('Weight must be a positive number').optional()
   ),
-  gender: z.enum(['male', 'female', 'other'], { invalid_type_error: 'Invalid gender value' }),
+  sex: z.enum(['male', 'female'], { invalid_type_error: 'Invalid gender value' }),
 });
 
 const initialErrorState = {
@@ -34,7 +34,7 @@ const initialErrorState = {
   birthday: '',
   height: '',
   weight: '',
-  gender: '',
+  sex: '',
 };
 
 export default function RegisterPage() {
@@ -43,7 +43,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [gender, setGender] = useState('');
+  const [sex, setGender] = useState('');
   const [birthdayDay, setBirthdayDay] = useState('');
   const [birthdayMonth, setBirthdayMonth] = useState('');
   const [birthdayYear, setBirthdayYear] = useState('');
@@ -91,7 +91,7 @@ export default function RegisterPage() {
         birthday,
         height: height ? parseFloat(height) : undefined,
         weight: weight ? parseFloat(weight) : undefined,
-        gender,
+        sex,
       });
 
       const res = await fetch('/api/auth/register', {
@@ -252,16 +252,15 @@ export default function RegisterPage() {
                 <select
                   id="gender"
                   className="block h-[50] w-full border border-border rounded-md shadow-sm p-3 text-black"
-                  value={gender}
+                  value={sex}
                   onChange={(e) => setGender(e.target.value)}
                   required
                 >
                   <option value="">Select your gender</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
-                  <option value="other">Other</option>
                 </select>
-                {errors.gender && <p className="text-red-500 text-sm mt-1">{errors.gender}</p>}
+                {errors.sex && <p className="text-red-500 text-sm mt-1">{errors.sex}</p>}
               </div>
 
               <div>

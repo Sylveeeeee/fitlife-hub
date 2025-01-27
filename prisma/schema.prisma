@@ -27,7 +27,7 @@ model users {
   height         Float?                @db.Float
   birthday       DateTime?             @db.Date
   activity_level users_activity_level?
-  diet_goal      users_diet_goal?
+  diet_goal      users_diet_goal?      @default(maintain_weight)
   created_at     DateTime?             @default(now()) @db.Timestamp(0)
   updated_at     DateTime?             @default(now()) @updatedAt @db.Timestamp(0)
   roleId         BigInt
@@ -130,9 +130,9 @@ enum users_activity_level {
 }
 
 enum users_diet_goal {
-  weight_loss
-  muscle_gain
-  maintenance
+  lose_weight
+  maintain_weight
+  gain_weight
 }
 
 enum foods_type_of_food {

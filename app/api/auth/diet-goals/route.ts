@@ -1,4 +1,3 @@
-// api/auth/diet-goals.ts
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { calculateTDEE, calculateMacroTargets } from '@/utils/calculations';
@@ -117,5 +116,4 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
   }
-  
 }
