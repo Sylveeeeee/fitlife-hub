@@ -3,6 +3,7 @@ import { VscDiffAdded } from "react-icons/vsc";
 import Posts from "./components/Posts";
 import WaterTracker from "./components/WaterTracker";
 import Card from "./components/Card";
+import Link from "next/link";
 
 export default function Home() {
     return (
@@ -12,9 +13,11 @@ export default function Home() {
           <div className="bg-white w-auto flex justify-between pl-[30] rounded-[4px]">
             <div className="py-[10] font-semibold text-[18px]">Quick Add to Diary</div>
             <div className="flex items-center justify-between w-[60%] mr-[100px] ml-[100px] h-[50px]">
+              <Link href={"/diary"} >
               <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9px] pt-[13px]">
                 <div className="mr-[6px]"><VscDiffAdded /></div>FOOD
               </button>
+              </Link>
               <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9px] pt-[13px]">
                 <div className="mr-[6px]"><VscDiffAdded /></div>EXERCISE
               </button>

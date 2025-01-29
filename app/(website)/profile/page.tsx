@@ -1,14 +1,15 @@
-'use client'
+"use client";
 
 import { useState, useEffect, ChangeEvent } from "react";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import DietGoalCalculation from "../components/DietGoalCalculation";
-import Link from "next/link"; // ใช้สำหรับลิงก์ไปยังหน้าเปลี่ยนรหัสผ่าน
+import Link from "next/link";
 
 export default function Profile() {
   const [profile, setProfile] = useState({
     email: "",
     username: "",
-    
     age: "",
     sex: "",
     weight: "",
@@ -18,6 +19,8 @@ export default function Profile() {
   });
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(true);
+  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -33,7 +36,6 @@ export default function Profile() {
           setProfile({
             email: data.email,
             username: data.username || "",
-           
             age: data.age?.toString() || "",
             sex: data.sex || "",
             weight: data.weight?.toString() || "",
@@ -46,7 +48,7 @@ export default function Profile() {
         }
       } catch (error) {
         console.error(error);
-        alert("An error occurred while loading the profile.");
+        toast.error("An error occurred while loading the profile.");
       } finally {
         setIsLoading(false);
       }
@@ -57,32 +59,50 @@ export default function Profile() {
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setProfile(prev => ({ ...prev, [name]: value }));
+    setProfile((prev) => ({ ...prev, [name]: value }));
   };
 
   const saveProfile = async () => {
     try {
-      
+      setSuccessMessage("");
+  
+      const formattedProfile = {
+        ...profile,
+        age: profile.age ? Number(profile.age) : undefined,
+        weight: profile.weight ? Number(profile.weight) : undefined,
+        height: profile.height ? Number(profile.height) : undefined,
+        diet_goal: profile.diet_goal.toLowerCase().replace(/\s+/g, "_"), // ✅ แปลงให้ตรงกับ Prisma Enum
+        activity_level: profile.activity_level.toLowerCase().replace(/\s+/g, "_"), // ✅ แปลงให้ตรงกับ Prisma Enum
+      };
+  
+      console.log("Sending payload:", formattedProfile);
+  
       const response = await fetch("/api/auth/user", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(profile),
+        body: JSON.stringify(formattedProfile),
         credentials: "include",
       });
-
+  
+      const data = await response.json();
+      console.log("Response:", data);
+  
       if (response.ok) {
-        alert("Profile saved successfully!");
+        toast.success("Profile updated successfully!", { autoClose: 3000 });
+        setSuccessMessage("✔ Profile updated successfully!");
       } else {
-        throw new Error("Failed to save profile");
+        throw new Error(data.message || "Failed to save profile");
       }
     } catch (error) {
-      console.error(error);
-      alert("An error occurred while saving the profile.");
+      console.error("Error saving profile:", error);
+      toast.error("An error occurred while saving profile.");
+      setSuccessMessage("❌ Error updating profile.");
     }
   };
+  
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <div className="text-center text-lg p-6">Loading...</div>;
   }
 
   return (
@@ -98,8 +118,7 @@ export default function Profile() {
               type="email"
               name="email"
               value={profile.email}
-              onChange={handleInputChange}
-              className="mt-1 w-full p-2 border rounded"
+              className="mt-1 w-full p-2 border rounded bg-gray-100"
               disabled
             />
           </div>
@@ -111,6 +130,7 @@ export default function Profile() {
               value={profile.username}
               onChange={handleInputChange}
               className="mt-1 w-full p-2 border rounded"
+              disabled={!isEditing}
             />
           </div>
           <div>
@@ -121,6 +141,7 @@ export default function Profile() {
               value={profile.age}
               onChange={handleInputChange}
               className="mt-1 w-full p-2 border rounded"
+              disabled={!isEditing}
             />
           </div>
           <div>
@@ -130,6 +151,7 @@ export default function Profile() {
               value={profile.sex}
               onChange={handleInputChange}
               className="mt-1 w-full p-2 border rounded"
+              disabled={!isEditing}
             >
               <option value="">Select</option>
               <option value="male">Male</option>
@@ -144,6 +166,7 @@ export default function Profile() {
               value={profile.weight}
               onChange={handleInputChange}
               className="mt-1 w-full p-2 border rounded"
+              disabled={!isEditing}
             />
           </div>
           <div>
@@ -154,6 +177,7 @@ export default function Profile() {
               value={profile.height}
               onChange={handleInputChange}
               className="mt-1 w-full p-2 border rounded"
+              disabled={!isEditing}
             />
           </div>
           <div>
@@ -163,11 +187,11 @@ export default function Profile() {
               value={profile.diet_goal}
               onChange={handleInputChange}
               className="mt-1 w-full p-2 border rounded"
+              disabled={!isEditing}
             >
-              <option value="Maintain Weight">Maintain Weight</option>
-              <option value="Lose Weight">Lose Weight</option>
-              <option value="Gain Muscle">Gain Muscle</option>
-              <option value="Improve Health">Improve Health</option>
+              <option value="maintain_weight">Maintain Weight</option>
+              <option value="lose_weight">Lose Weight</option>
+              <option value="gain_weight">Gain Weight</option>
             </select>
           </div>
           <div>
@@ -177,35 +201,44 @@ export default function Profile() {
               value={profile.activity_level}
               onChange={handleInputChange}
               className="mt-1 w-full p-2 border rounded"
+              disabled={!isEditing}
             >
               <option value="Sedentary">Sedentary</option>
-              <option value="Lightly Active">Lightly Active</option>
-              <option value="Moderately Active">Moderately Active</option>
-              <option value="Very Active">Very Active</option>
+              <option value="light">Lightly</option>
+              <option value="moderate">Moderate</option>
+              <option value="active">Active</option>
+              <option value="veryactive">Very Active</option>
             </select>
           </div>
         </div>
 
-        {/* แสดงผล DietGoalCalculation */}
+        {/* ปุ่ม Save และ Change Password */}
+        <div className="p-4 border-t flex flex-col items-center gap-2">
+          {isEditing ? (
+            <button onClick={saveProfile} className="px-4 py-2 bg-blue-950 text-white rounded">
+              Save Profile
+            </button>
+          ) : (
+            <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-gray-300 text-black rounded">
+              Edit Profile
+            </button>
+          )}
 
-        <div className="p-4 border-t flex justify-between">
-          <button
-            onClick={saveProfile}
-            className="px-4 py-2 bg-blue-950 text-white rounded"
-          >
-            Save Profile
-          </button>
+          {successMessage && (
+            <p className="mt-2 text-green-600 font-medium">{successMessage}</p>
+          )}
+
           <Link href="/change-password">
             <button className="px-4 py-2 bg-gray-300 text-black rounded">
               Change Password
             </button>
           </Link>
         </div>
-      </div>
+
         <div className="p-4 border-t">
-          <DietGoalCalculation
-          />
+          <DietGoalCalculation />
         </div>
+      </div>
     </div>
   );
 }

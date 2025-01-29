@@ -43,7 +43,7 @@ const userSchema = z.object({
   ),
   sex: z.enum(['male', 'female'], { invalid_type_error: 'Invalid gender value' }),
   activity_level: z.enum(['sedentary', 'light', 'moderate', 'active', 'veryActive']).default('sedentary'), // ค่าเริ่มต้น
-  diet_goal: z.enum(['lose_weight', 'maintain_weight', 'gain_weight']).default('maintain_weight'), // ค่าเริ่มต้น
+  diet_goal: z.enum(['lose_weight', 'maintain_weight', 'gain_weight',]).default('maintain_weight'), // ค่าเริ่มต้น
 });
 
 export async function POST(req: NextRequest) {

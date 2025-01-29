@@ -22,15 +22,15 @@ model users {
   password       String                @db.VarChar(255)
   name           String?               @db.VarChar(100)
   age            Int?
-  sex            users_sex? // เปลี่ยนจาก gender เป็น sex
+  sex            users_sex?             // ควรมีค่า default เพื่อป้องกัน `null`
   weight         Float?                @db.Float
-  height         Float?                @db.Float
+  height        Float?                @db.Float
   birthday       DateTime?             @db.Date
-  activity_level users_activity_level?
-  diet_goal      users_diet_goal?      @default(maintain_weight)
+  activity_level users_activity_level? @default(sedentary) // ✅ เพิ่มค่า default
+  diet_goal      users_diet_goal?      @default(maintain_weight) // ✅ เพิ่มค่า default
   created_at     DateTime?             @default(now()) @db.Timestamp(0)
   updated_at     DateTime?             @default(now()) @updatedAt @db.Timestamp(0)
-  roleId         BigInt
+  roleId         BigInt                @default(1) // ✅ ป้องกัน `null` และให้ค่าเริ่มต้น
   username       String?               @unique @db.VarChar(100)
   diet_goals     diet_goals[]
   meal_records   meal_records[]
@@ -39,6 +39,7 @@ model users {
 
   @@index([roleId], map: "users_roleId_fkey")
 }
+
 
 model diet_goals {
   id             Int       @id @default(autoincrement())
@@ -62,10 +63,9 @@ model foods {
   carbs        Decimal?            @default(0.00) @db.Decimal(5, 2)
   fat          Decimal?            @default(0.00) @db.Decimal(5, 2)
   created_at   DateTime?           @default(now()) @db.Timestamp(0)
-  updated_at   DateTime?           @default(now()) @db.Timestamp(0)
-  category     String?             @db.VarChar(255)
+  updated_at   DateTime?           @default(now()) @updatedAt @db.Timestamp(0)
+  category     FoodCategory?        
   source       String?             @db.VarChar(255)
-  type_of_food foods_type_of_food?
   meal_items   meal_items[]
 }
 
@@ -135,11 +135,10 @@ enum users_diet_goal {
   gain_weight
 }
 
-enum foods_type_of_food {
-  Vegetarian
-  Non_Vegetarian @map("Non-Vegetarian")
-  Vegan
-  Gluten_Free    @map("Gluten-Free")
+enum FoodCategory {
+  COMMON_FOOD
+  BEVERAGES
+  RESTAURANTS
 }
 
 model Glass {
