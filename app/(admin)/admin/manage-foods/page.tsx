@@ -15,7 +15,9 @@ interface Food {
 
 export default function ManageFoods() {
   const [foods, setFoods] = useState<Food[]>([]);
-  const [formData, setFormData] = useState<Partial<Food>>({});
+  const [formData, setFormData] = useState<Partial<Food>>({
+    category: 'COMMON_FOOD',  // กำหนดค่าเริ่มต้น category เป็น COMMON_FOOD
+  });
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -153,7 +155,7 @@ export default function ManageFoods() {
           {/* Select for category */}
           <select
             name="category"
-            value={formData.category || 'COMMON_FOOD'}
+            value={formData.category }
             onChange={handleInputChange}
             className="p-2 border rounded"
           >
