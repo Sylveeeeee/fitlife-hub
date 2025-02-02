@@ -24,7 +24,7 @@ model users {
   age            Int?
   sex            users_sex?             // ควรมีค่า default เพื่อป้องกัน `null`
   weight         Float?                @db.Float
-  height        Float?                @db.Float
+  height        Float?                 @db.Float
   birthday       DateTime?             @db.Date
   activity_level users_activity_level? @default(sedentary) // ✅ เพิ่มค่า default
   diet_goal      users_diet_goal?      @default(maintain_weight) // ✅ เพิ่มค่า default
@@ -75,25 +75,31 @@ model meal_items {
   food_id        Int
   quantity       Float        @db.Float
   calories       Float        @db.Float
-  meal_records   meal_records @relation(fields: [meal_record_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "meal_items_ibfk_1")
-  foods          foods        @relation(fields: [food_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "meal_items_ibfk_2")
+  protein        Float        @default(0) @db.Float
+  carbs          Float        @default(0) @db.Float
+  fat            Float        @default(0) @db.Float
+  meal_records   meal_records @relation(fields: [meal_record_id], references: [id], onDelete: Cascade)
+  foods          foods        @relation(fields: [food_id], references: [id], onDelete: Cascade)
 
-  @@index([food_id], map: "food_id")
-  @@index([meal_record_id], map: "meal_record_id")
+  @@index([food_id])
+  @@index([meal_record_id])
 }
 
 model meal_records {
   id             Int                     @id @default(autoincrement())
   user_id        Int
-  meal_type      meal_records_meal_type?
+  meal_type      meal_records_meal_type?  // ENUM: "Breakfast", "Lunch", "Dinner", "Snacks"
   date           DateTime                @db.Date
   total_calories Float?                  @default(0) @db.Float
+  total_protein  Float?                  @default(0) @db.Float
+  total_carbs    Float?                  @default(0) @db.Float
+  total_fat      Float?                  @default(0) @db.Float
   created_at     DateTime?               @default(now()) @db.Timestamp(0)
   updated_at     DateTime?               @default(now()) @db.Timestamp(0)
-  meal_items     meal_items[]
-  users          users                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "meal_records_ibfk_1")
+  meal_items     meal_items[]             // รายการอาหารทั้งหมดในมื้อนี้
+  users          users                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@index([user_id], map: "user_id")
+  @@index([user_id])
 }
 
 model workouts {
