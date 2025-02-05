@@ -6,11 +6,20 @@ import AddFoodtoDiary from "../components/AddFoodtoDiary";
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 import EnergySummary from "../components/EnergySummary";
 
+interface FoodEntry {
+  id: number;
+  name: string;
+  servingSize: number;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
 export default function Diary() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date()); // ✅ ให้แน่ใจว่า selectedDate เป็น Date object
 
   const handleDateChange = (direction: "prev" | "next") => {
     setSelectedDate((prevDate) => {
@@ -90,26 +99,65 @@ export default function Diary() {
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
 
-  const handleAddToDiary = (
-    group: string,
-    food: {
-      name: string;
-      servingSize: number;
-      calories: number;
-      protein: number;
-      carbs: number;
-      fat: number;
+  const handleAddToDiary = async (group: string, food: FoodEntry) => {
+    // ✅ ตรวจสอบ selectedDate
+    if (!(selectedDate instanceof Date) || isNaN(selectedDate.getTime())) {
+      console.error("❌ Invalid selectedDate:", selectedDate);
+      return;
     }
-  ) => {
-    setDiaryEntries((prevEntries) => {
-      // อัปเดตอาหารในกลุ่มที่เลือก
-      const updatedGroup = prevEntries[group] ? [...prevEntries[group], food] : [food];
-      return {
+    const formattedDate = selectedDate.toISOString().split("T")[0];
+  
+    // ✅ ตรวจสอบ food ID
+    if (!food || typeof food.id === "undefined") {
+      console.error("❌ Food ID is missing:", food);
+      return;
+    }
+  
+    try {
+      console.log("📡 Sending request to API...");
+      console.log("📆 Date:", formattedDate);
+      console.log("🍽 Meal Type:", group);
+      console.log("🍎 Food ID:", food.id);
+      console.log("🔢 Serving Size:", food.servingSize);
+  
+      const response = await fetch(`/api/auth/diary/${formattedDate}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          meal_type: group,
+          food_id: food.id,
+          quantity: food.servingSize,
+          calories: food.calories,
+          protein: food.protein,
+          carbs: food.carbs,
+          fat: food.fat,
+        }),
+      });
+  
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to add food to diary.");
+      }
+  
+      // ✅ ใช้ค่าจาก API Response
+      const newEntry = await response.json();
+      console.log("✅ Food added successfully:", newEntry);
+  
+      // ✅ อัปเดตสถานะของ Diary โดยใช้ค่าจาก API
+      setDiaryEntries((prevEntries) => ({
         ...prevEntries,
-        [group]: updatedGroup, // อัปเดตกลุ่มที่เลือก
-      };
-    });
+        [group]: [...prevEntries[group], newEntry], // ใช้ newEntry ที่ได้จาก API
+      }));
+  
+      console.log("✅ Diary updated successfully!");
+    } catch (error) {
+      console.error("❌ Error adding food to diary:", error);
+      alert(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
   };
+  
+
 
   const handleRemoveItem = () => {
     if (itemToDelete) {
@@ -127,7 +175,8 @@ export default function Diary() {
       <AddFoodtoDiary
         isOpen={isModalOpen}
         closeModal={closeModal}
-        onAdd={handleAddToDiary}
+        onAdd={(group, food) => handleAddToDiary(group, food)} // ✅ ส่งค่าให้ครบ
+        selectedDate={selectedDate} // ✅ ส่ง selectedDate ให้ AddFoodToDiary
       />
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen && !!itemToDelete}

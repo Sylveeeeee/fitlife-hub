@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { IoMdClose } from "react-icons/io";
 
-interface Food {
+interface FoodEntry {
   id: number;
   name: string;
+  servingSize: number;
   protein: number;
   carbs: number;
   fat: number;
@@ -14,37 +15,30 @@ interface Food {
 interface AddFoodToDiaryProps {
   isOpen: boolean;
   closeModal: () => void;
-  onAdd: (group: string, food: {
-    name: string;
-    servingSize: number;
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-  }) => void;
+  onAdd: (group: string, food: FoodEntry) => void;
+  selectedDate: Date;
 }
 
-const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onAdd }) => {
-  const [foods, setFoods] = useState<Food[]>([]);
-  const [selectedFood, setSelectedFood] = useState<Food | null>(null);
+const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onAdd, selectedDate }) => {
+  const [foods, setFoods] = useState<FoodEntry[]>([]);
+  const [selectedFood, setSelectedFood] = useState<FoodEntry | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [servingSize, setServingSize] = useState<number>(1);
+  const [servingSize, setServingSize] = useState<number>(100); // ✅ Default serving size
   const [activeTab, setActiveTab] = useState<string>("All");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [diaryGroup, setDiaryGroup] = useState<string>("Uncategorized");
+  const [diaryGroup, setDiaryGroup] = useState<string>("Breakfast");
 
+  // 📌 ดึงข้อมูลอาหารจาก API
   const fetchFoods = useCallback(async () => {
+    if (!isOpen) return;
     setIsLoading(true);
     setError(null);
     try {
-      // ส่งค่า activeTab ที่เลือกไปใน query ของ API
-      const category = activeTab === "All" ? "" : activeTab; // กำหนดให้ "All" เป็นกรณีพิเศษที่ไม่กรองหมวดหมู่
-      const response = await fetch(`/api/auth/foods?category=${category}&search=${searchQuery}`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch foods: ${response.statusText}`);
-      }
-      const data: Food[] = await response.json();
+      const response = await fetch(`/api/auth/foods?category=${activeTab === "All" ? "" : activeTab}&search=${searchQuery}`);
+      if (!response.ok) throw new Error(`Failed to fetch foods: ${response.statusText}`);
+
+      const data: FoodEntry[] = await response.json();
       setFoods(data);
     } catch (err) {
       console.error("Error fetching foods:", err);
@@ -52,142 +46,142 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onA
     } finally {
       setIsLoading(false);
     }
-  }, [activeTab, searchQuery]);
+  }, [activeTab, searchQuery, isOpen]);
 
   useEffect(() => {
-    if (isOpen) {
-      fetchFoods();
-    }
-  }, [isOpen, fetchFoods]);
+    fetchFoods();
+  }, [fetchFoods]);
 
+  // 📌 เพิ่มอาหารลงในไดอารี่ และบันทึกลงฐานข้อมูลผ่าน API
+  const handleAddFood = async () => {
+    if (!selectedFood || typeof selectedFood.id === "undefined") {
+      console.error("❌ No food selected.");
+      alert("Please select a food item.");
+      return;
+    }
+  
+    if (!(selectedDate instanceof Date) || isNaN(selectedDate.getTime())) {
+      console.error("❌ Invalid selectedDate:", selectedDate);
+      alert("Invalid selected date.");
+      return;
+    }
+  
+    // คำนวณปริมาณสารอาหารที่ถูกต้อง
+    const adjustedCalories = (Number(selectedFood.calories || 0) * servingSize) / 100;
+    const adjustedProtein = (Number(selectedFood.protein || 0) * servingSize) / 100;
+    const adjustedCarbs = (Number(selectedFood.carbs || 0) * servingSize) / 100;
+    const adjustedFat = (Number(selectedFood.fat || 0) * servingSize) / 100;
+  
+    // แปลงวันที่เป็น "YYYY-MM-DD"
+    const formattedDate = selectedDate.toISOString().split("T")[0];
+  
+    try {
+      console.log("📡 Sending request to API...");
+      console.log("📆 Date:", formattedDate);
+      console.log("🍽 Meal Type:", diaryGroup);
+      console.log("🍎 Food ID:", selectedFood.id);
+      console.log("🔢 Serving Size:", servingSize);
+  
+      const response = await fetch(`/api/auth/diary/${formattedDate}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          meal_type: diaryGroup,
+          food_id: selectedFood.id,
+          quantity: servingSize,
+          calories: adjustedCalories,
+          protein: adjustedProtein,
+          carbs: adjustedCarbs,
+          fat: adjustedFat,
+        }),
+      });
+  
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to add food to diary.");
+      }
+  
+      const newEntry = await response.json();
+      console.log("✅ Food added successfully:", newEntry);
+  
+      // ✅ ใช้ค่าที่ได้จาก API แทนค่าที่คำนวณเอง
+      onAdd(diaryGroup, {
+        id: newEntry.id || Date.now(), // ใช้ ID ที่ได้จาก API หรือ fallback เป็น timestamp
+        name: newEntry.name || selectedFood.name, // ใช้ค่าจาก API ถ้ามี
+        servingSize: newEntry.quantity || servingSize,
+        calories: newEntry.calories || adjustedCalories,
+        protein: newEntry.protein || adjustedProtein,
+        carbs: newEntry.carbs || adjustedCarbs,
+        fat: newEntry.fat || adjustedFat,
+        source: selectedFood.source,
+      });
+  
+      closeModal();
+    } catch (error) {
+      console.error("❌ Error adding food entry:", error);
+      alert(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  };
+  
+  
   if (!isOpen) return null;
 
   return (
-    <div
-      onClick={closeModal}
-      className="fixed inset-0 bg-gray-700 bg-opacity-50 flex justify-center items-center font-mono"
-    >
-      <div
-        className="bg-white p-4 sm:p-6 md:p-8 rounded shadow-lg text-black w-[95%] sm:w-[80%] md:w-[70%] lg:w-[60%] xl:w-[50%] max-h-[90%] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div onClick={closeModal} className="fixed inset-0 bg-gray-700 bg-opacity-50 flex justify-center items-center font-mono">
+      <div onClick={(e) => e.stopPropagation()} className="bg-white p-6 rounded shadow-lg text-black w-[90%] max-w-2xl max-h-[90%] overflow-y-auto">
+        {/* 🔹 Header */}
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold">Add Food to Diary</h2>
-          <button onClick={closeModal} className="text-xl sm:text-2xl font-black">
-            <IoMdClose />
-          </button>
+          <h2 className="text-xl font-bold">Add Food to Diary</h2>
+          <button onClick={closeModal} className="text-2xl"><IoMdClose /></button>
         </div>
 
-        {/* Search Bar */}
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search all foods & recipes..."
-          className="border p-2 rounded mb-4 w-full text-sm md:text-base"
-        />
+        {/* 🔹 Search Bar */}
+        <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search foods..." className="border p-2 rounded mb-4 w-full" />
 
-        {/* Tabs */}
-        <div className="flex flex-wrap gap-2 mb-4">
+        {/* 🔹 Tabs */}
+        <div className="flex gap-2 mb-4">
           {["All", "Favorites", "Common Foods", "Beverages", "Restaurants"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-3 py-2 text-sm md:text-base font-bold ${
-                activeTab === tab
-                  ? "text-black border-b-2 border-black"
-                  : "text-gray-500"
-              }`}
-            >
+            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-3 py-2 text-sm font-bold ${activeTab === tab ? "text-black border-b-2 border-black" : "text-gray-500"}`}>
               {tab}
             </button>
           ))}
         </div>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Food List */}
-          <div className="border rounded p-2 overflow-y-auto h-[300px] sm:h-[400px] md:h-[420px]">
-            {isLoading && <p className="text-center text-blue-500">Loading foods...</p>}
-            {error && <p className="text-center text-red-500">{error}</p>}
-            {!isLoading && !error && (
-              <>
-                {foods.length === 0 ? (
-                  <p className="text-center">No foods found. Try adjusting your search or category.</p>
-                ) : (
-                  foods
-                    .filter((food) =>
-                      food.name.toLowerCase().includes(searchQuery.toLowerCase())
-                    )
-                    .map((food) => (
-                      <div
-                        key={food.id}
-                        className={`flex justify-between items-center p-2 cursor-pointer ${
-                          selectedFood?.id === food.id
-                            ? "bg-gray-200"
-                            : "hover:bg-gray-100"
-                        }`}
-                        onClick={() => setSelectedFood(food)}
-                      >
-                        <div className="text-sm md:text-base">{food.name}</div>
-                        <div className="text-xs md:text-sm text-gray-500">{food.source}</div>
-                      </div>
-                    ))
-                )}
-              </>
-            )}
-          </div>
-
-          {/* Selected Food Details */}
-          {selectedFood && (
-            <div className="border rounded p-4 sticky top-0 h-max">
-              <h3 className="text-lg sm:text-xl font-bold mb-2">{selectedFood.name}</h3>
-              <p className="text-[#ff1cd2]">Calories: {selectedFood.calories} kcal</p>
-              <p className="text-[#12ff3e]">Protein: {selectedFood.protein} g</p>
-              <p className="text-[#24fff4]">Net Carbs: {selectedFood.carbs} g</p>
-              <p className="text-[#ff2525]">Fat: {selectedFood.fat} g</p>
-              <p className="text-gray-500">Source: {selectedFood.source}</p>
-              <label className="block mt-4 mb-2 text-sm md:text-base">Serving Size:</label>
-              <input
-                type="number"
-                value={servingSize}
-                onChange={(e) => setServingSize(Number(e.target.value))}
-                className="border p-2 rounded w-full text-sm md:text-base"
-                min="1"
-              />
-              <label className="block mt-4 mb-2 text-sm md:text-base">Diary Group:</label>
-              <select
-                value={diaryGroup}
-                onChange={(e) => setDiaryGroup(e.target.value)}
-                className="border p-2 rounded w-full text-sm md:text-base"
-              >
-                <option value="Uncategorized">Uncategorized</option>
-                <option value="Breakfast">Breakfast</option>
-                <option value="Lunch">Lunch</option>
-                <option value="Dinner">Dinner</option>
-                <option value="Snacks">Snacks</option>
-              </select>
-              <button
-                onClick={() => {
-                  if (selectedFood) {
-                    onAdd(diaryGroup, {
-                      name: selectedFood.name,
-                      servingSize: servingSize,
-                      calories: selectedFood.calories,
-                      protein: selectedFood.protein,
-                      carbs: selectedFood.carbs,
-                      fat: selectedFood.fat,
-                    });
-                    closeModal();
-                  }
-                }}
-                className="mt-4 bg-green-500 text-white px-4 py-2 rounded text-sm md:text-base"
-              >
-                Add to Diary
-              </button>
+        {/* 🔹 Food List */}
+        <div className="border rounded p-2 overflow-y-auto h-60">
+          {isLoading && <p className="text-center text-blue-500">Loading foods...</p>}
+          {error && <p className="text-center text-red-500">{error}</p>}
+          {!isLoading && !error && foods.length === 0 && <p className="text-center">No foods found.</p>}
+          {foods.map((food) => (
+            <div key={food.id} className={`p-2 cursor-pointer ${selectedFood?.id === food.id ? "bg-gray-200" : "hover:bg-gray-100"}`} onClick={() => setSelectedFood(food)}>
+              <span>{food.name}</span> <span className="text-gray-500 text-xs">({food.source})</span>
             </div>
-          )}
+          ))}
         </div>
+
+        {/* 🔹 Selected Food Details */}
+        {selectedFood && (
+          <div className="border rounded p-4 mt-4">
+            <h3 className="text-lg font-bold">{selectedFood.name}</h3>
+            <p>Calories: {selectedFood.calories} kcal</p>
+            <p>Protein: {selectedFood.protein} g</p>
+            <p>Carbs: {selectedFood.carbs} g</p>
+            <p>Fat: {selectedFood.fat} g</p>
+
+            <label className="block mt-4">Serving Size (g):</label>
+            <input type="number" value={servingSize} onChange={(e) => setServingSize(Number(e.target.value))} className="border p-2 rounded w-full" min="1" />
+
+            <label className="block mt-4">Diary Group:</label>
+            <select value={diaryGroup} onChange={(e) => setDiaryGroup(e.target.value)} className="border p-2 rounded w-full">
+              {["Breakfast", "Lunch", "Dinner", "Snacks"].map((group) => (
+                <option key={group} value={group}>{group}</option>
+              ))}
+            </select>
+
+            <button onClick={handleAddFood} className="mt-4 bg-green-500 text-white px-4 py-2 rounded w-full">Add to Diary</button>
+          </div>
+        )}
       </div>
     </div>
   );

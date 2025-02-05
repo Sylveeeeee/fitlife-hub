@@ -70,14 +70,14 @@ model foods {
 }
 
 model meal_items {
-  id             Int          @id @default(autoincrement())
+  id             Int      @id @default(autoincrement())
   meal_record_id Int
   food_id        Int
-  quantity       Float        @db.Float
-  calories       Float        @db.Float
-  protein        Float        @default(0) @db.Float
-  carbs          Float        @default(0) @db.Float
-  fat            Float        @default(0) @db.Float
+  quantity       Float    @db.Float
+  calories       Float    @default(0) @db.Float
+  protein        Float    @default(0) @db.Float
+  carbs          Float    @default(0) @db.Float
+  fat            Float    @default(0) @db.Float
   meal_records   meal_records @relation(fields: [meal_record_id], references: [id], onDelete: Cascade)
   foods          foods        @relation(fields: [food_id], references: [id], onDelete: Cascade)
 
@@ -88,16 +88,16 @@ model meal_items {
 model meal_records {
   id             Int                     @id @default(autoincrement())
   user_id        Int
-  meal_type      meal_records_meal_type?  // ENUM: "Breakfast", "Lunch", "Dinner", "Snacks"
+  meal_type      meal_records_meal_type
   date           DateTime                @db.Date
-  total_calories Float?                  @default(0) @db.Float
-  total_protein  Float?                  @default(0) @db.Float
-  total_carbs    Float?                  @default(0) @db.Float
-  total_fat      Float?                  @default(0) @db.Float
-  created_at     DateTime?               @default(now()) @db.Timestamp(0)
-  updated_at     DateTime?               @default(now()) @db.Timestamp(0)
-  meal_items     meal_items[]             // รายการอาหารทั้งหมดในมื้อนี้
-  users          users                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  total_calories Float                   @default(0) @db.Float
+  total_protein  Float                   @default(0) @db.Float
+  total_carbs    Float                   @default(0) @db.Float
+  total_fat      Float                   @default(0) @db.Float
+  created_at     DateTime                @default(now()) @db.Timestamp(0)
+  updated_at     DateTime                @updatedAt @db.Timestamp(0)
+  meal_items     meal_items[]
+  user           users                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
 }

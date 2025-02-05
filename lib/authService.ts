@@ -7,34 +7,38 @@ interface DecodedToken {
 }
 
 // ✅ ฟังก์ชันดึง userId จาก Token
-export async function getUserIdFromToken(req: Request): Promise<number> {
+export async function getUserIdFromToken(req: Request): Promise<number | null> {
   try {
-    // 🔹 ดึง token จาก Header หรือ Cookies
+    // 🔹 ดึง Token จาก Header หรือ Cookies
     const authHeader = req.headers.get("Authorization");
-    const cookieHeader = await cookies(); // ✅ ใช้ await
-    const tokenFromCookie = cookieHeader.get("token")?.value;
-    
-    let token: string | undefined = undefined;
+    const cookieStore = await cookies(); // ✅ ใช้ await เพื่อให้ได้ค่า cookies
+    const tokenFromCookie = cookieStore.get("token")?.value; // ✅ อ่านค่า token จาก cookie
+
+    let token: string | undefined;
 
     if (authHeader && authHeader.startsWith("Bearer ")) {
-      token = authHeader.split(" ")[1]; // ใช้ Token จาก Header
+      token = authHeader.split(" ")[1]; // ✅ ใช้ Token จาก Header
     } else if (tokenFromCookie) {
-      token = tokenFromCookie; // ใช้ Token จาก Cookies
+      token = tokenFromCookie; // ✅ ใช้ Token จาก Cookies
     }
 
     if (!token) {
-      throw new Error("Unauthorized: Token not provided");
+      console.error("❌ Unauthorized: Token not provided");
+      return null;
     }
 
     // 🔹 ถอดรหัส Token
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as DecodedToken;
     if (!decoded.userId) {
-      throw new Error("Unauthorized: Invalid token");
+      console.error("❌ Unauthorized: Invalid token payload");
+      return null;
     }
 
+    console.log("🔑 Decoded User ID:", decoded.userId);
     return decoded.userId; // ✅ คืนค่า userId
+
   } catch (error) {
-    console.error("Error getting user ID from token:", error);
-    throw new Error("Unauthorized: Invalid or expired token");
+    console.error("❌ Error decoding token:", error);
+    return null;
   }
 }
