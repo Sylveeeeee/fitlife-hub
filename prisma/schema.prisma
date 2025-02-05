@@ -22,19 +22,18 @@ model users {
   password       String                @db.VarChar(255)
   name           String?               @db.VarChar(100)
   age            Int?
-  sex            users_sex? // เปลี่ยนจาก gender เป็น sex
+  gender         users_gender?
   weight         Float?                @db.Float
   height         Float?                @db.Float
-  birthday       DateTime?             @db.Date
   activity_level users_activity_level?
-  diet_goal      users_diet_goal?      @default(maintain_weight)
+  diet_goal      users_diet_goal?
   created_at     DateTime?             @default(now()) @db.Timestamp(0)
   updated_at     DateTime?             @default(now()) @updatedAt @db.Timestamp(0)
-  roleId         BigInt
+  roleId         BigInt?
   username       String?               @unique @db.VarChar(100)
   diet_goals     diet_goals[]
   meal_records   meal_records[]
-  role           Role                  @relation("UserRole", fields: [roleId], references: [id], onDelete: Cascade)
+  role           Role?                 @relation("UserRole", fields: [roleId], references: [id], onDelete: Cascade)
   workouts       workouts[]
 
   @@index([roleId], map: "users_roleId_fkey")
@@ -42,7 +41,7 @@ model users {
 
 model diet_goals {
   id             Int       @id @default(autoincrement())
-  user_id        Int       @unique
+  user_id        Int
   daily_calories Float     @db.Float
   daily_protein  Float?    @default(0) @db.Float
   daily_carbs    Float?    @default(0) @db.Float
@@ -108,31 +107,11 @@ model workouts {
   @@index([user_id], map: "user_id")
 }
 
-model post {
-  id        Int      @id @default(autoincrement())
-  content   String
-  createdAt DateTime @default(now())
-}
-
 enum meal_records_meal_type {
   breakfast
   lunch
   dinner
   snack
-}
-
-enum users_activity_level {
-  sedentary
-  light
-  moderate
-  active
-  veryActive
-}
-
-enum users_diet_goal {
-  lose_weight
-  maintain_weight
-  gain_weight
 }
 
 enum foods_type_of_food {
@@ -142,14 +121,22 @@ enum foods_type_of_food {
   Gluten_Free    @map("Gluten-Free")
 }
 
-model Glass {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  count     Int
-  createdAt DateTime @default(now())
-}
-
-enum users_sex {
+enum users_gender {
   male
   female
+  other
+}
+
+enum users_activity_level {
+  sedentary
+  light
+  moderate
+  active
+  very_active @map("very active")
+}
+
+enum users_diet_goal {
+  weight_loss
+  muscle_gain
+  maintenance
 }
