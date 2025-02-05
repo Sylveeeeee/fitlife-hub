@@ -22,14 +22,15 @@ model users {
   password       String                @db.VarChar(255)
   name           String?               @db.VarChar(100)
   age            Int?
-  gender         users_gender?
+  sex            users_sex? // เปลี่ยนจาก gender เป็น sex
   weight         Float?                @db.Float
   height         Float?                @db.Float
+  birthday       DateTime?             @db.Date
   activity_level users_activity_level?
-  diet_goal      users_diet_goal?
+  diet_goal      users_diet_goal?      @default(maintain_weight)
   created_at     DateTime?             @default(now()) @db.Timestamp(0)
   updated_at     DateTime?             @default(now()) @updatedAt @db.Timestamp(0)
-  roleId         BigInt?
+  roleId         BigInt
   username       String?               @unique @db.VarChar(100)
   diet_goals     diet_goals[]
   meal_records   meal_records[]
@@ -38,6 +39,7 @@ model users {
 
   @@index([roleId], map: "users_roleId_fkey")
 }
+
 
 model diet_goals {
   id             Int       @id @default(autoincrement())
@@ -61,10 +63,9 @@ model foods {
   carbs        Decimal?            @default(0.00) @db.Decimal(5, 2)
   fat          Decimal?            @default(0.00) @db.Decimal(5, 2)
   created_at   DateTime?           @default(now()) @db.Timestamp(0)
-  updated_at   DateTime?           @default(now()) @db.Timestamp(0)
-  category     String?             @db.VarChar(255)
+  updated_at   DateTime?           @default(now()) @updatedAt @db.Timestamp(0)
+  category     FoodCategory?        
   source       String?             @db.VarChar(255)
-  type_of_food foods_type_of_food?
   meal_items   meal_items[]
 }
 
@@ -74,25 +75,31 @@ model meal_items {
   food_id        Int
   quantity       Float        @db.Float
   calories       Float        @db.Float
-  meal_records   meal_records @relation(fields: [meal_record_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "meal_items_ibfk_1")
-  foods          foods        @relation(fields: [food_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "meal_items_ibfk_2")
+  protein        Float        @default(0) @db.Float
+  carbs          Float        @default(0) @db.Float
+  fat            Float        @default(0) @db.Float
+  meal_records   meal_records @relation(fields: [meal_record_id], references: [id], onDelete: Cascade)
+  foods          foods        @relation(fields: [food_id], references: [id], onDelete: Cascade)
 
-  @@index([food_id], map: "food_id")
-  @@index([meal_record_id], map: "meal_record_id")
+  @@index([food_id])
+  @@index([meal_record_id])
 }
 
 model meal_records {
   id             Int                     @id @default(autoincrement())
   user_id        Int
-  meal_type      meal_records_meal_type?
+  meal_type      meal_records_meal_type?  // ENUM: "Breakfast", "Lunch", "Dinner", "Snacks"
   date           DateTime                @db.Date
   total_calories Float?                  @default(0) @db.Float
+  total_protein  Float?                  @default(0) @db.Float
+  total_carbs    Float?                  @default(0) @db.Float
+  total_fat      Float?                  @default(0) @db.Float
   created_at     DateTime?               @default(now()) @db.Timestamp(0)
   updated_at     DateTime?               @default(now()) @db.Timestamp(0)
-  meal_items     meal_items[]
-  users          users                   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "meal_records_ibfk_1")
+  meal_items     meal_items[]             // รายการอาหารทั้งหมดในมื้อนี้
+  users          users                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@index([user_id], map: "user_id")
+  @@index([user_id])
 }
 
 model workouts {
@@ -114,11 +121,10 @@ enum meal_records_meal_type {
   snack
 }
 
-enum foods_type_of_food {
-  Vegetarian
-  Non_Vegetarian @map("Non-Vegetarian")
-  Vegan
-  Gluten_Free    @map("Gluten-Free")
+enum FoodCategory {
+  COMMON_FOOD
+  BEVERAGES
+  RESTAURANTS
 }
 
 enum users_gender {

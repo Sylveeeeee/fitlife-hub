@@ -15,12 +15,14 @@ interface Food {
 
 export default function ManageFoods() {
   const [foods, setFoods] = useState<Food[]>([]);
-  const [formData, setFormData] = useState<Partial<Food>>({});
+  const [formData, setFormData] = useState<Partial<Food>>({
+    category: 'COMMON_FOOD',  // กำหนดค่าเริ่มต้น category เป็น COMMON_FOOD
+  });
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [notification, setNotification] = useState<string | null>(null);
+  const [, setNotification] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export default function ManageFoods() {
     setFoods(data);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
     setErrors({ ...errors, [name]: false });
@@ -61,7 +63,6 @@ export default function ManageFoods() {
     e.preventDefault();
 
     if (!validateForm()) {
-      
       return;
     }
 
@@ -131,10 +132,6 @@ export default function ManageFoods() {
     }
   };
 
-  const closeNotification = () => {
-    setNotification(null);
-  };
-
   return (
     <div className="min-h-screen font-mono text-black p-6">
       <h1 className="text-2xl font-bold mb-6">Manage Foods</h1>
@@ -143,7 +140,7 @@ export default function ManageFoods() {
       <form onSubmit={handleFormSubmit} className="bg-white p-4 rounded-lg shadow-md mb-6">
         <h2 className="text-lg font-bold mb-4">{isEditing ? 'Edit Food' : 'Add Food'}</h2>
         <div className="grid grid-cols-2 gap-4">
-          {['name', 'calories', 'protein', 'carbs', 'fat', 'category', 'source'].map((field) => (
+          {['name', 'calories', 'protein', 'carbs', 'fat', 'source'].map((field) => (
             <input
               key={field}
               type={field === 'calories' || field === 'protein' || field === 'carbs' || field === 'fat' ? 'number' : 'text'}
@@ -154,6 +151,18 @@ export default function ManageFoods() {
               className={`p-2 border rounded ${errors[field] ? 'border-red-500 ' : 'border-gray-300'}`}
             />
           ))}
+          
+          {/* Select for category */}
+          <select
+            name="category"
+            value={formData.category }
+            onChange={handleInputChange}
+            className="p-2 border rounded"
+          >
+            <option value="COMMON_FOOD">Common Food</option>
+            <option value="BEVERAGES">Beverages</option>
+            <option value="RESTAURANTS">Restaurants</option>
+          </select>
         </div>
         <button
           type="submit"
@@ -167,7 +176,7 @@ export default function ManageFoods() {
       <table className="w-full bg-white rounded-lg shadow-md">
         <thead>
           <tr>
-          <th className="text-left p-2">#</th>
+            <th className="text-left p-2">#</th>
             <th className="text-left p-2">Name</th>
             <th className="text-left p-2">Calories</th>
             <th className="text-left p-2">Protein</th>
@@ -208,44 +217,34 @@ export default function ManageFoods() {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-          <div className="bg-white p-6 rounded-lg shadow-lg">
-            <h2 className="text-xl font-bold mb-4">Confirm Deletion</h2>
-            <p>Are you sure you want to delete this food?</p>
-            <div className="mt-4 flex justify-end gap-4">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="bg-gray-500 text-white px-4 py-2 rounded"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDelete}
-                className="bg-red-500 text-white px-4 py-2 rounded"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+        <div className="bg-white p-6 rounded-lg shadow-lg">
+          <h2 className="text-xl font-bold mb-4">Confirm Deletion</h2>
+          {/* ใช้ deleteId เพื่อหาค่าอาหารที่ต้องการลบ */}
+          {foods
+            .filter((food) => food.id === deleteId) // คัดกรองเฉพาะอาหารที่มี id เท่ากับ deleteId
+            .map((food) => (
+              <div key={food.id}>
+                <p>Are you sure you want to delete {food.name}?</p>
+                <div className="mt-4 flex justify-end gap-4">
+                  <button
+                    onClick={() => setShowDeleteModal(false)}
+                    className="bg-gray-500 text-white px-4 py-2 rounded"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="bg-red-500 text-white px-4 py-2 rounded"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
         </div>
-      )}
-
-      {/* Notification Modal */}
-      {notification && (
-        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
-          <div className="bg-white p-4 rounded-lg shadow-md">
-            <p>{notification}</p>
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={closeNotification}
-                className="bg-blue-500 text-white px-4 py-2 rounded"
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
+    )}
     </div>
   );
 }

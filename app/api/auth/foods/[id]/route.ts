@@ -1,6 +1,18 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
+import { FoodCategory } from '@prisma/client'; // ✅ นำเข้า Prisma Enum
+
+// ฟังก์ชันสำหรับการแปลง category
+const normalizeFoodCategory = (value: string | null | undefined): FoodCategory | undefined => {
+  if (!value) return undefined;
+  switch (value.toLowerCase().replace(/\s+/g, "_")) {
+    case "common_food": return FoodCategory.COMMON_FOOD;
+    case "beverages": return FoodCategory.BEVERAGES;
+    case "restaurants": return FoodCategory.RESTAURANTS;
+    default: return FoodCategory.COMMON_FOOD; // ✅ ค่าเริ่มต้น
+  }
+};
 
 // ฟังก์ชันตรวจสอบ role admin
 async function verifyAdminRole(req: Request) {
@@ -11,7 +23,7 @@ async function verifyAdminRole(req: Request) {
 
   const token = cookies
     .split(';')
-    .find((cookie) => cookie.trim().startsWith('auth-token='))?.split('=')[1];
+    .find(cookie => cookie.trim().startsWith('auth-token='))?.split('=')[1];
 
   if (!token) {
     return NextResponse.json({ message: 'Unauthorized: No token provided' }, { status: 401 });
@@ -31,7 +43,6 @@ async function verifyAdminRole(req: Request) {
   }
 }
 
-
 // GET: ดึงข้อมูลอาหารตาม ID
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
@@ -43,7 +54,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     if (!food) return NextResponse.json({ error: 'Food not found' }, { status: 404 });
 
     return NextResponse.json(food);
-  }catch (error) {
+  } catch (error) {
     if (error instanceof Error) {
       console.error('GET error:', error.message);
       return NextResponse.json({ error: 'An unexpected error occurred', details: error.message }, { status: 500 });
@@ -52,68 +63,48 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
     }
   }
-  
 }
 
 // PUT: อัปเดตข้อมูลอาหาร
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
-  // ตรวจสอบสิทธิ์ผู้ใช้
-  const adminCheck = await verifyAdminRole(req);
-  if ('message' in adminCheck) return adminCheck;
+  const foodId = Number(params.id); // ใช้ params.id หลังจากที่ดึงข้อมูลออกมา
+
+  if (isNaN(foodId)) {
+    return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+  }
 
   try {
-    // รับ ID และตรวจสอบความถูกต้อง
-    const foodId = Number(params.id);
-    if (isNaN(foodId)) {
-      return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
-    }
-
-    // รับข้อมูลใหม่จาก body
     const body = await req.json();
-    const { name, calories = 0, protein = 0, carbs = 0, fat = 0, category, source } = body;
+    const { name, calories, protein, carbs, fat, category, source } = body;
 
     // ตรวจสอบข้อมูลที่จำเป็น
     if (!name || calories === undefined || protein === undefined || carbs === undefined || fat === undefined) {
-      return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
+      return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
 
-    if (!category || !source) {
-      return NextResponse.json({ error: 'Invalid input: Missing category or source' }, { status: 400 });
-    }    
+    // แปลง category ให้ตรงกับ FoodCategory Enum
+    const normalizedCategory = normalizeFoodCategory(category);
 
-    // ตรวจสอบว่าอาหารที่ต้องการแก้ไขมีอยู่หรือไม่
-    const foodExists = await prisma.foods.findUnique({ where: { id: foodId } });
-    if (!foodExists) {
-      return NextResponse.json({ error: `Food with ID ${foodId} not found` }, { status: 404 });
-    }    
-
-    // อัปเดตข้อมูลในฐานข้อมูล
     const updatedFood = await prisma.foods.update({
       where: { id: foodId },
-      data: { name, calories, protein, carbs, fat, category, source },
+      data: { name, calories, protein, carbs, fat, category: normalizedCategory, source },
     });
 
     return NextResponse.json(updatedFood, { status: 200 });
   } catch (error) {
-    // จัดการข้อผิดพลาด
-    console.error('PUT Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to update food', details: error instanceof Error ? error.message : 'An unexpected error occurred' },
-      { status: 500 }
-  );
+    console.error("Error during PUT request:", error);
+    return NextResponse.json({ error: "Failed to update food" }, { status: 500 });
   }
 }
 
-
 // DELETE: ลบข้อมูลอาหาร
-export async function DELETE(req: Request, context: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   // ตรวจสอบสิทธิ์ผู้ใช้
   const adminCheck = await verifyAdminRole(req);
   if ('message' in adminCheck) return adminCheck;
 
   try {
-    // ใช้ await กับ context.params
-    const { id } = await context.params;
+    const { id } = params; // ไม่ต้องใช้ await
     const foodId = Number(id);
 
     if (isNaN(foodId)) {
@@ -126,7 +117,6 @@ export async function DELETE(req: Request, context: { params: { id: string } }) 
 
     console.log('Successfully deleted food with ID:', foodId);
 
-    // ส่ง response ด้วยสถานะ 204 โดยไม่มี body
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error('DELETE error:', error);

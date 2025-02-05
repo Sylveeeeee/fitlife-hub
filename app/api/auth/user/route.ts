@@ -1,6 +1,31 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
+import { users_activity_level, users_diet_goal } from "@prisma/client"; // ✅ นำเข้า Prisma Enum
+
+// ✅ ฟังก์ชันแปลงค่า Activity Level
+const normalizeActivityLevel = (value: string | null | undefined): users_activity_level | undefined => {
+  if (!value) return undefined;
+  switch (value.toLowerCase().replace(/\s+/g, "_")) {
+    case "sedentary": return users_activity_level.sedentary;
+    case "light": return users_activity_level.light;
+    case "moderate": return users_activity_level.moderate;
+    case "active": return users_activity_level.active;
+    case "veryactive": return users_activity_level.veryActive; // ✅ ตรงกับ Prisma Enum
+    default: return users_activity_level.sedentary; // ค่าเริ่มต้น
+  }
+};
+
+// ✅ ฟังก์ชันแปลงค่า Diet Goal
+const normalizeDietGoal = (value: string | null | undefined): users_diet_goal | undefined => {
+  if (!value) return undefined;
+  switch (value.toLowerCase().replace(/\s+/g, "_")) {
+    case "lose_weight": return users_diet_goal.lose_weight;
+    case "maintain_weight": return users_diet_goal.maintain_weight;
+    case "gain_weight": return users_diet_goal.gain_weight; // ✅ เปลี่ยนจาก gain_muscle เป็น gain_weight
+    default: return users_diet_goal.maintain_weight; // ค่าเริ่มต้น
+  }
+};
 
 const getTokenFromCookies = (cookies: string | null): string | undefined => {
   if (!cookies) return undefined;
@@ -51,59 +76,83 @@ export async function GET(req: Request) {
 }
 
 export async function PUT(req: Request) {
-  const cookies = req.headers.get('cookie');
+  const cookies = req.headers.get("cookie");
   const token = getTokenFromCookies(cookies);
 
   if (!token) {
-    return NextResponse.json({ message: 'Unauthorized: No token provided' }, { status: 401 });
+    return NextResponse.json({ message: "Unauthorized: No token provided" }, { status: 401 });
   }
 
   try {
-    // ตรวจสอบว่า token ไม่เป็น null หรือ undefined
-    if (!token) {
-      throw new Error('Token is missing or invalid');
-    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload & { userId: string };
 
-    // ตรวจสอบว่า JWT_SECRET ถูกต้องหรือไม่
-    if (!process.env.JWT_SECRET) {
-      throw new Error('JWT_SECRET environment variable is missing');
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string } | null;
-    
-    // ตรวจสอบว่า decoded payload เป็นอ็อบเจกต์ที่ถูกต้อง
     if (!decoded || !decoded.userId) {
-      throw new Error('Invalid token payload');
+      throw new Error("Invalid token payload");
     }
 
     const userId = Number(decoded.userId);
-    const body = await req.json();
-    const { name, age, sex, weight, height, birthday, activity_level, diet_goal } = body;
-
-    // ตรวจสอบข้อมูลใน body
-    if (!name && !age && !sex && !weight && !height && !activity_level && !diet_goal) {
-      return NextResponse.json({ message: 'No data provided for update' }, { status: 400 });
+    if (isNaN(userId)) {
+      throw new Error("Invalid user ID");
     }
 
-    // อัปเดตข้อมูลผู้ใช้
+    let body;
+    try {
+      body = await req.json();
+      if (!body || typeof body !== "object") {
+        throw new Error("Invalid request body");
+      }
+    } catch (error) {
+      console.error("Invalid JSON payload:", error);
+      return NextResponse.json({ message: "Invalid request payload" }, { status: 400 });
+    }
+
+    console.log("Received body:", body);
+
+    const { username, age, sex, weight, height, birthday, activity_level, diet_goal } = body;
+
+    // ✅ ใช้ฟังก์ชันแปลงค่าให้ตรงกับ Prisma Enum
+    const normalizedActivityLevel = normalizeActivityLevel(activity_level);
+    const normalizedDietGoal = normalizeDietGoal(diet_goal);
+
+    // ✅ อัปเดตข้อมูลผู้ใช้
     const updatedUser = await prisma.users.update({
       where: { id: userId },
       data: {
-        username: name || undefined,
-        age: age || undefined,
+        username: username || undefined,
+        age: age !== null && age !== undefined ? Number(age) : undefined,
         sex: sex || undefined,
-        weight: weight || undefined,
-        height: height || undefined,
+        weight: weight !== null && weight !== undefined ? Number(weight) : undefined,
+        height: height !== null && height !== undefined ? Number(height) : undefined,
         birthday: birthday ? new Date(birthday) : undefined,
-        activity_level: activity_level || undefined,
-        diet_goal: diet_goal || undefined,
-        updated_at: new Date(), // อัปเดตเวลาหลังจากการแก้ไข
+        activity_level: normalizedActivityLevel, // ✅ ใช้ Enum แทน String
+        diet_goal: normalizedDietGoal, // ✅ ใช้ Enum แทน String
+        updated_at: new Date(),
       },
     });
 
-    return NextResponse.json({ message: 'User updated successfully', user: updatedUser });
+    console.log("Updated user:", updatedUser);
+
+    // ✅ ตรวจสอบว่า `updatedUser` ไม่ใช่ `null`
+    if (!updatedUser) {
+      throw new Error("Failed to update user. No record updated.");
+    }
+
+    return NextResponse.json({
+      message: "User updated successfully",
+      user: {
+        ...updatedUser,
+        roleId: updatedUser.roleId ? Number(updatedUser.roleId) : null, // ✅ ป้องกัน `BigInt` error
+      },
+    });
   } catch (err) {
-    console.error('Error updating user:', err); // ตรวจสอบข้อผิดพลาดที่เกิดขึ้น
-    return NextResponse.json({ message: 'Error updating user' }, { status: 500 });
+    console.error("Error updating user:", err);
+
+    const errorMessage = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({ message: "Error updating user", error: errorMessage }, { status: 500 });
   }
 }
+
+
+
+
+
