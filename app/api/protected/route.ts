@@ -2,7 +2,6 @@ import { NextResponse, NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 // กำหนด interface สำหรับข้อมูลที่เราคาดหวังใน request.user
-// กำหนด interface สำหรับข้อมูลที่เราคาดหวังใน request.user
 interface DecodedToken {
     userId: number; // เปลี่ยนเป็น number
     role: string;

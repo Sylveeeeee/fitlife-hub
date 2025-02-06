@@ -55,21 +55,22 @@ export async function POST(req: Request, context: { params: { date?: string } })
   try {
     console.log("📥 Incoming request to add food to diary");
 
-    const params = await context.params;
-    const date = params.date;
+    // ✅ ตรวจสอบ `params.date`
+    const date = context.params?.date;
     if (!date) {
       console.error("❌ Missing date parameter");
       return NextResponse.json({ error: "Missing date parameter." }, { status: 400 });
     }
-
     console.log("📆 Received date:", date);
 
+    // ✅ ตรวจสอบ `userId`
     const userId = await getUserIdFromToken(req);
     if (!userId) {
       console.error("❌ Unauthorized request");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // ✅ ดึงและตรวจสอบ `req.json()`
     let requestBody;
     try {
       requestBody = await req.json();
@@ -84,6 +85,7 @@ export async function POST(req: Request, context: { params: { date?: string } })
 
     console.log("📦 Request Data:", requestBody);
 
+    // ✅ ตรวจสอบค่าที่จำเป็น
     const { meal_type, food_id, quantity, calories, protein, carbs, fat } = requestBody;
 
     if (!meal_type || !food_id || !quantity) {
@@ -91,102 +93,72 @@ export async function POST(req: Request, context: { params: { date?: string } })
       return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
     }
 
-    const totalCalories = calories || 0;
-    const totalProtein = protein || 0;
-    const totalCarbs = carbs || 0;
-    const totalFat = fat || 0;
-
     const mealDate = new Date(date);
     if (isNaN(mealDate.getTime())) {
       console.error("❌ Invalid date format:", date);
       return NextResponse.json({ error: "Invalid date format." }, { status: 400 });
     }
 
-    let mealRecord = await prisma.meal_records.findFirst({
-      where: { user_id: userId, date: mealDate, meal_type },
-    });
-
-    if (!mealRecord) {
-      console.log("📦 Prisma payload (Creating meal_records):", {
-        user_id: userId,
-        meal_type,
-        date: mealDate,
-        total_calories: totalCalories,
-        total_protein: totalProtein,
-        total_carbs: totalCarbs,
-        total_fat: totalFat,
-      });
-
-      mealRecord = await prisma.meal_records.create({
-        data: {
+    // ✅ ใช้ `upsert` เพื่อให้แน่ใจว่า `meal_records` ถูกสร้าง
+    const mealRecord = await prisma.meal_records.upsert({
+      where: {
+        user_id_date_meal_type: {
           user_id: userId,
           date: mealDate,
           meal_type,
-          total_calories: totalCalories,
-          total_protein: totalProtein,
-          total_carbs: totalCarbs,
-          total_fat: totalFat,
-          meal_items: {
-            create: [{ food_id, quantity, calories: totalCalories, protein: totalProtein, carbs: totalCarbs, fat: totalFat }],
-          },
         },
-      });
-    }
+      },
+      update: {},
+      create: {
+        user_id: userId,
+        date: mealDate,
+        meal_type,
+        total_calories: 0,
+        total_protein: 0,
+        total_carbs: 0,
+        total_fat: 0,
+      },
+    });
 
+    console.log("✅ meal_records ถูกสร้างหรือพบอยู่แล้ว:", mealRecord);
+
+    // ✅ ตรวจสอบว่า `mealRecord.id` มีอยู่
     if (!mealRecord?.id) {
       console.error("❌ Meal record ID is missing!");
       return NextResponse.json({ error: "Meal record ID is missing" }, { status: 500 });
     }
 
-    console.log("📦 Prisma payload (Creating meal_items):", {
-      meal_record_id: mealRecord.id,
-      food_id,
-      quantity,
-      calories: totalCalories,
-      protein: totalProtein,
-      carbs: totalCarbs,
-      fat: totalFat,
-    });
-
+    // ✅ เพิ่มอาหารเข้าไปใน `meal_record`
     await prisma.meal_items.create({
       data: {
         meal_record_id: mealRecord.id,
         food_id,
         quantity,
-        calories: totalCalories,
-        protein: totalProtein,
-        carbs: totalCarbs,
-        fat: totalFat,
+        calories: calories ?? 0,
+        protein: protein ?? 0,
+        carbs: carbs ?? 0,
+        fat: fat ?? 0,
       },
     });
 
-    console.log("📦 Prisma payload (Updating meal_records totals):", {
-      id: mealRecord.id,
-      increment_calories: totalCalories,
-      increment_protein: totalProtein,
-      increment_carbs: totalCarbs,
-      increment_fat: totalFat,
-    });
-
+    // ✅ อัปเดตค่ารวมของ macros ใน `meal_records`
     await prisma.meal_records.update({
       where: { id: mealRecord.id },
       data: {
-        total_calories: { increment: totalCalories },
-        total_protein: { increment: totalProtein },
-        total_carbs: { increment: totalCarbs },
-        total_fat: { increment: totalFat },
+        total_calories: { increment: calories ?? 0 },
+        total_protein: { increment: protein ?? 0 },
+        total_carbs: { increment: carbs ?? 0 },
+        total_fat: { increment: fat ?? 0 },
       },
     });
 
     console.log("✅ Food added successfully");
-
     return NextResponse.json({ message: "Food added successfully." }, { status: 200 });
   } catch (error) {
     console.error("❌ API Error (POST):", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
-
 
 // ✅ DELETE: ลบอาหารออกจากไดอารี่
 export async function DELETE(req: NextRequest) {

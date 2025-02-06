@@ -127,7 +127,7 @@ enum FoodCategory {
   RESTAURANTS
 }
 
-enum users_sex {
+enum users_gender {
   male
   female
   other
@@ -142,7 +142,7 @@ enum users_activity_level {
 }
 
 enum users_diet_goal {
-  lose_weight
-  gain_weight
-  maintain_weight
+  weight_loss
+  muscle_gain
+  maintenance
 }
