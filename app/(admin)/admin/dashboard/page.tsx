@@ -73,7 +73,7 @@ export default function AdminDashboard() {
 
           {/* Stat Cards */}
           <div className="grid grid-cols-4 gap-4 mb-6">
-            <div className="p-4 bg-blue-500 text-white rounded-lg shadow">
+            <div className="p-4 bg-blue-600 text-white rounded-lg shadow">
               <h3 className="text-sm">Total Foods</h3>
               <p className="text-lg font-bold">{totalFoods}</p>
             </div>

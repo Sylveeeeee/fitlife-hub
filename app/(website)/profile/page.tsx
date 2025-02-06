@@ -213,29 +213,32 @@ export default function Profile() {
         </div>
 
         {/* ปุ่ม Save และ Change Password */}
-        <div className="p-4 border-t flex flex-col items-center gap-2">
+        <div className="flex flex-col">
+        <div className="p-4 border-t flex justify-center items-center gap-2">
           {isEditing ? (
-            <button onClick={saveProfile} className="px-4 py-2 bg-blue-950 text-white rounded">
+            <button onClick={saveProfile} className="px-4 py-2 bg-black text-white rounded">
               Save Profile
             </button>
           ) : (
-            <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-gray-300 text-black rounded">
+            <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-white text-black rounded">
               Edit Profile
             </button>
           )}
-
-          {successMessage && (
-            <p className="mt-2 text-green-600 font-medium">{successMessage}</p>
-          )}
-
           <Link href="/change-password">
             <button className="px-4 py-2 bg-gray-300 text-black rounded">
               Change Password
             </button>
           </Link>
         </div>
+          {successMessage && (
+            <div className="text-center">
+            <p className="mt-2 text-green-600 font-medium">{successMessage}</p>
+            </div>
+          )}
 
-        <div className="p-4 border-t">
+        
+        </div>
+        <div className="px-4 pb-1 border-t">
           <DietGoalCalculation />
         </div>
       </div>
