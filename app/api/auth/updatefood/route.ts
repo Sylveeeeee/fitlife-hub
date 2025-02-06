@@ -30,7 +30,7 @@ export async function PUT(req: Request) {
         fat: fat || 0.00,
         category,
         source,
-        type_of_food,
+        ,
       },
     });
 
