@@ -100,14 +100,13 @@ export default function Diary() {
   const closeModal = () => setIsModalOpen(false);
 
   const handleAddToDiary = async (group: string, food: FoodEntry) => {
-    // ✅ ตรวจสอบ selectedDate
     if (!(selectedDate instanceof Date) || isNaN(selectedDate.getTime())) {
       console.error("❌ Invalid selectedDate:", selectedDate);
       return;
     }
+  
     const formattedDate = selectedDate.toISOString().split("T")[0];
   
-    // ✅ ตรวจสอบ food ID
     if (!food || typeof food.id === "undefined") {
       console.error("❌ Food ID is missing:", food);
       return;
@@ -140,25 +139,44 @@ export default function Diary() {
         throw new Error(errorText || "Failed to add food to diary.");
       }
   
-      // ✅ ใช้ค่าจาก API Response
-      const newEntry = await response.json();
-      console.log("✅ Food added successfully:", newEntry);
+      console.log("✅ Food added successfully!");
+      await getDiaryEntries(formattedDate); // ดึงข้อมูลใหม่หลังจากเพิ่มอาหาร
   
-      // ✅ อัปเดตสถานะของ Diary โดยใช้ค่าจาก API
-      setDiaryEntries((prevEntries) => ({
-        ...prevEntries,
-        [group]: [...prevEntries[group], newEntry], // ใช้ newEntry ที่ได้จาก API
-      }));
-  
-      console.log("✅ Diary updated successfully!");
     } catch (error) {
       console.error("❌ Error adding food to diary:", error);
       alert(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   };
   
-
-
+  // ✅ ฟังก์ชันสำหรับดึงรายการอาหารจากไดอารี่
+  const getDiaryEntries = async (date: string) => {
+    try {
+      const response = await fetch(`/api/auth/diary/${date}`, {
+        method: "GET",
+        credentials: "include",
+      });
+  
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to fetch diary entries.");
+      }
+  
+      const diaryEntries = await response.json();
+      console.log("📖 Diary Entries:", diaryEntries);
+  
+      // ✅ อัปเดต State ให้ UI แสดงรายการใหม่
+      setDiaryEntries((prevEntries) => ({
+        ...prevEntries,
+        [date]: diaryEntries, 
+      }));
+  
+    } catch (error) {
+      console.error("❌ Error fetching diary entries:", error);
+    }
+  };
+  
+  
+  
   const handleRemoveItem = () => {
     if (itemToDelete) {
       const { group, index } = itemToDelete;

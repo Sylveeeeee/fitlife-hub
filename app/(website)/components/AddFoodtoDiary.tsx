@@ -4,28 +4,22 @@ import { IoMdClose } from "react-icons/io";
 interface Food {
   id: number;
   name: string;
-
   protein: number;
   carbs: number;
   fat: number;
   calories: number;
   source: string;
+  servingSize: number;
 }
 
 interface AddFoodToDiaryProps {
   isOpen: boolean;
+  onAdd: (group: string, food: Food) => Promise<void>;
+  selectedDate: Date;
   closeModal: () => void;
-  onAdd: (group: string, food: {
-    name: string;
-    servingSize: number;
-    calories: number;
-    protein: number;
-    carbs: number;
-    fat: number;
-  }) => void;
 }
 
-const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onAdd }) => {
+const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal }) => {
   const [foods, setFoods] = useState<Food[]>([]);
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -33,16 +27,14 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onA
   const [activeTab, setActiveTab] = useState<string>("All");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [diaryGroup, setDiaryGroup] = useState<string>("Uncategorized");
-
+  const [mealType, setMealType] = useState<string>("Breakfast");
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const fetchFoods = useCallback(async () => {
-
     setIsLoading(true);
     setError(null);
     try {
-      // ส่งค่า activeTab ที่เลือกไปใน query ของ API
-      const category = activeTab === "All" ? "" : activeTab; // กำหนดให้ "All" เป็นกรณีพิเศษที่ไม่กรองหมวดหมู่
+      const category = activeTab === "All" ? "" : activeTab;
       const response = await fetch(`/api/auth/foods?category=${category}&search=${searchQuery}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch foods: ${response.statusText}`);
@@ -63,6 +55,66 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onA
     }
   }, [isOpen, fetchFoods]);
 
+  const handleAddFood = async () => {
+    if (!selectedFood) {
+      setApiError("Please select a food before adding to the diary.");
+      return;
+    }
+  
+    if (!servingSize || servingSize <= 0) {
+      setApiError("Please enter a valid serving size.");
+      return;
+    }
+  
+    setIsLoading(true); // ✅ เริ่มโหลด
+  
+    const date = new Date().toISOString().split("T")[0];
+  
+    const requestData = {
+      meal_type: mealType,
+      food_id: selectedFood.id,
+      quantity: servingSize,
+      calories: selectedFood.calories * servingSize,
+      protein: selectedFood.protein * servingSize,
+      carbs: selectedFood.carbs * servingSize,
+      fat: selectedFood.fat * servingSize,
+    };
+  
+    console.log("🔹 Sending data to API:", requestData);
+  
+    try {
+      const response = await fetch(`/api/auth/diary/${date}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // ✅ ให้ browser ส่ง HttpOnly cookie ไป
+        body: JSON.stringify(requestData),
+      });
+  
+      const responseData = await response.json();
+  
+      if (!response.ok) {
+        throw new Error(responseData.error || "Failed to add food.");
+      }
+  
+      console.log("✅ Food added successfully:", responseData);
+      alert("🎉 Food added successfully!");
+      closeModal();
+    }  catch (error) {
+      if (error instanceof Error) {
+        setApiError(error.message);
+      } else {
+        setApiError("An unknown error occurred while adding food.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  
+  
+  
   if (!isOpen) return null;
 
   return (
@@ -107,9 +159,9 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onA
           ))}
         </div>
 
-        {/* Main Content */}
+        {/* Main Content: Two Columns */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Food List */}
+          {/* Food List (Left Column) */}
           <div className="border rounded p-2 overflow-y-auto h-[300px] sm:h-[400px] md:h-[420px]">
             {isLoading && <p className="text-center text-blue-500">Loading foods...</p>}
             {error && <p className="text-center text-red-500">{error}</p>}
@@ -141,7 +193,7 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onA
             )}
           </div>
 
-          {/* Selected Food Details */}
+          {/* Selected Food Details (Right Column) */}
           {selectedFood && (
             <div className="border rounded p-4 sticky top-0 h-max">
               <h3 className="text-lg sm:text-xl font-bold mb-2">{selectedFood.name}</h3>
@@ -150,41 +202,31 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onA
               <p className="text-[#24fff4]">Net Carbs: {selectedFood.carbs} g</p>
               <p className="text-[#ff2525]">Fat: {selectedFood.fat} g</p>
               <p className="text-gray-500">Source: {selectedFood.source}</p>
-              <label className="block mt-4 mb-2 text-sm md:text-base">Serving Size:</label>
+
+              <label className="block mt-4">Serving Size:</label>
               <input
                 type="number"
                 value={servingSize}
                 onChange={(e) => setServingSize(Number(e.target.value))}
-                className="border p-2 rounded w-full text-sm md:text-base"
+                className="border p-2 rounded w-full"
                 min="1"
               />
-              <label className="block mt-4 mb-2 text-sm md:text-base">Diary Group:</label>
+
+              <label className="block mt-4">Meal Type:</label>
               <select
-                value={diaryGroup}
-                onChange={(e) => setDiaryGroup(e.target.value)}
-                className="border p-2 rounded w-full text-sm md:text-base"
+                value={mealType}
+                onChange={(e) => setMealType(e.target.value)}
+                className="border p-2 rounded w-full"
               >
-                <option value="Uncategorized">Uncategorized</option>
                 <option value="Breakfast">Breakfast</option>
                 <option value="Lunch">Lunch</option>
                 <option value="Dinner">Dinner</option>
                 <option value="Snacks">Snacks</option>
               </select>
+
               <button
-                onClick={() => {
-                  if (selectedFood) {
-                    onAdd(diaryGroup, {
-                      name: selectedFood.name,
-                      servingSize: servingSize,
-                      calories: selectedFood.calories,
-                      protein: selectedFood.protein,
-                      carbs: selectedFood.carbs,
-                      fat: selectedFood.fat,
-                    });
-                    closeModal();
-                  }
-                }}
-                className="mt-4 bg-green-500 text-white px-4 py-2 rounded text-sm md:text-base "
+                onClick={handleAddFood}
+                className="mt-4 bg-green-500 text-white px-4 py-2 rounded"
               >
                 Add to Diary
               </button>

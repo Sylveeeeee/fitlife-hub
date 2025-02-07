@@ -36,8 +36,44 @@ model users {
   meal_records   meal_records[]
   role           Role                  @relation("UserRole", fields: [roleId], references: [id], onDelete: Cascade)
   workouts       workouts[]
+  foodDiaryEntries FoodDiary[]
 
   @@index([roleId], map: "users_roleId_fkey")
+}
+
+
+
+model foods {
+  id           Int                 @id @default(autoincrement())
+  name         String              @db.VarChar(255)
+  calories     Decimal?            @default(0.00) @db.Decimal(5, 2)
+  protein      Decimal?            @default(0.00) @db.Decimal(5, 2)
+  carbs        Decimal?            @default(0.00) @db.Decimal(5, 2)
+  fat          Decimal?            @default(0.00) @db.Decimal(5, 2)
+  created_at   DateTime?           @default(now()) @db.Timestamp(0)
+  updated_at   DateTime?           @default(now()) @updatedAt @db.Timestamp(0)
+  category     FoodCategory?       @default(COMMON_FOOD)
+  source       String?             @db.VarChar(255)
+  meal_items   meal_items[]
+  foodDiaryEntries FoodDiary[]
+}
+
+model FoodDiary {
+  id        Int      @id @default(autoincrement())
+  userId    Int      // เปลี่ยนจาก String เป็น Int
+  date      String   @db.VarChar(10) // YYYY-MM-DD
+  mealType  String
+  foodId    Int
+  quantity  Decimal @default(1.00) @db.Decimal(5,2) // ใช้ Decimal เหมือน foods
+  calories  Decimal @default(0.00) @db.Decimal(5,2)
+  protein   Decimal @default(0.00) @db.Decimal(5,2)
+  carbs     Decimal @default(0.00) @db.Decimal(5,2)
+  fat       Decimal @default(0.00) @db.Decimal(5,2)
+
+  user      users   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  food      foods   @relation(fields: [foodId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, mealType, foodId])
 }
 
 
@@ -53,21 +89,6 @@ model diet_goals {
   users          users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "diet_goals_ibfk_1")
 
 }
-
-model foods {
-  id           Int                 @id @default(autoincrement())
-  name         String              @db.VarChar(255)
-  calories     Decimal?            @default(0.00) @db.Decimal(5, 2)
-  protein      Decimal?            @default(0.00) @db.Decimal(5, 2)
-  carbs        Decimal?            @default(0.00) @db.Decimal(5, 2)
-  fat          Decimal?            @default(0.00) @db.Decimal(5, 2)
-  created_at   DateTime?           @default(now()) @db.Timestamp(0)
-  updated_at   DateTime?           @default(now()) @updatedAt @db.Timestamp(0)
-  category     FoodCategory?       @default(COMMON_FOOD)
-  source       String?             @db.VarChar(255)
-  meal_items   meal_items[]
-}
-
 model meal_items {
   id             Int      @id @default(autoincrement())
   meal_record_id Int
@@ -85,20 +106,20 @@ model meal_items {
 }
 
 model meal_records {
-  id             Int                     @id @default(autoincrement())
+  id             Int       @id @default(autoincrement())
   user_id        Int
   meal_type      meal_records_meal_type
-  date           DateTime                @db.Date
-  total_calories Float                   @default(0) @db.Float
-  total_protein  Float                   @default(0) @db.Float
-  total_carbs    Float                   @default(0) @db.Float
-  total_fat      Float                   @default(0) @db.Float
-  created_at     DateTime                @default(now()) @db.Timestamp(0)
-  updated_at     DateTime                @updatedAt @db.Timestamp(0)
+  date           DateTime
+  total_calories Float     @default(0)
+  total_protein  Float     @default(0)
+  total_carbs    Float     @default(0)
+  total_fat      Float     @default(0)
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
   meal_items     meal_items[]
-  user           users                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user           users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@index([user_id])
+  @@unique([user_id, date, meal_type])
 }
 
 model workouts {

@@ -31,6 +31,8 @@ const EnergySummary: React.FC<EnergySummaryProps> = ({
   const [targets, setTargets] = useState<DietGoals | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  
+
   const fetchDietGoals = async () => {
     try {
       const response = await fetch("/api/auth/diet-goals", {

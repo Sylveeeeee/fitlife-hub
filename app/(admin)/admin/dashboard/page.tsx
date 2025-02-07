@@ -1,4 +1,4 @@
-'use client'
+'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -8,7 +8,6 @@ interface Food {
   name: string;
   category: string;
   calories: number;
-  price: number;
 }
 
 interface User {
@@ -23,30 +22,54 @@ export default function AdminDashboard() {
   const [categories, setCategories] = useState<string[]>([]);
   const [totalFoods, setTotalFoods] = useState(0);
   const [totalUsers, setTotalUsers] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Mock API data
-    setFoods([
-      { id: 1, name: 'Pizza', category: 'Main Dish', calories: 300, price: 8 },
-      { id: 2, name: 'Ice Cream', category: 'Dessert', calories: 200, price: 5 },
-      { id: 3, name: 'Salad', category: 'Healthy', calories: 100, price: 7 },
-    ]);
+    const fetchData = async () => {
+      try {
+        const res = await fetch('/api/auth/admin/dashboard', {
+          method: 'GET',
+          credentials: 'include', // ใช้ cookie authentication
+        });
 
-    setUsers([
-      { id: 1, name: 'John Doe', email: 'john@example.com' },
-      { id: 2, name: 'Jane Smith', email: 'jane@example.com' },
-    ]);
+        if (!res.ok) {
+          throw new Error('Failed to fetch data');
+        }
 
-    setCategories(['Main Dish', 'Dessert', 'Healthy', 'Beverage']);
-    setTotalFoods(3); // Mock data
-    setTotalUsers(2); // Mock data
+        const data = await res.json();
+
+        setFoods(data.foods || []);
+        setUsers(data.users || []);
+        setTotalFoods(data.foods.length || 0);
+        setTotalUsers(data.users.length || 0);
+
+        // Extract unique categories from foods
+        const uniqueCategories = [...new Set(data.foods.map((food: Food) => food.category))];
+        setCategories(uniqueCategories);
+      } catch (err) {
+        setError('Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
+
+  if (loading) {
+    return <div className="text-center py-10 text-gray-500">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center py-10 text-red-500">{error}</div>;
+  }
 
   return (
     <div className="min-h-screen text-black font-mono">
       <div className="flex">
         {/* Sidebar */}
-        <aside className="w-1/5 bg-gray-800 text-white p-4">
+        <aside className="w-1/5 bg-black text-white p-4">
           <h2 className="text-lg font-bold mb-4">Admin Dashboard</h2>
           <ul>
             <li className="mb-2">
@@ -83,7 +106,7 @@ export default function AdminDashboard() {
             </div>
             <div className="p-4 bg-orange-500 text-white rounded-lg shadow">
               <h3 className="text-sm">Recently Added</h3>
-              <p className="text-lg font-bold">{foods[0]?.name}</p>
+              <p className="text-lg font-bold">{foods[0]?.name || 'N/A'}</p>
             </div>
             <div className="p-4 bg-red-500 text-white rounded-lg shadow">
               <h3 className="text-sm">Total Users</h3>

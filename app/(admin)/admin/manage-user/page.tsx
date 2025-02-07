@@ -139,7 +139,7 @@ export default function AdminPage() {
         <div>
           <button
             onClick={() => setShowModal(true)}
-            className="bg-blue-500 text-white px-4 py-2 rounded mb-4"
+            className="bg-black text-white px-4 py-2 rounded mb-4"
           >
             Add User
           </button>
@@ -238,7 +238,7 @@ export default function AdminPage() {
             </select>
             <button
               onClick={handleAddUser}
-              className="bg-blue-500 text-white px-4 py-2 rounded"
+              className="bg-black text-white px-4 py-2 rounded"
             >
               Add User
             </button>
