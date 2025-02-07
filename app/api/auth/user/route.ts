@@ -11,7 +11,7 @@ const normalizeActivityLevel = (value: string | null | undefined): users_activit
     case "light": return users_activity_level.light;
     case "moderate": return users_activity_level.moderate;
     case "active": return users_activity_level.active;
-    case "veryactive": return users_activity_level.very_active; // ✅ ตรงกับ Prisma Enum
+    case "veryactive": return users_activity_level.veryActive; // ✅ ตรงกับ Prisma Enum
     default: return users_activity_level.sedentary; // ค่าเริ่มต้น
   }
 };

@@ -34,7 +34,7 @@ model users {
   username       String?               @unique @db.VarChar(100)
   diet_goals     diet_goals[]
   meal_records   meal_records[]
-  role           Role?                 @relation("UserRole", fields: [roleId], references: [id], onDelete: Cascade)
+  role           Role                  @relation("UserRole", fields: [roleId], references: [id], onDelete: Cascade)
   workouts       workouts[]
 
   @@index([roleId], map: "users_roleId_fkey")
@@ -43,7 +43,7 @@ model users {
 
 model diet_goals {
   id             Int       @id @default(autoincrement())
-  user_id        Int
+  user_id        Int       @unique
   daily_calories Float     @db.Float
   daily_protein  Float?    @default(0) @db.Float
   daily_carbs    Float?    @default(0) @db.Float
@@ -52,7 +52,6 @@ model diet_goals {
   updated_at     DateTime? @default(now()) @db.Timestamp(0)
   users          users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "diet_goals_ibfk_1")
 
-  @@index([user_id], map: "user_id")
 }
 
 model foods {
@@ -64,7 +63,7 @@ model foods {
   fat          Decimal?            @default(0.00) @db.Decimal(5, 2)
   created_at   DateTime?           @default(now()) @db.Timestamp(0)
   updated_at   DateTime?           @default(now()) @updatedAt @db.Timestamp(0)
-  category     FoodCategory?        
+  category     FoodCategory?       @default(COMMON_FOOD)
   source       String?             @db.VarChar(255)
   meal_items   meal_items[]
 }
@@ -121,6 +120,12 @@ model UserTarget {
   fat       Float
 }
 
+model post {
+  id        Int      @id @default(autoincrement())
+  content   String
+  createdAt DateTime @default(now())
+}
+
 enum meal_records_meal_type {
   breakfast
   lunch
@@ -128,28 +133,35 @@ enum meal_records_meal_type {
   snack
 }
 
-enum FoodCategory {
-  COMMON_FOOD
-  BEVERAGES
-  RESTAURANTS
-}
-
-enum users_sex {
-  male
-  female
-  other
-}
-
 enum users_activity_level {
   sedentary
   light
   moderate
   active
-  very_active @map("very active")
+  veryActive
 }
 
 enum users_diet_goal {
   lose_weight
-  gain_weight
   maintain_weight
+  gain_weight
+}
+
+enum FoodCategory {
+  COMMON_FOOD
+  BEVERAGES
+  RESTAURANTS
+
+}
+
+model Glass {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  count     Int
+  createdAt DateTime @default(now())
+}
+
+enum users_sex {
+  male
+  female
 }

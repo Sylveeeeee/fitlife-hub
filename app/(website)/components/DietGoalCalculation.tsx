@@ -90,34 +90,17 @@ export default function DietGoalCalculation() {
   }, []);
 
   return (
-    <div className=" font-mono text-black max-w-4xl mx-auto bg-white shadow-md rounded-lg mt-10">
-      <div className="p-4 border-b">
-      <div className="text-lg text-black font-bold">Diet Goals</div>
-      </div>
+    <div className=" font-mono text-black max-w-4xl mx-auto bg-[#cdffe0] shadow-md rounded-lg mt-10 ">
       {dietGoalsData && (
         <div className="">
-          <div className="text-lg font-semibold mb-2 mt-4 pl-10">Your Diet Goals</div>
-          <div className="mt-4 pl-10 mb-10">
-          <p><strong>Daily Calories:</strong> {dietGoalsData.daily_calories} kcal</p>
-          <p><strong>Daily Protein:</strong> {dietGoalsData.daily_protein} g</p>
-          <p><strong>Daily Carbs:</strong> {dietGoalsData.daily_carbs} g</p>
-          <p><strong>Daily Fat:</strong> {dietGoalsData.daily_fat} g</p>
+          
+          <div className=" mb-10 p-4 text-center">
+          <p><strong>Total Energy Burned (TDEE) =</strong> {dietGoalsData.daily_calories} kcal</p>
+          
           </div>
         </div>
       )}
-      <div className="p-4">
-      <button
-        className={`px-4 py-2 rounded ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600 text-white"}`}
-        onClick={calculateAndSaveDietGoals}
-        disabled={loading}
-      >
-        {loading ? "Calculating..." : "Calculate Diet Goals"}
-      </button>
-      <div className=" ">
-      {successMessage && <p className="text-green-500 py-4 ">{successMessage}</p>}
-      {errorMessage && <p className="text-red-500 py-4">{errorMessage}</p>}
-      </div>
-      </div>
+      
     </div>
   );
 }

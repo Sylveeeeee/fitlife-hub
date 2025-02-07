@@ -11,16 +11,15 @@ export default function Post() {
   const [, setPosts] = useState<Post[]>([]);
   const [content, setContent] = useState('');
 
-  // ดึงข้อมูลโพสต์จาก API เมื่อ component โหลดครั้งแรก
   useEffect(() => {
     fetchPosts();
-  }, []); 
+  }, []);
 
   const fetchPosts = async () => {
     try {
-      const response = await fetch('/api/auth/posts'); // เรียก API
+      const response = await fetch('/api/auth/posts');
       const data = await response.json();
-      setPosts(data.reverse()); // เรียงโพสต์ใหม่จากล่าสุดไปเก่าสุด
+      setPosts(data.reverse());
     } catch (error) {
       console.error('Error fetching posts:', error);
     }
@@ -34,18 +33,17 @@ export default function Post() {
     }
 
     try {
-      // ส่งข้อมูลโพสต์ไปยัง API
       const response = await fetch('/api/auth/posts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ content }), // ส่งข้อมูล content
+        body: JSON.stringify({ content }),
       });
 
       if (response.ok) {
-        setContent(''); // เคลียร์ข้อความ
-        fetchPosts(); // ดึงโพสต์ใหม่หลังจากเพิ่ม
+        setContent('');
+        fetchPosts();
       } else {
         console.error('Failed to create post');
       }
@@ -55,23 +53,36 @@ export default function Post() {
   };
 
   return (
-    <div className="p-4">
-      <h1 className="w-full text-black text-[25px] font-bold mb-[1px] mt-[10px] ml-[7px]">DAILY POST NOTE</h1>
-      <form onSubmit={handlePostSubmit} className="space-y-4">
-        <textarea
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="What's on your mind?"
-          className="w-full h-32 p-4 border border-gray-300 rounded-md resize-none"
-        />
-        <button
-          type="submit"
-          className="w-full py-2 bg-black text-white rounded-md hover:bg-[#000000d5] hover:text-white"
-        >
-          SUBMIT
-        </button>
-      </form>
+    <div className="flex justify-center p-4">
+      <div className="w-full bg-white shadow-md rounded-lg p-6 grid grid-cols-2 gap-6">
+        {/* ส่วนโพสต์ด้านซ้าย */}
+        <div className="flex flex-col">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">📝 DAILY POST NOTE</h1>
+          <form onSubmit={handlePostSubmit} className="space-y-4">
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="What's on your mind?"
+              className="w-full h-32 p-4 border border-gray-300 rounded-md resize-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition"
+            />
+            <button
+              type="submit"
+              className="w-full py-2 bg-black text-white font-semibold rounded-md shadow-md hover:bg-blue-700 transition duration-300"
+            >
+              SUBMIT
+            </button>
+          </form>
+        </div>
+
+        {/* ส่วนรูปภาพด้านขวา */}
+        <div className="flex justify-center items-center">
+        <div className="text-center m-5 p-6 w-full max-w-sm md:max-w-md lg:max-w-lg bg-gradient-to-r from-black to-blue-400 rounded-xl h-auto min-h-[220px] shadow-xl flex flex-col items-center text-white">
+        <p className="text-[40px] mt-[56px] font-mono">
+        FITLIFE-HUB
+        </p>
+      </div>
+        </div>
+      </div>
     </div>
-    
   );
 }

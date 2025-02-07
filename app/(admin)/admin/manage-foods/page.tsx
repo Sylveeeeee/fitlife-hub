@@ -133,7 +133,7 @@ export default function ManageFoods() {
   };
 
   return (
-    <div className="min-h-screen font-mono text-black p-6">
+    <div className="min-h-screen font-mono text-black p-6 mx-10">
       <h1 className="text-2xl font-bold mb-6">Manage Foods</h1>
 
       {/* Food Form */}
@@ -173,30 +173,32 @@ export default function ManageFoods() {
       </form>
 
       {/* Food Table */}
-      <table className="w-full bg-white rounded-lg shadow-md">
+      <table className="w-full bg-white rounded-lg shadow-md ">
         <thead>
           <tr>
-            <th className="text-left p-2">#</th>
-            <th className="text-left p-2">Name</th>
-            <th className="text-left p-2">Calories</th>
-            <th className="text-left p-2">Protein</th>
-            <th className="text-left p-2">Carbs</th>
-            <th className="text-left p-2">Fat</th>
-            <th className="text-left p-2">Category</th>
-            <th className="text-left p-2">Actions</th>
+            
+            <th className="text-center p-2 border-b-2 border-[#e2e2e2]">#</th>
+            <th className="text-left p-2 border-b-2 border-[#e2e2e2]">Name</th>
+            <th className="text-left p-2 border-b-2 border-[#e2e2e2]">Calories</th>
+            <th className="text-left p-2 border-b-2 border-[#e2e2e2]">Protein</th>
+            <th className="text-left p-2 border-b-2 border-[#e2e2e2]">Carbs</th>
+            <th className="text-left p-2 border-b-2 border-[#e2e2e2]">Fat</th>
+            <th className="text-left p-2 border-b-2 border-[#e2e2e2]">Category</th>
+            <th className="text-center p-2 border-b-2 border-[#e2e2e2]">Actions</th>
+          
           </tr>
         </thead>
         <tbody>
           {foods.map((food) => (
             <tr key={food.id}>
-              <td className="p-2">{food.id}</td>
+              <td className="p-2 text-center">{food.id}</td>
               <td className="p-2">{food.name}</td>
               <td className="p-2">{food.calories}</td>
               <td className="p-2">{food.protein}</td>
               <td className="p-2">{food.carbs}</td>
               <td className="p-2">{food.fat}</td>
               <td className="p-2">{food.category}</td>
-              <td className="p-2">
+              <td className="p-2 text-center">
                 <button
                   onClick={() => handleEdit(food)}
                   className="bg-yellow-500 text-white px-2 py-1 rounded mr-2"

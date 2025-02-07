@@ -159,20 +159,20 @@ export default function AdminPage() {
               {users.length > 0 ? (
                 users.map((user) => (
                   <tr key={user.id}>
-                    <td className="border px-4 py-2">{user.id}</td>
+                    <td className="border px-4 py-2 text-center">{user.id}</td>
                     <td className="border px-4 py-2">{user.username}</td>
                     <td className="border px-4 py-2">{user.email}</td>
-                    <td className="border px-4 py-2">
+                    <td className="border px-4 py-2 text-center">
                       <select
                         value={user.role}
                         onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                        className="border p-1 rounded"
+                        className="border p-1 rounded "
                       >
                         <option value="admin">Admin</option>
                         <option value="user">User</option>
                       </select>
                     </td>
-                    <td className="border px-4 py-2">
+                    <td className="border px-4 py-2 text-center">
                       <button
                         onClick={() => handleDeleteUser(user.id)}
                         className="bg-red-500 text-white px-2 py-1 rounded"

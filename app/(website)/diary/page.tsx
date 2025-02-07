@@ -185,11 +185,11 @@ export default function Diary() {
         itemName={itemToDelete?.name || "this item"}
       />
       <div className="">
-        <div className="text-black font-mono flex justify-between mx-[200px]">
+        <div className="text-black font-mono flex justify-between mx-[50]">
           <div className="flex w-[75%] flex-col">
             <div className="bg-white flex pl-[20] mb-[7]">
               <div className="flex items-center justify-between h-[50] flex-wrap ">
-                <button onClick={openModal} className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]">
+                <button onClick={openModal} className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30] ">
                   <div className="mr-[6]"><VscDiffAdded /></div>FOOD
                 </button>
                 <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]">
