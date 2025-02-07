@@ -113,6 +113,13 @@ model workouts {
 
   @@index([user_id], map: "user_id")
 }
+model UserTarget {
+  id        Int    @id @default(autoincrement())
+  calories  Int
+  protein   Float
+  carbs     Float
+  fat       Float
+}
 
 enum meal_records_meal_type {
   breakfast
