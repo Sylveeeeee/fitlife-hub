@@ -1,0 +1,55 @@
+/* ✅ ไฮไลต์วันที่มีข้อมูลอาหาร (สีชมพูอ่อน) */
+.food-day {
+    background-color: #fbd2d2 !important;
+    border-radius: 6px;
+  }
+  
+  /* ✅ ทำให้วันที่เลือกเป็นสีส้มเข้มเต็มกรอบ */
+  .react-calendar__tile--active {
+    background-color: #ff6600 !important; /* สีส้มเข้ม */
+    color: white !important;
+    border-radius: 6px;
+    font-weight: bold;
+  }
+  
+  /* ✅ ทำให้เมื่อ hover วันที่มีสีชมพูอ่อน */
+  .food-day:hover {
+    background-color: #ffcccc !important;
+  }
+  
+  /* ✅ ทำให้ hover ของวันที่เลือกยังคงเป็นสีเข้ม */
+  .react-calendar__tile--active:hover {
+    background-color: #e65c00 !important; /* สีส้มเข้มกว่า */
+  }
+  
+  /* ✅ ปรับขนาดและการแสดงผลปฏิทิน */
+  .react-calendar {
+    width: 100%;
+    max-width: 350px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+    font-family: "Arial", sans-serif;
+  }
+  
+  /* ✅ ปรับแต่งปุ่มนำทาง (เดือน/ปี) */
+  .react-calendar__navigation button {
+    padding-inline-end: 20px;
+    margin-inline-end: 5px;  
+    font-size: 16px;
+  }
+  
+  /* ✅ ปรับแต่งปุ่มลูกศร */
+  .react-calendar__navigation button:hover {
+    background: #e1f5fe;
+    border-radius: 6px;
+  }
+  
+  /* ✅ ปรับแต่งเส้นแบ่งของปฏิทิน */
+  .react-calendar__tile {
+    text-align: center;
+    padding: 6px;
+    border-radius: 6px;
+  }
+  

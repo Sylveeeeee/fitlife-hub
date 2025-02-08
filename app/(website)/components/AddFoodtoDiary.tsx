@@ -17,9 +17,10 @@ interface AddFoodToDiaryProps {
   onAdd: (group: string, food: Food) => Promise<void>;
   selectedDate: Date;
   closeModal: () => void;
+  onFoodAdded: (mealType : string) => void;
 }
 
-const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal }) => {
+const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onFoodAdded  }) => {
   const [foods, setFoods] = useState<Food[]>([]);
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -28,7 +29,7 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal }) =
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [mealType, setMealType] = useState<string>("Breakfast");
-  const [apiError, setApiError] = useState<string | null>(null);
+  const [, setApiError] = useState<string | null>(null);
 
   const fetchFoods = useCallback(async () => {
     setIsLoading(true);
@@ -99,9 +100,14 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal }) =
       }
   
       console.log("✅ Food added successfully:", responseData);
-      alert("🎉 Food added successfully!");
+  
+      // ✅ ปิด Modal หลังจากเพิ่มอาหารสำเร็จ
       closeModal();
-    }  catch (error) {
+  
+      // ✅ อัปเดตหน้า Diary โดยดึงข้อมูลใหม่
+      onFoodAdded(mealType); 
+  
+    } catch (error) {
       if (error instanceof Error) {
         setApiError(error.message);
       } else {
@@ -111,8 +117,6 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal }) =
       setIsLoading(false);
     }
   };
-  
-  
   
   
   if (!isOpen) return null;
