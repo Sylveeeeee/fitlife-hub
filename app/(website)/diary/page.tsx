@@ -7,6 +7,7 @@ import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 import EnergySummary from "../components/EnergySummary";
 import FoodDiaryCalendar from "../components/FoodDiaryCalendar";
 import { format } from "date-fns"; 
+import Link from "next/link";
 
 interface FoodEntry {
   id: number;
@@ -359,17 +360,19 @@ export default function Diary() {
             <div className="bg-white flex pl-[20] mb-[7]">
               <div className="flex items-center justify-between h-[50] flex-wrap ">
                 <button onClick={openModal} className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30] ">
-                  <div className="mr-[6]"><VscDiffAdded /></div>FOOD
+                  <div className="mr-[6]">🍎</div>FOOD
                 </button>
                 <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]">
-                  <div className="mr-[6]"><VscDiffAdded /></div>EXERCISE
+                  <div className="mr-[6]">💪🏼</div>EXERCISE
                 </button>
                 <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]">
-                  <div className="mr-[6]"><VscDiffAdded /></div>BIOMETRIC
+                  <div className="mr-[6]">🧬</div>BIOMETRIC
                 </button>
+                <Link href="/posts">
                 <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]">
-                  <div className="mr-[6]"><VscDiffAdded /></div>NOTE
+                  <div className="mr-[6]">📝</div>NOTE
                 </button>
+                </Link>
               </div>
             </div>
             {/* แสดงรายการอาหาร */}
