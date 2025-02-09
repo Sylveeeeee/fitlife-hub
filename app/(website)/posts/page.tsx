@@ -82,7 +82,7 @@ export default function PostPage() {
                 onClick={() => deletePost(post.id)}
                 className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-[12px]"
               >
-                Delete
+                🗑
               </button>
             </div>
           </div>
