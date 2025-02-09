@@ -7,6 +7,7 @@ import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 import EnergySummary from "../components/EnergySummary";
 import FoodDiaryCalendar from "../components/FoodDiaryCalendar";
 import { format } from "date-fns"; 
+import Link from "next/link";
 
 interface FoodEntry {
   id: number;
@@ -359,23 +360,25 @@ export default function Diary() {
             <div className="bg-white flex pl-[20] mb-[7]">
               <div className="flex items-center justify-between h-[50] flex-wrap ">
                 <button onClick={openModal} className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30] ">
-                  <div className="mr-[6]"><VscDiffAdded /></div>FOOD
+                  <div className="mr-[6]">🍎</div>FOOD
                 </button>
                 <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]">
-                  <div className="mr-[6]"><VscDiffAdded /></div>EXERCISE
+                  <div className="mr-[6]">💪🏼</div>EXERCISE
                 </button>
                 <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]">
-                  <div className="mr-[6]"><VscDiffAdded /></div>BIOMETRIC
+                  <div className="mr-[6]">🧬</div>BIOMETRIC
                 </button>
+                <Link href="/posts">
                 <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]">
-                  <div className="mr-[6]"><VscDiffAdded /></div>NOTE
+                  <div className="mr-[6]">📝</div>NOTE
                 </button>
+                </Link>
               </div>
             </div>
             {/* แสดงรายการอาหาร */}
             {Object.keys(diaryEntries).map((group) => (
               <div key={group} className="bg-white flex flex-col mb-[7]">
-                <div className="flex justify-between px-[10] py-[5] border-b">
+                <div className="flex justify-between px-[10] py-[5] border-b">  
                   <span className="font-semibold">{group}</span>
                   <div className="">
                   <span className="text-sm">
@@ -436,7 +439,7 @@ export default function Diary() {
               </div>
             </div>
           </div>
-          <div className="relative w-[350px]   ">
+          <div className="w-[350px]   ">
             {/* ✅ แถบเลือกวันที่ (Today, ลูกศร, และปุ่มปฏิทิน) */}
             <div className="flex justify-between  items-center bg-white shadow-md px-4 py-2 rounded-md ">
               {/* เปลี่ยนวันก่อนหน้า */}
