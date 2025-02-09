@@ -103,7 +103,7 @@ export default function WebsiteLayout({
       >
         <div className="flex items-center ml-[100]">
           <Image
-            src="/gg.gif" // ใส่ Path ของรูปภาพของคุณ
+            src="/logo.png" // ใส่ Path ของรูปภาพของคุณ
             alt="FitLifeHub Logo"
             width={40} // ปรับขนาดของรูปภาพ
             height={40} // ปรับขนาดของรูปภาพ

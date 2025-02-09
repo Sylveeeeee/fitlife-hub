@@ -156,9 +156,8 @@ export default function RegisterPage() {
       <div className="flex flex-col md:flex-row bg-white rounded-lg shadow-lg overflow-hidden w-full max-w-screen-xl">
         <div className="flex-1 flex items-center justify-center p-8 bg-[#213A58] text-white">
           <div className="text-center">
-            <h1 className="text-3xl font-bold mb-4">Welcome to Fitlife-Hub</h1>
             <Image
-              src="/sp.png"
+              src="/logo.png"
               alt="illustration"
               width={400}
               height={400}
