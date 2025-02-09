@@ -1,5 +1,6 @@
 'use client';
 
+import Sidebar from '@/app/(website)/components/Sidebar';
 import { useState, useEffect } from 'react';
 
 interface Food {
@@ -24,6 +25,8 @@ export default function ManageFoods() {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [, setNotification] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
 
   useEffect(() => {
     fetchFoods();
@@ -133,9 +136,10 @@ export default function ManageFoods() {
   };
 
   return (
-    <div className="min-h-screen font-mono text-black p-6 mx-10">
+    <div className="flex   ">
+      <Sidebar isCollapsed={!isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+    <div className="container mx-auto p-4 text-black font-mono">
       <h1 className="text-2xl font-bold mb-6">Manage Foods</h1>
-
       {/* Food Form */}
       <form onSubmit={handleFormSubmit} className="bg-white p-4 rounded-lg shadow-md mb-6">
         <h2 className="text-lg font-bold mb-4">{isEditing ? 'Edit Food' : 'Add Food'}</h2>
@@ -244,9 +248,11 @@ export default function ManageFoods() {
                 </div>
               </div>
             ))}
+            
         </div>
       </div>
     )}
+    </div>
     </div>
   );
 }
