@@ -375,7 +375,7 @@ export default function Diary() {
             {/* แสดงรายการอาหาร */}
             {Object.keys(diaryEntries).map((group) => (
               <div key={group} className="bg-white flex flex-col mb-[7]">
-                <div className="flex justify-between px-[10] py-[5] border-b">
+                <div className="flex justify-between px-[10] py-[5] border-b">  
                   <span className="font-semibold">{group}</span>
                   <div className="">
                   <span className="text-sm">
@@ -436,7 +436,7 @@ export default function Diary() {
               </div>
             </div>
           </div>
-          <div className="relative w-[350px]   ">
+          <div className="w-[350px]   ">
             {/* ✅ แถบเลือกวันที่ (Today, ลูกศร, และปุ่มปฏิทิน) */}
             <div className="flex justify-between  items-center bg-white shadow-md px-4 py-2 rounded-md ">
               {/* เปลี่ยนวันก่อนหน้า */}

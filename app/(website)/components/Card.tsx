@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Card() {
   return (
     <div className="flex justify-center px-4">
@@ -7,9 +9,12 @@ export default function Card() {
         <p className="text-sm md:text-base mt-[10px]">
         Take care of your health and strength with us with an effective exercise program.
         </p>
+        <Link href="/diary">
         <button className="mt-[50px] bg-white text-blue-600 font-semibold px-4 py-2 rounded-lg shadow-md hover:bg-blue-100 transition">
           START
         </button>
+        </Link>
+      
       </div>
     </div>
   );

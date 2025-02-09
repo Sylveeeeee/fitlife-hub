@@ -108,8 +108,9 @@ export default function WebsiteLayout({
             width={40} // ปรับขนาดของรูปภาพ
             height={40} // ปรับขนาดของรูปภาพ
             className="mr-2 rounded-[20px]"
-          />
-          <div className="text-[16px] font-mono text-[#000]">FITLIFE_HUB</div>
+          />        
+          <Link href="/"><div className="text-[16px] font-mono text-[#000]">FITLIFE_HUB</div></Link>
+          
         </div>
         <div className="font-mono text-[#000] h-[100] items-center mr-[30] flex">
           <Link href="/">

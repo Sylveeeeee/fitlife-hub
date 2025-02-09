@@ -24,9 +24,12 @@ export default function Home() {
               <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9px] pt-[13px]">
                 <div className="mr-[6px]"><VscDiffAdded /></div>BIOMETRIC
               </button>
+              <Link href="/posts">
               <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9px] pt-[13px]">
                 <div className="mr-[6px]"><VscDiffAdded /></div>NOTE
               </button>
+              </Link>
+              
             </div>
           </div>
           <Posts />
