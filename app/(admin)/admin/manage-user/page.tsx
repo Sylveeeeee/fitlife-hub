@@ -1,5 +1,6 @@
 "use client";
 
+import Sidebar from "@/app/(website)/components/Sidebar";
 import React, { useEffect, useState } from "react";
 
 interface User {
@@ -17,6 +18,7 @@ export default function AdminPage() {
   const [newUser, setNewUser] = useState({ username: "", email: "", password: "", role: "user" });
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -133,13 +135,15 @@ export default function AdminPage() {
   }
 
   return (
+    <div className="flex">
+    <Sidebar isCollapsed={!isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
     <div className="container mx-auto p-4 text-black font-mono">
       <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
       {isAdmin ? (
         <div>
           <button
             onClick={() => setShowModal(true)}
-            className="bg-blue-500 text-white px-4 py-2 rounded mb-4"
+            className="bg-black text-white px-4 py-2 rounded mb-4"
           >
             Add User
           </button>
@@ -238,7 +242,7 @@ export default function AdminPage() {
             </select>
             <button
               onClick={handleAddUser}
-              className="bg-blue-500 text-white px-4 py-2 rounded"
+              className="bg-black text-white px-4 py-2 rounded"
             >
               Add User
             </button>
@@ -251,6 +255,7 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

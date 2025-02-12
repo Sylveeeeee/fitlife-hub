@@ -37,21 +37,23 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ message: "All glasses reset" }, { status: 204 });
     }
 
-    // ลบแก้วน้ำตาม `id`
+    // ตรวจสอบว่ามี ID ที่จะลบหรือไม่
     if (!body.id) {
-      return NextResponse.json({ error: "ID is required" }, { status: 400 });
+      return NextResponse.json({ error: "id is required for deletion" }, { status: 400 });
     }
 
+    // ลบแก้วที่มี ID ที่ระบุ
     await prisma.glass.delete({
       where: { id: body.id },
     });
 
-    return NextResponse.json({ message: "Glass deleted" }, { status: 204 });
+    return NextResponse.json({ message: "Glass deleted successfully" }, { status: 200 });
   } catch (error) {
     console.error("Error deleting glass entry:", error);
     return NextResponse.json({ error: "Failed to delete glass entry" }, { status: 500 });
   }
 }
+
 
 // GET: ดึงข้อมูลแก้วน้ำทั้งหมด
 export async function GET() {

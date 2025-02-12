@@ -15,18 +15,21 @@ export default function Home() {
             <div className="flex items-center justify-between w-[60%] mr-[100px] ml-[100px] h-[50px]">
               <Link href={"/diary"} >
               <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9px] pt-[13px]">
-                <div className="mr-[6px]"><VscDiffAdded /></div>FOOD
+                <div className="mr-[6px]">🍎</div>FOOD
               </button>
               </Link>
               <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9px] pt-[13px]">
-                <div className="mr-[6px]"><VscDiffAdded /></div>EXERCISE
+                <div className="mr-[6px]">💪🏼</div>EXERCISE
               </button>
               <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9px] pt-[13px]">
-                <div className="mr-[6px]"><VscDiffAdded /></div>BIOMETRIC
+                <div className="mr-[6px]">🧬</div>BIOMETRIC
               </button>
+              <Link href="/posts">
               <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9px] pt-[13px]">
-                <div className="mr-[6px]"><VscDiffAdded /></div>NOTE
+                <div className="mr-[6px]">📝</div>NOTE
               </button>
+              </Link>
+              
             </div>
           </div>
           <Posts />

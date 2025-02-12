@@ -1,0 +1,8 @@
+-- AlterTable
+ALTER TABLE `meal_records` MODIFY `date` DATETIME(3) NOT NULL,
+    MODIFY `total_calories` DOUBLE NOT NULL DEFAULT 0,
+    MODIFY `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    MODIFY `updated_at` DATETIME(3) NOT NULL,
+    MODIFY `total_carbs` DOUBLE NOT NULL DEFAULT 0,
+    MODIFY `total_fat` DOUBLE NOT NULL DEFAULT 0,
+    MODIFY `total_protein` DOUBLE NOT NULL DEFAULT 0;
