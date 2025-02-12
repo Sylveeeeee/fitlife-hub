@@ -120,6 +120,7 @@ model UserTarget {
   fat       Float
 }
 
+
 model post {
   id        Int      @id @default(autoincrement())
   content   String
