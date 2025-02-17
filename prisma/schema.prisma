@@ -37,11 +37,24 @@ model users {
   role           Role                  @relation("UserRole", fields: [roleId], references: [id], onDelete: Cascade)
   workouts       workouts[]
   foodDiaryEntries FoodDiary[]
+  last_login     DateTime?             @db.Timestamp(0) // 📌 ติดตามการล็อกอินล่าสุด
+  is_active      Boolean               @default(true)  // 📌 เช็คว่าผู้ใช้ Active อยู่หรือไม่
+  total_logins   Int                   @default(0)     // 📌 นับจำนวนครั้งที่ผู้ใช้ล็อกอิน
+  behavior_logs  user_behavior_logs[]  // 📌 เชื่อมกับ user_behavior_logs
 
   @@index([roleId], map: "users_roleId_fkey")
 }
 
+model user_behavior_logs {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  action      String    @db.VarChar(255)  // เช่น "Login", "Add Food", "Update Profile"
+  timestamp   DateTime  @default(now())   @db.Timestamp(0)
 
+  user        users     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId], map: "behavior_userId_idx")
+}
 
 model foods {
   id           Int                 @id @default(autoincrement())
@@ -57,6 +70,7 @@ model foods {
   source       String?             @db.VarChar(255)
   meal_items   meal_items[]
   foodDiaryEntries FoodDiary[]
+  added_count  Int      @default(0)
 }
 
 model FoodDiary {

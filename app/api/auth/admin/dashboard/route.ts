@@ -31,59 +31,71 @@ export async function GET(req: Request) {
   }
 
   try {
-    // ดึงข้อมูลผู้ใช้และอาหารทั้งหมด
-    const users = await prisma.users.findMany({ select: { id: true, username: true, email: true, created_at: true } });
-    const foods = await prisma.foods.findMany({ select: { id: true, name: true, category: true, calories: true, created_at: true } });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const last30Days = new Date();
+    last30Days.setDate(today.getDate() - 30);
+
+    // ดึงข้อมูลผู้ใช้
+    const users = await prisma.users.findMany({
+      select: { id: true, username: true, email: true, created_at: true, last_login: true }
+    });
+
+    // ดึงข้อมูลอาหาร
+    const foods = await prisma.foods.findMany({
+      select: { id: true, name: true, category: true, calories: true, protein: true, carbs: true, fat: true, created_at: true }
+    });
 
     // คำนวณ Key Metrics
     const totalFoods = foods.length;
     const totalUsers = users.length;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const newFoodsToday = foods.filter(food => food.created_at && new Date(food.created_at) >= today).length;
+    const newUsersToday = users.filter(user => user.created_at && new Date(user.created_at) >= today).length;
 
-    const newFoodsToday = foods.filter((food) => food.created_at && new Date(food.created_at) >= today).length;
-    const newUsersToday = users.filter((user) => user.created_at && new Date(user.created_at) >= today).length;
+    // อาหารที่ถูกเพิ่มมากที่สุด
+    const popularFoods = await prisma.foods.findMany({
+      orderBy: { added_count: 'desc' }, // ✅ เรียงจากมากไปน้อย
+      take: 5, // ✅ เอาแค่ 5 อันดับ
+      select: {
+        name: true,
+        added_count: true,
+      },
+    });
 
-    // รายงานยอดนิยม
+
+    // อาหารที่ถูกเพิ่มตามหมวดหมู่
     const categoryCount = foods.reduce((acc, food) => {
-      const category = food.category ?? "Unknown"; // แก้ null เป็น "Unknown"
+      const category = food.category ?? "Unknown";
       acc[category] = (acc[category] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    
+
     const popularCategories = Object.entries(categoryCount)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
       .map(([category]) => category);
 
-    const popularFoods = foods.slice(0, 3).map((food) => food.name);
+    // ผู้ใช้ Active vs Inactive
+    const activeUsers = users.filter(user => user.last_login && new Date(user.last_login) >= last30Days);
+    const inactiveUsers = users.length - activeUsers.length;
 
-    // ผู้ใช้ที่มีการใช้งานมากที่สุด (Mock Data)
-    const mostActiveUsers = users.slice(0, 3).map((user) => user.username);
-
-    // ระบบแจ้งเตือน
-    const latestFoods = foods.slice(-5).map((food) => food.name);
-    const latestUsers = users.slice(-5).map((user) => user.username);
-
-    // รายงานกิจกรรม (Mock Data)
-    const recentActivity = [
-      { user: "Admin", action: "Added new food item", timestamp: new Date().toISOString() },
+    // พฤติกรรมผู้ใช้แบบใหม่
+    const userActivity = [
+      { type: "Active Users", count: activeUsers.length },
+      { type: "Inactive Users", count: inactiveUsers },
     ];
 
-    // ฟังก์ชันช่วยแปลงวันที่อย่างปลอดภัย
-    const getSafeDate = (date: string | Date | null) => {
-      return date ? new Date(date) : null;
-    };
-
-    // กราฟข้อมูลรายเดือน
-    const monthlyUsers = Array.from({ length: 12 }, (_, i) => ({
+    // กราฟข้อมูลรายเดือน: ผู้ใช้ล็อกอิน
+    const getSafeDate = (date: string | Date | null) => (date ? new Date(date) : null);
+    const monthlyLogins = Array.from({ length: 12 }, (_, i) => ({
       month: new Date(2024, i).toLocaleString("default", { month: "short" }),
       count: users
-        .map((user) => getSafeDate(user.created_at))
+        .map((user) => getSafeDate(user.last_login))
         .filter((date) => date && date.getMonth() === i).length,
     }));
 
+    // กราฟข้อมูลรายเดือน: อาหารที่ถูกเพิ่ม
     const monthlyFoods = Array.from({ length: 12 }, (_, i) => ({
       month: new Date(2024, i).toLocaleString("default", { month: "short" }),
       count: foods
@@ -91,28 +103,45 @@ export async function GET(req: Request) {
         .filter((date) => date && date.getMonth() === i).length,
     }));
 
-    const userBehavior = [
-      { type: "Login", count: 50 },
-      { type: "Add Food", count: 30 },
-      { type: "Order", count: 40 },
-    ];
+    // แนวโน้มสารอาหารที่ถูกเพิ่ม
+    const nutrientTrends = await prisma.foods.groupBy({
+      by: ['category'],
+      _avg: { protein: true, carbs: true, fat: true },
+      orderBy: { category: 'asc' }
+    }).then((data) =>
+      data.map((entry) => ({
+        category: entry.category,
+        protein: entry._avg.protein || 0, // ✅ กรณีไม่มีค่าให้ใส่ 0
+        carbs: entry._avg.carbs || 0,
+        fat: entry._avg.fat || 0,
+      }))
+    );    
+
+    // ✅ พฤติกรรมของผู้ใช้ (User Behavior)
+    const userBehavior = await prisma.user_behavior_logs.groupBy({
+      by: ['action'], 
+      _count: { id: true },
+      orderBy: { _count: { id: 'desc' } },
+    }).then((data) =>
+      data.map((entry) => ({
+        action: entry.action,
+        count: entry._count.id, // ✅ ดึงค่าจาก _count.id
+      }))
+    );
+    
 
     return NextResponse.json(
       {
-        users,
-        foods,
         totalFoods,
         totalUsers,
         newFoodsToday,
         newUsersToday,
         popularFoods,
         popularCategories,
-        mostActiveUsers,
-        latestFoods,
-        latestUsers,
-        recentActivity,
-        monthlyUsers,
+        userActivity,
+        monthlyLogins,
         monthlyFoods,
+        nutrientTrends,
         userBehavior,
       },
       { status: 200 }

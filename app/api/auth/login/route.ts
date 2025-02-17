@@ -48,6 +48,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Invalid password' }, { status: 401 });
     }
 
+    // ✅ อัปเดต last_login
+    await prisma.$transaction([
+      prisma.users.update({
+        where: { id: user.id },
+        data: { last_login: new Date() }
+      }),
+      prisma.user_behavior_logs.create({
+        data: {
+          userId: user.id,
+          action: "Login",
+        }
+      })
+    ]);
+
     // สร้าง JWT token
     const token = jwt.sign(
       { userId: user.id.toString(),  // แปลง BigInt เป็น string

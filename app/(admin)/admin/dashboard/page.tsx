@@ -4,19 +4,16 @@ import { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import Sidebar from '@/app/(website)/components/Sidebar';
 
-interface Food {
-  id: number;
+interface PopularFood {
   name: string;
-  category: string;
-  calories: number;
-  created_at?: string;
+  added_count: number;
 }
 
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  created_at?: string;
+interface NutrientTrend {
+  category: string;
+  protein: number;
+  carbs: number;
+  fat: number;
 }
 
 interface MonthlyData {
@@ -24,16 +21,16 @@ interface MonthlyData {
   count: number;
 }
 
-interface UserBehaviorData {
-  type: string;
+interface UserBehavior {
+  action: string;  // ✅ เปลี่ยนจาก "type" เป็น "action" ให้ตรงกับ API
   count: number;
 }
 
 export default function AdminDashboard() {
-  const [latestFoods, setLatestFoods] = useState<Food[]>([]);
-  const [latestUsers, setLatestUsers] = useState<User[]>([]);
+  const [popularFoods, setPopularFoods] = useState<PopularFood[]>([]);
+  const [nutrientTrends, setNutrientTrends] = useState<NutrientTrend[]>([]);
   const [monthlyFoods, setMonthlyFoods] = useState<MonthlyData[]>([]);
-  const [userBehavior, setUserBehavior] = useState<UserBehaviorData[]>([]);
+  const [userBehavior, setUserBehavior] = useState<UserBehavior[]>([]);  // ✅ เปลี่ยนจาก setUserActivity เป็น setUserBehavior
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
@@ -50,10 +47,10 @@ export default function AdminDashboard() {
         if (!res.ok) throw new Error(`Failed to fetch data: ${res.status} ${res.statusText}`);
 
         const data = await res.json();
-        setLatestFoods(Array.isArray(data.latestFoods) ? data.latestFoods : []);
-        setLatestUsers(Array.isArray(data.latestUsers) ? data.latestUsers : []);
+        setPopularFoods(Array.isArray(data.popularFoods) ? data.popularFoods : []);
+        setNutrientTrends(Array.isArray(data.nutrientTrends) ? data.nutrientTrends : []);
         setMonthlyFoods(Array.isArray(data.monthlyFoods) ? data.monthlyFoods : []);
-        setUserBehavior(Array.isArray(data.userBehavior) ? data.userBehavior : []);
+        setUserBehavior(Array.isArray(data.userBehavior) ? data.userBehavior : []);  // ✅ แก้ให้ตรงกับ API
       } catch (err) {
         setError(err instanceof Error ? `Failed to load data: ${err.message}` : "An unknown error occurred");
       } finally {
@@ -74,93 +71,81 @@ export default function AdminDashboard() {
       <main className="container mx-auto p-4">
         <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
 
-        {/* 📊 User Behavior Chart */}
+        {/* 📊 User Activity Chart */}
         <div className="mb-6">
-          <h2 className="text-lg font-bold mb-4">User Behavior</h2>
+          <h2 className="text-lg font-bold mb-4">User Activity Trends</h2>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={userBehavior}>
-              <XAxis dataKey="type" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="count" fill="#82ca9d" />
-            </BarChart>
+            {userBehavior.length > 0 ? (
+              <BarChart data={userBehavior}>
+                <XAxis dataKey="action" />  {/* ✅ ใช้ action แทน type */}
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="count" fill="#82ca9d" />
+              </BarChart>
+            ) : (
+              <div className="text-center py-10 text-gray-500">No user activity data available</div>
+            )}
           </ResponsiveContainer>
         </div>
 
-        {/* 📈 Monthly Foods Trend */}
+        {/* 📈 Nutrient Trends Chart */}
+        <div className="mb-6">
+          <h2 className="text-lg font-bold mb-4">Nutrient Trends</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            {nutrientTrends.length > 0 ? (
+              <BarChart data={nutrientTrends}>
+                <XAxis dataKey="category" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="protein" fill="#82ca9d" name="Protein" />
+                <Bar dataKey="carbs" fill="#8884d8" name="Carbs" />
+                <Bar dataKey="fat" fill="#ffc658" name="Fat" />
+              </BarChart>
+            ) : (
+              <div className="text-center py-10 text-gray-500">No nutrient data available</div>
+            )}
+          </ResponsiveContainer>
+        </div>
+
+        {/* 📈 Monthly Food Additions Chart */}
         <div className="mb-6">
           <h2 className="text-lg font-bold mb-4">Monthly Food Additions</h2>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={monthlyFoods}>
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="count" stroke="#8884d8" />
-            </LineChart>
+            {monthlyFoods.length > 0 ? (
+              <LineChart data={monthlyFoods}>
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="count" stroke="#8884d8" />
+              </LineChart>
+            ) : (
+              <div className="text-center py-10 text-gray-500">No food addition data available</div>
+            )}
           </ResponsiveContainer>
         </div>
 
-        {/* 🍽 Latest Foods Table */}
+        {/* 🍽 Most Popular Foods Table */}
         <div className="mb-6">
-          <h2 className="text-lg font-bold mb-4">Latest Added Foods</h2>
+          <h2 className="text-lg font-bold mb-4">Most Popular Foods</h2>
           <div className="overflow-x-auto">
             <table className="min-w-full bg-white border border-gray-300">
               <thead>
                 <tr className="bg-gray-200">
-                  <th className="py-2 px-4 border">ID</th>
                   <th className="py-2 px-4 border">Name</th>
-                  <th className="py-2 px-4 border">Category</th>
-                  <th className="py-2 px-4 border">Calories</th>
-                  <th className="py-2 px-4 border">Added At</th>
+                  <th className="py-2 px-4 border">Times Added</th>
                 </tr>
               </thead>
               <tbody>
-                {latestFoods.length > 0 ? (
-                  latestFoods.map((food) => (
-                    <tr key={food.id} className="text-center border-b">
-                      <td className="py-2 px-4 border">{food.id}</td>
+                {popularFoods.length > 0 ? (
+                  popularFoods.map((food, index) => (
+                    <tr key={index} className="text-center border-b">
                       <td className="py-2 px-4 border">{food.name}</td>
-                      <td className="py-2 px-4 border">{food.category}</td>
-                      <td className="py-2 px-4 border">{food.calories}</td>
-                      <td className="py-2 px-4 border">{food.created_at ? new Date(food.created_at).toLocaleDateString() : 'N/A'}</td>
+                      <td className="py-2 px-4 border">{food.added_count}</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="text-center py-4">No food items available</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* 🆕 Latest Registered Users Table */}
-        <div className="mb-6">
-          <h2 className="text-lg font-bold mb-4">Latest Registered Users</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full bg-white border border-gray-300">
-              <thead>
-                <tr className="bg-gray-200">
-                  <th className="py-2 px-4 border">ID</th>
-                  <th className="py-2 px-4 border">Name</th>
-                  <th className="py-2 px-4 border">Email</th>
-                  <th className="py-2 px-4 border">Registered At</th>
-                </tr>
-              </thead>
-              <tbody>
-                {latestUsers.length > 0 ? (
-                  latestUsers.map((user) => (
-                    <tr key={user.id} className="text-center border-b">
-                      <td className="py-2 px-4 border">{user.id}</td>
-                      <td className="py-2 px-4 border">{user.name}</td>
-                      <td className="py-2 px-4 border">{user.email}</td>
-                      <td className="py-2 px-4 border">{user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={4} className="text-center py-4">No recent users</td>
+                    <td colSpan={2} className="text-center py-4">No popular foods available</td>
                   </tr>
                 )}
               </tbody>

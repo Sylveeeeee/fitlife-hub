@@ -9,7 +9,7 @@ export default function NutritionReport() {
   const [includeSupplements, setIncludeSupplements] = useState(true);
 
   return (
-    <div className="min-h-screen font-mono bg-gray-50 p-8">
+    <div className="min-h-screen font-mono   p-8">
 
       <div className="max-w-5xl mx-auto bg-white shadow-md rounded-lg p-6">
         <h1 className="text-2xl font-bold text-gray-800 mb-4">Nutrition Report</h1>

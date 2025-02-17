@@ -8,7 +8,6 @@ interface User {
   username: string;
   email: string;
   role: string;
-  password: string; // เพิ่มรหัสผ่าน
 }
 
 export default function AdminPage() {
@@ -43,7 +42,11 @@ export default function AdminPage() {
         }
 
         const data = await res.json();
-        setUsers(data.users);
+        if (Array.isArray(data)) {
+          setUsers(data);
+        } else {
+          setUsers([]);
+        }
         setIsAdmin(true);
       } catch (err) {
         console.error("Error fetching users:", err);
@@ -72,10 +75,13 @@ export default function AdminPage() {
         },
         body: JSON.stringify(newUser),
       });
+
       if (response.ok) {
         setShowModal(false);
         setNewUser({ username: "", email: "", password: "", role: "user" });
-        const updatedUsers = await response.json();
+
+        // ✅ รีเฟรช users หลังเพิ่ม
+        const updatedUsers = await fetch("/api/auth/users").then((res) => res.json());
         setUsers(updatedUsers);
       } else {
         console.error("Error adding user:", response.status);
@@ -98,12 +104,8 @@ export default function AdminPage() {
       });
 
       if (response.ok) {
-        const updatedUser = await response.json();
-        setUsers((prevUsers) =>
-          prevUsers.map((user) =>
-            user.id === userId ? updatedUser : user
-          )
-        );
+        // ✅ รีเฟรช users หลังเปลี่ยน role
+        setUsers(users.map(user => user.id === userId ? { ...user, role } : user));
       } else {
         console.error("Error updating user role");
       }
@@ -119,7 +121,8 @@ export default function AdminPage() {
       });
 
       if (response.ok) {
-        setUsers((prevUsers) => prevUsers.filter((user) => user.id !== userId));
+        // ✅ รีเฟรช users หลังลบ
+        setUsers(users.filter(user => user.id !== userId));
       } else {
         console.error("Error deleting user");
       }
@@ -136,69 +139,69 @@ export default function AdminPage() {
 
   return (
     <div className="flex">
-    <Sidebar isCollapsed={!isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
-    <div className="container mx-auto p-4 text-black font-mono">
-      <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
-      {isAdmin ? (
-        <div>
-          <button
-            onClick={() => setShowModal(true)}
-            className="bg-black text-white px-4 py-2 rounded mb-4"
-          >
-            Add User
-          </button>
+      <Sidebar isCollapsed={!isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+      <div className="container mx-auto p-4 text-black font-mono">
+        <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
+        {isAdmin ? (
+          <div>
+            <button
+              onClick={() => setShowModal(true)}
+              className="bg-black text-white px-4 py-2 rounded mb-4"
+            >
+              Add User
+            </button>
 
-          {isLoading && <p>Loading...</p>}
-          <table className="table-auto w-full border-collapse border border-gray-200">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="px-4 py-2 border-b">ID</th>
-                <th className="px-4 py-2 border-b">Name</th>
-                <th className="px-4 py-2 border-b">Email</th>
-                <th className="px-4 py-2 border-b">Role</th>
-                <th className="px-4 py-2 border-b">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.length > 0 ? (
-                users.map((user) => (
-                  <tr key={user.id}>
-                    <td className="border px-4 py-2 text-center">{user.id}</td>
-                    <td className="border px-4 py-2">{user.username}</td>
-                    <td className="border px-4 py-2">{user.email}</td>
-                    <td className="border px-4 py-2 text-center">
-                      <select
-                        value={user.role}
-                        onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                        className="border p-1 rounded "
-                      >
-                        <option value="admin">Admin</option>
-                        <option value="user">User</option>
-                      </select>
-                    </td>
-                    <td className="border px-4 py-2 text-center">
-                      <button
-                        onClick={() => handleDeleteUser(user.id)}
-                        className="bg-red-500 text-white px-2 py-1 rounded"
-                      >
-                        Delete
-                      </button>
+            {isLoading && <p>Loading...</p>}
+            <table className="table-auto w-full border-collapse border border-gray-200">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="px-4 py-2 border-b">ID</th>
+                  <th className="px-4 py-2 border-b">Name</th>
+                  <th className="px-4 py-2 border-b">Email</th>
+                  <th className="px-4 py-2 border-b">Role</th>
+                  <th className="px-4 py-2 border-b">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.length > 0 ? (
+                  users.map((user) => (
+                    <tr key={user.id}>
+                      <td className="border px-4 py-2 text-center">{user.id}</td>
+                      <td className="border px-4 py-2">{user.username}</td>
+                      <td className="border px-4 py-2">{user.email}</td>
+                      <td className="border px-4 py-2 text-center">
+                        <select
+                          value={user.role}
+                          onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                          className="border p-1 rounded"
+                        >
+                          <option value="admin">Admin</option>
+                          <option value="user">User</option>
+                        </select>
+                      </td>
+                      <td className="border px-4 py-2 text-center">
+                        <button
+                          onClick={() => handleDeleteUser(user.id)}
+                          className="bg-red-500 text-white px-2 py-1 rounded"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="border px-4 py-2 text-center">
+                      No users found
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="border px-4 py-2 text-center">
-                    No users found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="text-red-500">{error || "Access Denied"}</div>
-      )}
+                )}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-red-500">{error || "Access Denied"}</div>
+        )}
 
       {showModal && (
         <div

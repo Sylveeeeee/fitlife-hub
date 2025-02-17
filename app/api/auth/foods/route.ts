@@ -13,7 +13,6 @@ const normalizeFoodCategory = (value: string | null | undefined): FoodCategory |
   }
 };
 
-
 // ฟังก์ชันตรวจสอบ role admin
 async function verifyAdminRole(req: Request) {
   const cookies = req.headers.get('cookie');
@@ -44,6 +43,10 @@ async function verifyAdminRole(req: Request) {
 }
 
 export async function GET(req: Request) {
+  const decoded = await verifyAdminRole(req);
+    if (!decoded) {
+      return NextResponse.json({ message: 'Unauthorized: Invalid token' }, { status: 401 });
+    }
   try {
     const url = new URL(req.url);
     const category = url.searchParams.get("category");
@@ -67,6 +70,10 @@ export async function GET(req: Request) {
 
 
 export async function POST(req: Request) {
+  const decoded = await verifyAdminRole(req);
+    if (!decoded) {
+      return NextResponse.json({ message: 'Unauthorized: Invalid token' }, { status: 401 });
+    }
   const adminCheck = await verifyAdminRole(req);
   if ("message" in adminCheck) return adminCheck;
 
@@ -111,6 +118,10 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  const decoded = await verifyAdminRole(req);
+    if (!decoded) {
+      return NextResponse.json({ message: 'Unauthorized: Invalid token' }, { status: 401 });
+    }
   const adminCheck = await verifyAdminRole(req);
   if ('message' in adminCheck) return adminCheck;
 

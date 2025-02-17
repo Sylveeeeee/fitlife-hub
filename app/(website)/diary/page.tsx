@@ -1,5 +1,4 @@
 "use client";
-import { VscDiffAdded } from "react-icons/vsc";
 import { PiCaretLeft, PiCaretRight, PiCaretDownBold,} from "react-icons/pi";
 import React, { useState, useMemo, useEffect } from 'react';
 import AddFoodtoDiary from "../components/AddFoodtoDiary";
@@ -359,7 +358,7 @@ export default function Diary() {
           <div className="flex w-[75%] flex-col">
             <div className="bg-white flex pl-[20] mb-[7]">
               <div className="flex items-center justify-between h-[50] flex-wrap ">
-                <button onClick={openModal} className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30] ">
+                <button onClick={openModal} className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30] ">                 
                   <div className="mr-[6]">🍎</div>FOOD
                 </button>
                 <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]">

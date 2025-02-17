@@ -48,6 +48,19 @@ export async function POST(req: NextRequest, { params }: { params: { date?: stri
       },
       include: { food: true }, // ดึงข้อมูลอาหารที่เกี่ยวข้อง
     });
+ 
+    // ✅ บันทึกพฤติกรรมของผู้ใช้
+    await prisma.user_behavior_logs.create({
+      data: {
+        userId,
+        action: "Add Food to Diary",
+      }
+    });
+    
+    await prisma.foods.update({
+      where: { id: food_id },
+      data: { added_count: { increment: 1 } },
+    });
 
     console.log("✅ Food added to diary:", diaryEntry);
     return NextResponse.json(diaryEntry, { status: 201 });
@@ -133,6 +146,11 @@ export async function DELETE(req: NextRequest, { params }: { params: { date?: st
     // ✅ ลบรายการอาหารจากไดอารี่
     await prisma.foodDiary.delete({
       where: { id: existingEntry.id },
+    });
+
+    await prisma.foods.update({
+      where: { id: food_id },
+      data: { added_count: { decrement: 1 } },
     });
 
     console.log("✅ Food entry deleted:", existingEntry);
