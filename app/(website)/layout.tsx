@@ -19,6 +19,7 @@ export default function WebsiteLayout({
   const [isPopupOpen, setIsPopupOpen] = useState(false);
 
   useEffect(() => {
+  
     const fetchUserData = async () => {
       try {
         const response = await fetch('/api/auth/protected', {
@@ -54,9 +55,12 @@ export default function WebsiteLayout({
         setUser(null);
       }
     };
+    
 
     fetchUserData();
-  }, []);
+
+    
+  }, [isPopupOpen]);
 
   async function handleLogout() {
     try {
@@ -95,6 +99,16 @@ export default function WebsiteLayout({
     window.location.href = "/login";
   };
 
+
+  useEffect(() => {
+    if (isPopupOpen) {
+      document.body.classList.add("overflow-hidden");
+    } else {
+      document.body.classList.remove("overflow-hidden");
+    }
+    return () => document.body.classList.remove("overflow-hidden");
+  }, [isPopupOpen]);
+  
   return (
     <>
       <div
@@ -158,7 +172,7 @@ export default function WebsiteLayout({
       {/* Popup */}
       {isPopupOpen && user && (
         <div
-          className="fixed w-full h-full top-16 flex justify-center items-center font-mono text-[#000]"
+          className="fixed w-full h-full top-16 flex justify-center items-center font-mono text-[#000] z-[9999]"
           onClick={handleOutsideClick}
         >
           <div

@@ -70,8 +70,8 @@ export async function GET(req: Request) {
   // ✅ แปลงค่าก่อนส่งออก
   const usersFormatted = users.map(user => ({
     ...(bigIntToString(user) as Record<string, unknown>),
-    role: user.role?.name || "user", // ✅ แสดงเฉพาะ role.name
-  }));
+    role: user.role?.name || "user", // ✅ แสดง role ที่ถูกต้อง
+  }));  
 
   return NextResponse.json(usersFormatted, { status: 200 });
 }
@@ -80,26 +80,37 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const decoded = await verifyAdminRole(req);
   if (!decoded) {
-    return NextResponse.json({ message: 'Unauthorized: Invalid token' }, { status: 401 });
+    return NextResponse.json({ message: "Unauthorized: Invalid token" }, { status: 401 });
   }
 
   try {
-    const { username, email, roleId, password } = await req.json();
+    const body = await req.json();
+    console.log("📥 Received body:", body); // ✅ Debug Request Body
+
+    const { username, email, roleId, password } = body;
 
     if (!username || !email || !roleId || !password) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      console.error("❌ Missing required fields", { username, email, roleId, password });
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // ✅ ตรวจสอบว่า roleId มีอยู่จริง
+    // ✅ ตรวจสอบว่า roleId เป็น number และไม่ใช่ null
+    if (typeof roleId !== "number" || isNaN(roleId)) {
+      console.error("❌ Invalid roleId:", roleId);
+      return NextResponse.json({ error: "Invalid roleId" }, { status: 400 });
+    }
+
+    // ✅ ตรวจสอบว่า roleId มีอยู่ในระบบ
     const role = await prisma.role.findUnique({ where: { id: roleId } });
     if (!role) {
-      return NextResponse.json({ error: 'Invalid roleId' }, { status: 400 });
+      console.error("❌ Role not found:", roleId);
+      return NextResponse.json({ error: "Invalid roleId" }, { status: 400 });
     }
 
     // ✅ ตรวจสอบว่าอีเมลซ้ำหรือไม่
     const existingUser = await prisma.users.findUnique({ where: { email } });
     if (existingUser) {
-      return NextResponse.json({ error: 'User with this email already exists' }, { status: 400 });
+      return NextResponse.json({ error: "User with this email already exists" }, { status: 400 });
     }
 
     // ✅ แฮชรหัสผ่าน
@@ -112,7 +123,7 @@ export async function POST(req: Request) {
         email,
         password: hashedPassword,
         roleId,
-        is_active: true, // ✅ ทำให้บัญชี Active โดยอัตโนมัติ
+        is_active: true,
       },
       select: {
         id: true,
@@ -122,11 +133,11 @@ export async function POST(req: Request) {
       },
     });
 
-    return NextResponse.json({ message: 'User created successfully', user: newUser }, { status: 201 });
+    return NextResponse.json({ message: "User created successfully", user: newUser }, { status: 201 });
 
   } catch (err) {
-    console.error('POST Error:', err);
-    return NextResponse.json({ error: 'Failed to add user' }, { status: 500 });
+    console.error("❌ POST Error:", err);
+    return NextResponse.json({ error: "Failed to add user" }, { status: 500 });
   }
 }
 

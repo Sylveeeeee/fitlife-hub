@@ -20,7 +20,7 @@ interface AddFoodToDiaryProps {
   onFoodAdded: (mealType : string) => void;
 }
 
-const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onFoodAdded  }) => {
+const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onFoodAdded, selectedDate  }) => {
   const [foods, setFoods] = useState<Food[]>([]);
   const [selectedFood, setSelectedFood] = useState<Food | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -67,9 +67,11 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onF
       return;
     }
   
-    setIsLoading(true); // ✅ เริ่มโหลด
+    setIsLoading(true);
   
-    const date = new Date().toISOString().split("T")[0];
+    // ✅ ใช้วันที่ที่เลือกจาก props
+    const date = selectedDate.toISOString().split("T")[0]; 
+    console.log("📅 Selected Date:", date);
   
     const requestData = {
       meal_type: mealType,
@@ -81,15 +83,11 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onF
       fat: selectedFood.fat * servingSize,
     };
   
-    console.log("🔹 Sending data to API:", requestData);
-  
     try {
       const response = await fetch(`/api/auth/diary/${date}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include", // ✅ ให้ browser ส่ง HttpOnly cookie ไป
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(requestData),
       });
   
@@ -101,11 +99,8 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onF
   
       console.log("✅ Food added successfully:", responseData);
   
-      // ✅ ปิด Modal หลังจากเพิ่มอาหารสำเร็จ
       closeModal();
-  
-      // ✅ อัปเดตหน้า Diary โดยดึงข้อมูลใหม่
-      onFoodAdded(mealType); 
+      onFoodAdded(mealType); // ✅ อัปเดต Diary
   
     } catch (error) {
       if (error instanceof Error) {
@@ -119,15 +114,16 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onF
   };
   
   
+  
   if (!isOpen) return null;
 
   return (
     <div
       onClick={closeModal}
-      className="fixed inset-0 bg-gray-700 bg-opacity-50 flex justify-center items-center font-mono"
+      className="fixed top-0 left-0 w-screen h-screen bg-gray-700 bg-opacity-50 flex justify-center items-center z-[9999] font-mono"
     >
       <div
-        className="bg-white p-4 sm:p-6 md:p-8 rounded shadow-lg text-black w-[95%] sm:w-[80%] md:w-[80%] lg:w-[80%] xl:w-[70%] max-h-[95%] relative z-50"
+        className="bg-white p-4 sm:p-6 md:p-8 rounded shadow-lg text-black w-[95%] sm:w-[80%] md:w-[80%] lg:w-[80%] xl:w-[70%] max-h-[95%] relative"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-4">

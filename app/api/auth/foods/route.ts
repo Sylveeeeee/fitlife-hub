@@ -16,29 +16,20 @@ const normalizeFoodCategory = (value: string | null | undefined): FoodCategory |
 // ฟังก์ชันตรวจสอบ role admin
 async function verifyAdminRole(req: Request) {
   const cookies = req.headers.get('cookie');
-  if (!cookies) {
-    return NextResponse.json({ message: 'Unauthorized: No token provided' }, { status: 401 });
-  }
+  if (!cookies) return null;
 
   const token = cookies
     .split(';')
-    .find(cookie => cookie.trim().startsWith('auth-token='))?.split('=')[1];
+    .find(cookie => cookie.trim().startsWith('token='))?.split('=')[1];
 
-  if (!token) {
-    return NextResponse.json({ message: 'Unauthorized: No token provided' }, { status: 401 });
-  }
+  if (!token) return null;
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: string; role: string };
-    if (decoded.role !== 'admin') {
-      return NextResponse.json({ message: 'Forbidden: You do not have permission' }, { status: 403 });
-    }
-    return { userId: Number(decoded.userId) };
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload & { userId: string };
+    return { userId: Number(decoded.userId) }; // ✅ แปลง userId เป็น number
   } catch (err) {
-    return NextResponse.json(
-      { message: err instanceof jwt.TokenExpiredError ? 'Unauthorized: Token expired' : 'Unauthorized: Invalid token' },
-      { status: 401 }
-    );
+    console.error('JWT Error:', err);
+    return null;
   }
 }
 
@@ -47,6 +38,17 @@ export async function GET(req: Request) {
     if (!decoded) {
       return NextResponse.json({ message: 'Unauthorized: Invalid token' }, { status: 401 });
     }
+  
+    // ✅ ตรวจสอบสิทธิ์ Admin
+    const adminUser = await prisma.users.findUnique({
+      where: { id: decoded.userId },
+      select: { role: { select: { name: true } } },
+    });
+  
+    if (!adminUser || adminUser.role?.name !== 'admin') {
+      return NextResponse.json({ message: 'Forbidden: You do not have admin privileges' }, { status: 403 });
+    }
+
   try {
     const url = new URL(req.url);
     const category = url.searchParams.get("category");
@@ -74,8 +76,16 @@ export async function POST(req: Request) {
     if (!decoded) {
       return NextResponse.json({ message: 'Unauthorized: Invalid token' }, { status: 401 });
     }
-  const adminCheck = await verifyAdminRole(req);
-  if ("message" in adminCheck) return adminCheck;
+  
+    // ✅ ตรวจสอบสิทธิ์ Admin
+    const adminUser = await prisma.users.findUnique({
+      where: { id: decoded.userId },
+      select: { role: { select: { name: true } } },
+    });
+  
+    if (!adminUser || adminUser.role?.name !== 'admin') {
+      return NextResponse.json({ message: 'Forbidden: You do not have admin privileges' }, { status: 403 });
+    }
 
   try {
     let body;
@@ -122,8 +132,16 @@ export async function DELETE(req: Request) {
     if (!decoded) {
       return NextResponse.json({ message: 'Unauthorized: Invalid token' }, { status: 401 });
     }
-  const adminCheck = await verifyAdminRole(req);
-  if ('message' in adminCheck) return adminCheck;
+  
+    // ✅ ตรวจสอบสิทธิ์ Admin
+    const adminUser = await prisma.users.findUnique({
+      where: { id: decoded.userId },
+      select: { role: { select: { name: true } } },
+    });
+  
+    if (!adminUser || adminUser.role?.name !== 'admin') {
+      return NextResponse.json({ message: 'Forbidden: You do not have admin privileges' }, { status: 403 });
+    }
 
   const id = Number(new URL(req.url).pathname.split('/').pop());
 

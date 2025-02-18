@@ -337,6 +337,15 @@ export default function Diary() {
     );
   };
   
+  useEffect(() => {
+    if (isDeleteModalOpen) {
+      document.body.classList.add("overflow-hidden");
+    } else {
+      document.body.classList.remove("overflow-hidden");
+    }
+    return () => document.body.classList.remove("overflow-hidden");
+  }, [isDeleteModalOpen]);
+  
 
   return (
     <>

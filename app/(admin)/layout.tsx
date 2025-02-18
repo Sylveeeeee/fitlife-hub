@@ -95,6 +95,15 @@ export default function WebsiteLayout({
     window.location.href = "/login";
   };
 
+  useEffect(() => {
+    if (isPopupOpen) {
+      document.body.classList.add("overflow-hidden");
+    } else {
+      document.body.classList.remove("overflow-hidden");
+    }
+    return () => document.body.classList.remove("overflow-hidden");
+  }, [isPopupOpen]);
+
   return (
     <>
       <div className="w-full h-[100] flex items-center justify-between"
@@ -144,7 +153,7 @@ export default function WebsiteLayout({
       </div>
       {isPopupOpen && user && (
         <div
-          className="fixed w-full h-full top-16 flex justify-center items-center font-mono text-[#000]"
+          className="fixed w-full h-full top-16 flex justify-center items-center font-mono text-[#000] z-[9999]"
           onClick={handleOutsideClick}  // ทำการปิด modal เมื่อคลิกนอก
         >
           <div

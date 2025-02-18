@@ -24,6 +24,8 @@ export default function ManageFoods() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [, setNotification] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -33,13 +35,26 @@ export default function ManageFoods() {
   }, []);
 
   const fetchFoods = async () => {
-    const response = await fetch('/api/auth/foods');
-    if (!response.ok) {
-      console.error('Failed to fetch foods:', response.statusText);
+    const res = await fetch('/api/auth/foods', {
+      method: 'GET',
+      credentials: 'include',
+    });
+    
+    if (!res.ok) {
+      if (res.status === 403) {
+        setIsAdmin(false);
+        setError("Access Denied: You do not have admin privileges.");
+      } else if (res.status === 401) {
+        setIsAdmin(false);
+        setError("Unauthorized: Please log in.");
+      } else {
+        throw new Error(`Unexpected error: ${res.status}`);
+      }
       return;
     }
-    const data = await response.json();
+    const data = await res.json();
     setFoods(data);
+    
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -75,6 +90,7 @@ export default function ManageFoods() {
     try {
       const response = await fetch(url, {
         method: isEditing ? 'PUT' : 'POST',
+        credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -116,6 +132,7 @@ export default function ManageFoods() {
 
     try {
       const response = await fetch(`/api/auth/foods/${deleteId}`, {
+        credentials: 'same-origin',
         method: 'DELETE',
       });
 
