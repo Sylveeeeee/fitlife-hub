@@ -40,7 +40,9 @@ model users {
   last_login     DateTime?             @db.Timestamp(0) // 📌 ติดตามการล็อกอินล่าสุด
   is_active      Boolean               @default(true)  // 📌 เช็คว่าผู้ใช้ Active อยู่หรือไม่
   total_logins   Int                   @default(0)     // 📌 นับจำนวนครั้งที่ผู้ใช้ล็อกอิน
-  behavior_logs  user_behavior_logs[]  // 📌 เชื่อมกับ user_behavior_logs
+  behavior_logs  user_behavior_logs[]  
+  biometrics     Biometric[]            
+  exercises      Exercise[]
 
   @@index([roleId], map: "users_roleId_fkey")
 }
@@ -63,7 +65,7 @@ model foods {
   protein      Decimal?            @default(0.00) @db.Decimal(5, 2)
   carbs        Decimal?            @default(0.00) @db.Decimal(5, 2)
   fat          Decimal?            @default(0.00) @db.Decimal(5, 2)
-  unit         String?             @db.VarChar(50) // ✅ เพิ่ม unit
+  unit         UnitType            @default(GRAM) // ✅ ใช้ Enum แทน String
   created_at   DateTime?           @default(now()) @db.Timestamp(0)
   updated_at   DateTime?           @default(now()) @updatedAt @db.Timestamp(0)
   category     FoodCategory?       @default(COMMON_FOOD)
@@ -72,6 +74,43 @@ model foods {
   foodDiaryEntries FoodDiary[]
   added_count  Int      @default(0)
 }
+
+model Exercise {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  name         String   @db.VarChar(255) // ชื่อกิจกรรม เช่น วิ่ง, ว่ายน้ำ
+  duration     Int      // ระยะเวลา (นาที)
+  caloriesBurned Float  @db.Float // แคลอรี่ที่เผาผลาญ
+  intensity    String   @db.VarChar(50) // ความหนัก เช่น Low, Medium, High
+  heartRate    Int?     // อัตราการเต้นของหัวใจ (BPM)
+  distance     Float?   @db.Float // ระยะทาง (km) สำหรับวิ่ง/ปั่นจักรยาน
+  steps        Int?     // จำนวนก้าว (สำหรับการเดิน/วิ่ง)
+  date         DateTime @default(now()) @db.Timestamp(0)
+
+  user         users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "exercise_userId_fkey")
+}
+
+
+model Biometric {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  weight     Float?   @db.Float // น้ำหนัก (kg)
+  bodyFat    Float?   @db.Float // เปอร์เซ็นต์ไขมัน (%)
+  muscleMass Float?   @db.Float // มวลกล้ามเนื้อ (kg)
+  bmi        Float?   @db.Float // ค่าดัชนีมวลกาย
+  bmr        Float?   @db.Float // อัตราการเผาผลาญพื้นฐาน
+  tdee       Float?   @db.Float // ปริมาณแคลอรี่ที่เผาผลาญต่อวัน
+  hydration  Float?   @db.Float // ปริมาณน้ำในร่างกาย (%)
+  createdAt  DateTime @default(now()) @db.Timestamp(0)
+
+  user       users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "biometric_userId_fkey")
+}
+
+
 
 model FoodDiary {
   id        Int      @id @default(autoincrement())
@@ -189,6 +228,16 @@ enum FoodCategory {
   BEVERAGES
   RESTAURANTS
 
+}
+
+enum UnitType { // ✅ Enum สำหรับหน่วยของอาหาร
+  GRAM      // กรัม (g)
+  ML        // มิลลิลิตร (ml)
+  CUP       // ถ้วย
+  TBSP      // ช้อนโต๊ะ
+  TSP       // ช้อนชา
+  PIECE     // ชิ้น
+  SERVING   // หน่วยบริโภค
 }
 
 model Glass {

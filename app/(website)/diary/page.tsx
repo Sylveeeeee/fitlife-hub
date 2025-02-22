@@ -403,14 +403,14 @@ export default function Diary() {
                 </div>
                 {/* ✅ แสดงรายการอาหาร */}
                 {expandedGroups[group] && diaryEntries[group].map((entry, index) => (
-                  <div
+                  <div  
                     key={index}
                     onContextMenu={(e) => {
                       e.preventDefault();
                       setItemToDelete({ group, index, name: entry.name });
                       setIsDeleteModalOpen(true);
                     }}
-                    className="flex justify-between px-[10] py-[2] text-sm border-b cursor-pointer hover:bg-gray-100"
+                    className="flex fliex justify-between px-[10] py-[2] text-sm border-b cursor-pointer hover:bg-gray-100"
                   >
                     <div className="flex items-center ">
                       <span className="mr-2">🍎</span>

@@ -1,7 +1,7 @@
 'use client';
 
 import Sidebar from '@/app/(website)/components/Sidebar';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback  } from 'react';
 
 interface Food {
   id: number;
@@ -12,49 +12,75 @@ interface Food {
   fat: number;
   category?: string;
   source?: string;
+  unit:string ;
 }
 
 export default function ManageFoods() {
   const [foods, setFoods] = useState<Food[]>([]);
+  const [filteredFoods, setFilteredFoods] = useState<Food[]>([]); // ✅ เก็บข้อมูลที่ผ่านการกรอง
+  const [searchQuery, setSearchQuery] = useState<string>(""); // ✅ ใช้เก็บค่าการค้นหา
   const [formData, setFormData] = useState<Partial<Food>>({
     category: 'COMMON_FOOD',  // กำหนดค่าเริ่มต้น category เป็น COMMON_FOOD
+    unit: "GRAM",
   });
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [, setNotification] = useState<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);  
 
   useEffect(() => {
-    fetchFoods();
-  }, []);
-
-  const fetchFoods = async () => {
-    const res = await fetch('/api/auth/foods', {
-      method: 'GET',
-      credentials: 'include',
-    });
-    
-    if (!res.ok) {
-      if (res.status === 403) {
-        setIsAdmin(false);
-        setError("Access Denied: You do not have admin privileges.");
-      } else if (res.status === 401) {
-        setIsAdmin(false);
-        setError("Unauthorized: Please log in.");
-      } else {
+    if (searchQuery.trim() !== "") {
+      const filtered = foods.filter((food) =>
+        food.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (food.source && food.source.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+      setFilteredFoods(filtered);
+    } else {
+      setFilteredFoods(foods); // ✅ เมื่อยังไม่มีการค้นหา ให้แสดงทั้งหมด
+    }
+  }, [searchQuery, foods]);  
+  
+  const fetchFoods = useCallback(async () => {
+    try {
+      const url = `/api/auth/foods`;
+      console.log("🔍 Fetching URL:", url);
+      
+      const res = await fetch(url, { method: 'GET', credentials: 'include' });
+  
+      if (!res.ok) {
         throw new Error(`Unexpected error: ${res.status}`);
       }
-      return;
+  
+      const responseData = await res.json();
+      console.log("✅ API Response:", responseData);
+  
+      if (!responseData || !Array.isArray(responseData.data)) {
+        console.error("❌ Invalid API Response:", responseData);
+        setFoods([]); 
+        setFilteredFoods([]);
+        return;
+      }
+  
+      setFoods(responseData.data);
+      setFilteredFoods(responseData.data);
+    } catch (error) {
+      console.error('Error fetching foods:', error);
+      setFoods([]);
+      setFilteredFoods([]);
     }
-    const data = await res.json();
-    setFoods(data);
-    
+  }, []); // ✅ ใช้ `useCallback` และตั้ง dependency array เป็น `[]`
+  
+  // ✅ ใช้ `fetchFoods` ใน `useEffect()` และไม่มี Warning
+  useEffect(() => {
+    fetchFoods();
+  }, [fetchFoods]); 
+  
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -180,9 +206,26 @@ export default function ManageFoods() {
             onChange={handleInputChange}
             className="p-2 border rounded"
           >
+            <option value="">Select Category</option>
             <option value="COMMON_FOOD">Common Food</option>
             <option value="BEVERAGES">Beverages</option>
             <option value="RESTAURANTS">Restaurants</option>
+          </select>
+          {/* Select for Unit */}
+          <select
+            name="unit"
+            value={formData.unit}
+            onChange={handleInputChange}
+            className="p-2 border rounded"
+          >
+            <option value="">Select Unit</option>
+            <option value="GRAM">Gram (g)</option>
+            <option value="ML">Milliliter (ml)</option>
+            <option value="CUP">Cup</option>
+            <option value="TBSP">Tablespoon (tbsp)</option>
+            <option value="TSP">Teaspoon (tsp)</option>
+            <option value="PIECE">Piece</option>
+            <option value="SERVING">Serving</option>
           </select>
         </div>
         <button
@@ -193,7 +236,16 @@ export default function ManageFoods() {
         </button>
       </form>
 
+      <input
+        type="text"
+        value={searchQuery}
+        onChange={handleSearchChange}
+        placeholder="Search foods..."
+        className="border p-2 rounded w-full mb-4"
+      />
+
       {/* Food Table */}
+      
       <table className="w-full bg-white rounded-lg shadow-md ">
         <thead>
           <tr>
@@ -205,12 +257,15 @@ export default function ManageFoods() {
             <th className="text-left p-2 border-b-2 border-[#e2e2e2]">Carbs</th>
             <th className="text-left p-2 border-b-2 border-[#e2e2e2]">Fat</th>
             <th className="text-left p-2 border-b-2 border-[#e2e2e2]">Category</th>
+            <th className="text-left p-2 border-b-2 border-[#e2e2e2]">source</th>
+            <th className="text-left p-2 border-b-2 border-[#e2e2e2]">unit</th>
             <th className="text-center p-2 border-b-2 border-[#e2e2e2]">Actions</th>
           
           </tr>
         </thead>
         <tbody>
-          {foods.map((food) => (
+        {filteredFoods.length > 0 ? (
+              filteredFoods.map((food) => (
             <tr key={food.id}>
               <td className="p-2 text-center">{food.id}</td>
               <td className="p-2">{food.name}</td>
@@ -219,6 +274,8 @@ export default function ManageFoods() {
               <td className="p-2">{food.carbs}</td>
               <td className="p-2">{food.fat}</td>
               <td className="p-2">{food.category}</td>
+              <td className="p-2">{food.source}</td>
+              <td className="p-2">{food.unit}</td>
               <td className="p-2 text-center">
                 <button
                   onClick={() => handleEdit(food)}
@@ -234,7 +291,12 @@ export default function ManageFoods() {
                 </button>
               </td>
             </tr>
-          ))}
+          ))
+        ) : (
+            <tr>
+              <td colSpan={8} className="text-center p-4">No foods found.</td>
+            </tr>
+          )}
         </tbody>
       </table>
 

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
 import  { FoodCategory }  from "@prisma/client"; // ✅ นำเข้า Prisma Enum
+import { Prisma } from "@prisma/client"; // ✅ Import Prisma Type
+
 
 const normalizeFoodCategory = (value: string | null | undefined): FoodCategory | undefined => {
   if (!value) return FoodCategory.COMMON_FOOD;
@@ -34,38 +36,72 @@ async function verifyAdminRole(req: Request) {
 }
 
 export async function GET(req: Request) {
-  const decoded = await verifyAdminRole(req);
-    if (!decoded) {
-      return NextResponse.json({ message: 'Unauthorized: Invalid token' }, { status: 401 });
-    }
-  
-    // ✅ ตรวจสอบสิทธิ์ Admin
-    const adminUser = await prisma.users.findUnique({
-      where: { id: decoded.userId },
-      select: { role: { select: { name: true } } },
-    });
-  
-    if (!adminUser || adminUser.role?.name !== 'admin') {
-      return NextResponse.json({ message: 'Forbidden: You do not have admin privileges' }, { status: 403 });
-    }
-
   try {
     const url = new URL(req.url);
+    const search = url.searchParams.get("search") || null;
     const category = url.searchParams.get("category");
-    const search = url.searchParams.get("search");
+    const limit = Number(url.searchParams.get("limit")) || 100;
+    const page = Number(url.searchParams.get("page")) || 1;
 
-    // Normalizing category (ถ้าไม่ระบุ category หรือเป็น "All" จะใช้ค่า null)
-    const normalizedCategory = category ? normalizeFoodCategory(category) : null;
+    // 🔍 Normalize category
+    const normalizedCategory = category && category !== "All" ? normalizeFoodCategory(category) : undefined;
 
-    const query = {
-      ...(search ? { OR: [{ name: { contains: search, mode: "insensitive" } }] } : {}),
-      ...(normalizedCategory ? { category: normalizedCategory } : {}), // ถ้ามี category ก็กรองตามหมวดหมู่
-    };
+    // 🔍 สร้าง query ตาม search และ category
+    const query: Prisma.foodsWhereInput = {};
+    if (normalizedCategory) {
+      query.category = normalizedCategory;
+    }
+        
+    if (search) {
+      query.OR = [
+        { name: { contains: search.toLowerCase() } },
+        { source: { contains: search.toLowerCase() } }
+      ];             
+    }
 
-    const foods = await prisma.foods.findMany({ where: query });
-    return NextResponse.json(foods);
+    console.log("🔎 Prisma Query:", JSON.stringify(query));
+
+    // 🔹 Fetch data พร้อมดึงค่า unit
+    const foods = await prisma.foods.findMany({
+      where: query,
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { name: "asc" },
+      select: { // ✅ เลือกเฉพาะฟิลด์ที่ต้องการ
+        id: true,
+        name: true,
+        calories: true,
+        protein: true,
+        carbs: true,
+        fat: true,
+        category: true,
+        source: true,
+        unit: true, // ✅ เพิ่ม unit ใน response
+      }
+    });
+
+    console.log("✅ Sending Response:", {
+      data: foods,
+      pagination: {
+        total: foods.length,
+        page,
+        limit,
+        totalPages: Math.ceil(foods.length / limit),
+      },
+    });
+
+    return NextResponse.json({
+      data: foods,
+      pagination: {
+        total: foods.length,
+        page,
+        limit,
+        totalPages: Math.ceil(foods.length / limit),
+      },
+    });
+
   } catch (error) {
-    console.error("GET Error:", error);
+    console.error("❌ GET Error:", error);
     return NextResponse.json({ error: "Failed to fetch foods" }, { status: 500 });
   }
 }
@@ -73,19 +109,19 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const decoded = await verifyAdminRole(req);
-    if (!decoded) {
-      return NextResponse.json({ message: 'Unauthorized: Invalid token' }, { status: 401 });
-    }
-  
-    // ✅ ตรวจสอบสิทธิ์ Admin
-    const adminUser = await prisma.users.findUnique({
-      where: { id: decoded.userId },
-      select: { role: { select: { name: true } } },
-    });
-  
-    if (!adminUser || adminUser.role?.name !== 'admin') {
-      return NextResponse.json({ message: 'Forbidden: You do not have admin privileges' }, { status: 403 });
-    }
+  if (!decoded) {
+    return NextResponse.json({ message: 'Unauthorized: Invalid token' }, { status: 401 });
+  }
+
+  // ✅ ตรวจสอบสิทธิ์ Admin
+  const adminUser = await prisma.users.findUnique({
+    where: { id: decoded.userId },
+    select: { role: { select: { name: true } } },
+  });
+
+  if (!adminUser || adminUser.role?.name !== 'admin') {
+    return NextResponse.json({ message: 'Forbidden: You do not have admin privileges' }, { status: 403 });
+  }
 
   try {
     let body;
@@ -101,31 +137,38 @@ export async function POST(req: Request) {
 
     console.log("Received Body:", body);
 
-    const { name, calories, protein, carbs, fat, category, source } = body;
+    const { name, calories, protein, carbs, fat, category, source, unit } = body; // ✅ เพิ่ม unit
 
-    if (!name || calories === undefined || protein === undefined || carbs === undefined || fat === undefined) {
+    if (!name || calories === undefined || protein === undefined || carbs === undefined || fat === undefined || !unit) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
 
-    // กรณีเลือกหมวดหมู่ COMMON_FOOD (หรืออื่น ๆ) ต้องแปลงค่าให้ตรงกับ Prisma Enum
+    // ✅ ตรวจสอบค่าหมวดหมู่
     const normalizedCategory = normalizeFoodCategory(category);
     if (!normalizedCategory) {
       return NextResponse.json({ error: "Invalid category" }, { status: 400 });
     }
 
-    // เพิ่มอาหารลงฐานข้อมูล
+    // ✅ ตรวจสอบว่าค่า unit ถูกต้อง
+    const validUnits = ["GRAM", "ML", "CUP", "TBSP", "TSP", "PIECE", "SERVING"];
+    if (!validUnits.includes(unit)) {
+      return NextResponse.json({ error: "Invalid unit type" }, { status: 400 });
+    }
+
+    // ✅ เพิ่มอาหารลงฐานข้อมูลพร้อม unit
     const newFood = await prisma.foods.create({
-      data: { name, calories, protein, carbs, fat, category: normalizedCategory, source },
+      data: { name, calories, protein, carbs, fat, category: normalizedCategory, source, unit },
     });
 
     console.log("Created Food:", newFood);
-
     return NextResponse.json(newFood, { status: 201 });
+
   } catch (error) {
     console.error("POST Error:", error);
     return NextResponse.json({ error: "Failed to add food" }, { status: 500 });
   }
 }
+
 
 export async function DELETE(req: Request) {
   const decoded = await verifyAdminRole(req);

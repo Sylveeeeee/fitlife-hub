@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, } from "react";
 import { IoMdClose } from "react-icons/io";
 
 interface Food {
@@ -31,30 +31,47 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onF
   const [mealType, setMealType] = useState<string>("Breakfast");
   const [, setApiError] = useState<string | null>(null);
 
-  const fetchFoods = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const category = activeTab === "All" ? "" : activeTab;
-      const response = await fetch(`/api/auth/foods?category=${category}&search=${searchQuery}`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch foods: ${response.statusText}`);
-      }
-      const data: Food[] = await response.json();
-      setFoods(data);
-    } catch (err) {
-      console.error("Error fetching foods:", err);
-      setError("Failed to load foods. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [activeTab, searchQuery]);
-
   useEffect(() => {
+    const fetchFoods = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const categoryParam = activeTab !== "All" && activeTab !== "" ? `category=${encodeURIComponent(activeTab)}` : null;
+        const searchParam = searchQuery ? `search=${encodeURIComponent(searchQuery)}` : "";
+
+        const queryString = [categoryParam, searchParam].filter(Boolean).join("&");
+        const url = `/api/auth/foods${queryString ? `?${queryString}` : ""}`;
+
+        console.log("🔎 Fetching URL:", url); // ✅ Debug ดูค่า URL ที่ใช้ fetch
+        const response = await fetch(url);
+
+  
+        if (!response.ok) {
+          throw new Error(`Failed to fetch foods: ${response.statusText}`);
+        }
+  
+        const responseData = await response.json();
+        console.log("✅ API Response:", responseData);
+
+        if (!responseData || typeof responseData !== "object") {
+          console.error("❌ Invalid API Response:", responseData);
+          setError("Invalid data received from server.");
+          return;
+        }
+
+        setFoods(Array.isArray(responseData.data) ? responseData.data : []);
+      } catch (err) {
+        console.error("Error fetching foods:", err);
+        setError("Failed to load foods. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+  
     if (isOpen) {
-      fetchFoods();
+      fetchFoods(); // ✅ เรียกใช้ฟังก์ชันตรงนี้
     }
-  }, [isOpen, fetchFoods]);
+  }, [isOpen, activeTab, searchQuery]);  
 
   const handleAddFood = async () => {
     if (!selectedFood) {
@@ -74,14 +91,23 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onF
     console.log("📅 Selected Date:", date);
   
     const requestData = {
-      meal_type: mealType,
-      food_id: selectedFood.id,
-      quantity: servingSize,
-      calories: selectedFood.calories * servingSize,
-      protein: selectedFood.protein * servingSize,
-      carbs: selectedFood.carbs * servingSize,
-      fat: selectedFood.fat * servingSize,
+      meal_type: mealType || "Breakfast",
+      food_id: selectedFood?.id ?? null,
+      quantity: servingSize > 0 ? servingSize : 1,
+      calories: selectedFood?.calories ? selectedFood.calories * servingSize : 0,
+      protein: selectedFood?.protein ? selectedFood.protein * servingSize : 0,
+      carbs: selectedFood?.carbs ? selectedFood.carbs * servingSize : 0,
+      fat: selectedFood?.fat ? selectedFood.fat * servingSize : 0,
     };
+    
+    console.log("📝 Sending Request Data:", requestData); // ✅ Debug ดูค่าที่ส่งไปยัง API
+    
+    if (!requestData.food_id) {
+      console.error("❌ Food ID is missing!");
+      setApiError("Invalid food selection.");
+      return;
+    }
+    
   
     try {
       const response = await fetch(`/api/auth/diary/${date}`, {
@@ -160,39 +186,30 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onF
         </div>
 
         {/* Main Content: Two Columns */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4  ">
           {/* Food List (Left Column) */}
-          <div className="border rounded p-2 overflow-y-auto h-[300px] sm:h-[400px] md:h-[420px]">
-            {isLoading && <p className="text-center text-blue-500">Loading foods...</p>}
+          <div className="border rounded p-2 overflow-y-auto  h-[407px]">
+            {isLoading && <p className="text-center text-black ">Loading foods...</p>}
             {error && <p className="text-center text-red-500">{error}</p>}
             {!isLoading && !error && (
               <>
                 {foods.length === 0 ? (
-                  <p className="text-center">No foods found. Try adjusting your search or category.</p>
+                  <p className="text-center ">No foods found. Try adjusting your search or category.</p>
                 ) : (
-                  foods
-                    .filter((food) =>
-                      food.name.toLowerCase().includes(searchQuery.toLowerCase())
-                    )
-                    .map((food) => (
-                      <div
-                        key={food.id}
-                        className={`flex justify-between items-center p-2 cursor-pointer ${
-                          selectedFood?.id === food.id
-                            ? "bg-gray-200"
-                            : "hover:bg-gray-100"
-                        }`}
-                        onClick={() => setSelectedFood(food)}
-                      >
-                        <div className="text-sm md:text-base">{food.name}</div>
-                        <div className="text-xs md:text-sm text-gray-500">{food.source}</div>
-                      </div>
-                    ))
+                  foods.map((food) => (
+                    <div
+                      key={food.id}
+                      className={`flex justify-between items-center p-2 cursor-pointer hover:bg-gray-100`}
+                      onClick={() => setSelectedFood(food)}
+                    >
+                      <div className="text-sm md:text-base">{food.name}</div>
+                      <div className="text-xs md:text-sm text-gray-500">{food.source}</div>
+                    </div>
+                  ))
                 )}
               </>
             )}
           </div>
-
           {/* Selected Food Details (Right Column) */}
           {selectedFood && (
             <div className="border rounded p-4 sticky top-0 h-max">
