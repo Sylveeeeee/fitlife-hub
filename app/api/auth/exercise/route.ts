@@ -2,12 +2,16 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import jwt from "jsonwebtoken";
 
-// ✅ ตรวจสอบสิทธิ์ผู้ใช้
+// ✅ ฟังก์ชันตรวจสอบสิทธิ์ผู้ใช้
 async function verifyUser(req: Request) {
   const cookies = req.headers.get("cookie");
   if (!cookies) return null;
 
-  const token = cookies.split(";").find((cookie) => cookie.trim().startsWith("token="))?.split("=")[1];
+  const token = cookies
+    .split(";")
+    .find((cookie) => cookie.trim().startsWith("token="))
+    ?.split("=")[1];
+
   if (!token) return null;
 
   try {
@@ -19,60 +23,143 @@ async function verifyUser(req: Request) {
   }
 }
 
-// ✅ GET: ดึงข้อมูล Exercise ทั้งหมดของผู้ใช้
+// ✅ GET: ดึงข้อมูล Exercise ที่บันทึกลง Diary ตามวันที่ของผู้ใช้
 export async function GET(req: Request) {
   const user = await verifyUser(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const exercises = await prisma.exercise.findMany({ where: { userId: user.userId } });
-  return NextResponse.json(exercises);
-}
+  const url = new URL(req.url);
+  const date = url.searchParams.get("date");
 
-// ✅ POST: เพิ่มข้อมูลการออกกำลังกาย
-export async function POST(req: Request) {
-  const user = await verifyUser(req);
-  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const { name, duration, caloriesBurned, intensity, heartRate, distance, steps } = await req.json();
-  if (!name || !duration || !caloriesBurned || !intensity) {
-    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  if (!date) {
+    return NextResponse.json({ error: "Date is required" }, { status: 400 });
   }
 
-  const newExercise = await prisma.exercise.create({
-    data: { userId: user.userId, name, duration, caloriesBurned, intensity, heartRate, distance, steps },
+  const diaryEntries = await prisma.userExerciseDiary.findMany({
+    where: {
+      userId: user.userId,
+      date: new Date(date),
+    },
+    include: {
+      exercise: true, // ✅ ดึงข้อมูล Exercise ที่เกี่ยวข้อง
+      intensity: true, // ✅ ดึงระดับความเข้มข้นของการออกกำลังกาย
+    },
   });
 
-  return NextResponse.json(newExercise, { status: 201 });
+  return NextResponse.json({ data: diaryEntries });
 }
 
-// ✅ PUT: อัปเดตข้อมูล Exercise
+// ✅ POST: บันทึกข้อมูลการออกกำลังกายของผู้ใช้ลง Diary
+export async function POST(req: Request) {
+  const user = await verifyUser(req);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    // ✅ ดึงข้อมูลจาก request
+    const requestBody = await req.json();
+    console.log("📥 Received Data in API:", requestBody);
+
+    const { exerciseId, intensityId, duration, caloriesBurned, date } = requestBody;
+
+    // ✅ ตรวจสอบค่าที่จำเป็น
+    if (!exerciseId || !duration || caloriesBurned == null || !date) {
+      console.error("🚨 Missing required fields:", { exerciseId, duration, caloriesBurned, date });
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    // ✅ ดึงน้ำหนักของผู้ใช้
+    const userProfile = await prisma.users.findUnique({
+      where: { id: user.userId },
+      select: { weight: true },
+    });
+
+    const userWeight = userProfile?.weight || 70; // ค่า default 70 kg หากไม่มีข้อมูล
+
+    // ✅ ตรวจสอบว่า exerciseId มีอยู่ในฐานข้อมูลหรือไม่
+    const exerciseExists = await prisma.exercise.findUnique({
+      where: { id: exerciseId },
+    });
+
+    if (!exerciseExists) {
+      console.error("🚨 Invalid exerciseId:", exerciseId);
+      return NextResponse.json({ error: "Invalid exercise ID" }, { status: 400 });
+    }
+
+    // ✅ ตรวจสอบว่า intensityId มีอยู่ในฐานข้อมูลหรือไม่ (ถ้ามีค่า)
+    if (intensityId) {
+      const intensityExists = await prisma.exerciseIntensity.findUnique({
+        where: { id: intensityId },
+      });
+
+      if (!intensityExists) {
+        console.error("🚨 Invalid intensityId:", intensityId);
+        return NextResponse.json({ error: "Invalid intensity ID" }, { status: 400 });
+      }
+    }
+
+    // ✅ บันทึกข้อมูลลงในฐานข้อมูล
+    const newEntry = await prisma.userExerciseDiary.create({
+      data: {
+        userId: user.userId,
+        exerciseId,
+        intensityId,
+        duration,
+        caloriesBurned,
+        weight: userWeight,
+        date: new Date(date),
+      },
+    });
+
+    console.log("✅ Successfully added exercise:", newEntry);
+    return NextResponse.json(newEntry, { status: 201 });
+
+  } catch (error) {
+    console.error("❌ Database error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+// ✅ PUT: อัปเดตข้อมูล Exercise ที่บันทึกใน Diary
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   const user = await verifyUser(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const exerciseId = Number(params.id);
-  if (isNaN(exerciseId)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+  const diaryEntryId = Number(params.id);
+  if (isNaN(diaryEntryId)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
 
-  const body = await req.json();
-  const { name, duration, caloriesBurned, intensity, heartRate, distance, steps } = body;
+  const { duration, caloriesBurned, intensityId, weight, date } = await req.json();
 
-  const updatedExercise = await prisma.exercise.update({
-    where: { id: exerciseId, userId: user.userId },
-    data: { name, duration, caloriesBurned, intensity, heartRate, distance, steps },
+  if (!weight) {
+    return NextResponse.json({ error: "Weight is required" }, { status: 400 });
+  }
+
+  const updatedEntry = await prisma.userExerciseDiary.update({
+    where: { id: diaryEntryId, userId: user.userId },
+    data: {
+      duration,
+      caloriesBurned,
+      intensityId,
+      weight,  // ✅ เพิ่ม weight
+      date: new Date(date),
+    },
   });
 
-  return NextResponse.json(updatedExercise);
+  return NextResponse.json(updatedEntry);
 }
 
-// ✅ DELETE: ลบข้อมูล Exercise
+// ✅ DELETE: ลบข้อมูล Exercise ที่บันทึกลง Diary
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   const user = await verifyUser(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const exerciseId = Number(params.id);
-  if (isNaN(exerciseId)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+  const diaryEntryId = Number(params.id);
+  if (isNaN(diaryEntryId)) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
 
-  await prisma.exercise.delete({ where: { id: exerciseId, userId: user.userId } });
+  await prisma.userExerciseDiary.delete({
+    where: { id: diaryEntryId, userId: user.userId },
+  });
 
-  return NextResponse.json({ message: "Exercise deleted successfully" }, { status: 204 });
+  return NextResponse.json({ message: "Exercise entry deleted successfully" }, { status: 204 });
 }

@@ -41,8 +41,8 @@ model users {
   is_active      Boolean               @default(true)  // 📌 เช็คว่าผู้ใช้ Active อยู่หรือไม่
   total_logins   Int                   @default(0)     // 📌 นับจำนวนครั้งที่ผู้ใช้ล็อกอิน
   behavior_logs  user_behavior_logs[]  
-  biometrics     Biometric[]            
-  exercises      Exercise[]
+  biometrics     Biometric[]
+  exerciseDiary  UserExerciseDiary[] 
 
   @@index([roleId], map: "users_roleId_fkey")
 }
@@ -74,24 +74,6 @@ model foods {
   foodDiaryEntries FoodDiary[]
   added_count  Int      @default(0)
 }
-
-model Exercise {
-  id           Int      @id @default(autoincrement())
-  userId       Int
-  name         String   @db.VarChar(255) // ชื่อกิจกรรม เช่น วิ่ง, ว่ายน้ำ
-  duration     Int      // ระยะเวลา (นาที)
-  caloriesBurned Float  @db.Float // แคลอรี่ที่เผาผลาญ
-  intensity    String   @db.VarChar(50) // ความหนัก เช่น Low, Medium, High
-  heartRate    Int?     // อัตราการเต้นของหัวใจ (BPM)
-  distance     Float?   @db.Float // ระยะทาง (km) สำหรับวิ่ง/ปั่นจักรยาน
-  steps        Int?     // จำนวนก้าว (สำหรับการเดิน/วิ่ง)
-  date         DateTime @default(now()) @db.Timestamp(0)
-
-  user         users    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId], map: "exercise_userId_fkey")
-}
-
 
 model Biometric {
   id         Int      @id @default(autoincrement())
@@ -251,3 +233,67 @@ enum users_sex {
   male
   female
 }
+
+model ExerciseCategory {
+  id            Int                      @id @default(autoincrement())
+  name          String                   @unique
+  subCategories ExerciseSubCategory[]
+  createdAt     DateTime                 @default(now())
+}
+
+model ExerciseSubCategory {
+  id            Int                      @id @default(autoincrement())
+  name          String
+  categoryId    Int
+  category      ExerciseCategory         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  exercises     Exercise[]
+  createdAt     DateTime                 @default(now())
+
+  @@unique([name, categoryId])  // ✅ ป้องกันการมีหมวดหมู่ย่อยที่ซ้ำกันภายใต้หมวดหมู่เดียวกัน
+}
+
+model Exercise {
+  id                    Int                @id @default(autoincrement())
+  name                  String
+  subCategoryId         Int
+  subCategory           ExerciseSubCategory @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
+  baseCaloriesBurned    Float
+  intensities           ExerciseIntensity[]
+  createdAt             DateTime           @default(now())
+
+  // ✅ เพิ่มความสัมพันธ์ย้อนกลับ
+  userExerciseDiaryEntries UserExerciseDiary[]
+}
+
+model ExerciseIntensity {
+  id                    Int                @id @default(autoincrement())
+  exerciseId            Int
+  exercise              Exercise           @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  level                 String
+  intensityFactor       Float
+  createdAt             DateTime           @default(now())
+
+  // ✅ เพิ่มความสัมพันธ์ย้อนกลับ
+  userExerciseDiaryEntries UserExerciseDiary[]
+}
+
+model UserExerciseDiary {
+  id            Int                      @id @default(autoincrement())
+  userId        Int
+  user          users                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exerciseId    Int
+  exercise      Exercise                 @relation(fields: [exerciseId], references: [id], onDelete: Cascade)  
+  date          DateTime
+  duration      Int 
+  intensityId   Int?
+  intensity     ExerciseIntensity?        @relation(fields: [intensityId], references: [id], onDelete: SetNull)
+  weight        Float?
+  caloriesBurned Float
+  createdAt     DateTime                  @default(now())
+
+  @@index([userId])
+  @@index([exerciseId])
+}
+
+
+

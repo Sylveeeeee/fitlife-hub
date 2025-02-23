@@ -2,6 +2,8 @@
 import { PiCaretLeft, PiCaretRight, PiCaretDownBold,} from "react-icons/pi";
 import React, { useState, useMemo, useEffect } from 'react';
 import AddFoodtoDiary from "../components/AddFoodtoDiary";
+import AddExerciseToDiary from "../components/AddExerciseToDiary"; // ✅ เพิ่ม Component สำหรับ Exercise
+// import AddBiometricToDiary from "../components/AddBiometricToDiary"; // ✅ เพิ่ม Component สำหรับ Biometric
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 import EnergySummary from "../components/EnergySummary";
 import FoodDiaryCalendar from "../components/FoodDiaryCalendar";
@@ -19,9 +21,24 @@ interface FoodEntry {
   fat: number;
 }
 
+interface ExerciseEntry {
+  id: number;
+  name: string;
+  duration: number; // ✅ ใช้ duration แทน servingSize
+  calories: number;
+}
+
+interface Exercise {
+  id: number;
+  name: string;
+  category: string;
+  baseCaloriesBurned: number;
+}
+
 interface DiaryEntry {
   foodId: number;
   food: FoodEntry; // ✅ ใช้ FoodEntry ที่มีอยู่แล้ว
+  exercise:ExerciseEntry;
   quantity: number;
   calories: number;
   protein: number;
@@ -32,6 +49,8 @@ interface DiaryEntry {
 
 export default function Diary() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExerciseModalOpen, setIsExerciseModalOpen] = useState(false); // ✅ State เปิด/ปิด Exercise Modal
+  // const [isBiometricModalOpen, setIsBiometricModalOpen] = useState(false); // ✅ State เปิด/ปิด Biometric Modal
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date()); // ✅ ให้แน่ใจว่า selectedDate เป็น Date object
   const [expandedGroups, setExpandedGroups] = useState<{ [key: string]: boolean }>({});
@@ -85,13 +104,14 @@ export default function Diary() {
   } | null>(null);
 
   const [diaryEntries, setDiaryEntries] = useState<{
-    [key: string]: { id: number; name: string; servingSize: number; calories: number; protein: number; carbs: number; fat: number; unit?: string }[];
+    [key: string]: { id: number; name: string; servingSize: number; duration?: number; calories: number; protein: number; carbs: number; fat: number; unit?: string }[];
   }>({
     Uncategorized: [],
     Breakfast: [],
     Lunch: [],
     Dinner: [],
     Snacks: [],
+    Exercise: [],
   });
 
   // State สำหรับเก็บ dailyCalorieGoal
@@ -346,6 +366,79 @@ export default function Diary() {
     return () => document.body.classList.remove("overflow-hidden");
   }, [isDeleteModalOpen]);
   
+  // ✅ เพิ่มข้อมูล Exercise ลงในไดอารี่
+  const handleAddExerciseToDiary = async (exercise: Exercise, duration: number, date: string) => {
+    try {
+      if (!exercise.baseCaloriesBurned || isNaN(exercise.baseCaloriesBurned)) {
+        console.error("🚨 Missing or invalid baseCaloriesBurned value:", exercise.baseCaloriesBurned);
+        alert("Exercise data is missing or invalid.");
+        return;
+      }
+  
+      const estimatedCaloriesBurned = Number((exercise.baseCaloriesBurned * (duration / 60)).toFixed(2));
+  
+      if (isNaN(estimatedCaloriesBurned) || estimatedCaloriesBurned <= 0) {
+        console.error("🚨 Invalid estimatedCaloriesBurned value:", estimatedCaloriesBurned);
+        alert("Cannot calculate calories burned correctly.");
+        return;
+      }
+  
+      console.log("📡 Sending request to API with data:", {
+        exerciseId: exercise.id,
+        duration,
+        caloriesBurned: estimatedCaloriesBurned,
+        date,
+      });
+  
+      const response = await fetch(`/api/auth/exercise`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          exerciseId: exercise.id,
+          duration,
+          caloriesBurned: estimatedCaloriesBurned,
+          date,
+        }),
+      });
+  
+      const responseData = await response.json();
+  
+      if (!response.ok) {
+        console.error("❌ API Error Response:", responseData);
+        alert(`Error: ${responseData.error || "Failed to add exercise."}`);
+        return;
+      }
+  
+      console.log("✅ Exercise added successfully!", responseData);
+  
+      // ✅ อัปเดต State โดยเพิ่ม Exercise Entry เข้าไป
+      setDiaryEntries((prevEntries) => ({
+        ...prevEntries,
+        Exercise: [
+          ...prevEntries.Exercise,
+          {
+            id: exercise.id,
+            name: exercise.name,
+            duration,
+            calories: estimatedCaloriesBurned,
+          } as ExerciseEntry, // ✅ กำหนดเป็น ExerciseEntry เพื่อแก้ Type Error
+        ],
+      }));
+  
+      alert("Exercise added successfully!");
+  
+    } catch (error) {
+      console.error("❌ Error adding exercise to diary:", error);
+      alert("An error occurred while adding exercise.");
+    }
+  };
+  
+  
+
+  // ✅ เพิ่มข้อมูล Biometric ลงในไดอารี่
+  
+
 
   return (
     <>
@@ -356,6 +449,20 @@ export default function Diary() {
         selectedDate={selectedDate} // ✅ ส่ง selectedDate ให้ AddFoodToDiary
         onFoodAdded={(mealType) => handleFoodAdded(mealType)}
       />
+      <AddExerciseToDiary
+        isOpen={isExerciseModalOpen}
+        closeModal={() => setIsExerciseModalOpen(false)}
+        selectedDate={selectedDate}
+        onAdd={handleAddExerciseToDiary}
+        onExerciseAdded={() => getDiaryEntries(selectedDate.toISOString().split("T")[0])}
+      />
+      {/* <AddBiometricToDiary
+        isOpen={isBiometricModalOpen}
+        closeModal={() => setIsBiometricModalOpen(false)}
+        selectedDate={selectedDate}
+        onAdd={handleAddBiometricToDiary}
+        onBiometricAdded={() => getDiaryEntries(selectedDate.toISOString().split("T")[0])}
+      /> */}
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen && !!itemToDelete}
         onClose={() => setIsDeleteModalOpen(false)}
@@ -370,12 +477,12 @@ export default function Diary() {
                 <button onClick={openModal} className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30] ">                 
                   <div className="mr-[6]">🍎</div>FOOD
                 </button>
-                <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]">
+                <button onClick={() => setIsExerciseModalOpen(true)} className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]">
                   <div className="mr-[6]">💪🏼</div>EXERCISE
                 </button>
-                <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]">
+                {/* <button onClick={() => setIsBiometricModalOpen(true)} className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]">
                   <div className="mr-[6]">🧬</div>BIOMETRIC
-                </button>
+                </button> */}
                 <Link href="/posts">
                 <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]">
                   <div className="mr-[6]">📝</div>NOTE
@@ -383,58 +490,68 @@ export default function Diary() {
                 </Link>
               </div>
             </div>
-            {/* แสดงรายการอาหาร */}
-            {Object.keys(diaryEntries).map((group) => (
-              <div key={group} className="bg-white flex flex-col mb-[7]">
-                <div className="flex justify-between px-[10] py-[5] border-b">  
-                  <span className="font-semibold">{group}</span>
-                  <div className="">
-                  <span className="text-sm">
-                    {categoryTotals[group]?.calories ? categoryTotals[group].calories.toFixed(0) : "0"} kcal • 
-                    {categoryTotals[group]?.protein ? categoryTotals[group].protein.toFixed(0) : "0"} g protein • 
-                    {categoryTotals[group]?.carbs ? categoryTotals[group].carbs.toFixed(0) : "0"} g carbs • 
-                    {categoryTotals[group]?.fat ? categoryTotals[group].fat.toFixed(0) : "0"} g fat
-                  </span>
-                   
-                  <button className="mx-[20] " onClick={() => toggleGroup(group)}>
-                    {expandedGroups[group] ? <PiCaretDownBold className="rotate-180 transition-transform duration-300" /> : <PiCaretDownBold className="rotate-0 transition-transform duration-300"/>}
-                  </button>
-                  </div>
-                </div>
-                {/* ✅ แสดงรายการอาหาร */}
-                {expandedGroups[group] && diaryEntries[group].map((entry, index) => (
-                  <div  
-                    key={index}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      setItemToDelete({ group, index, name: entry.name });
-                      setIsDeleteModalOpen(true);
-                    }}
-                    className="flex fliex justify-between px-[10] py-[2] text-sm border-b cursor-pointer hover:bg-gray-100"
-                  >
-                    <div className="flex items-center ">
-                      <span className="mr-2">🍎</span>
-                      <span>{entry.name}</span>
-                    </div>
-                    <div className="flex space-x-4">
-                    {editingEntry?.group === group && editingEntry?.index === index ? (
-                      <input
-                        type="number"
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value === "" ? "" : parseFloat(e.target.value))} // ✅ แก้ไขตรงนี้                        
-                        onKeyDown={(e) => e.key === "Enter" && saveEdit()} // ✅ บันทึกเมื่อกด Enter
-                        className="w-16 border border-gray-400 rounded px-2 py-1 text-right"
-                        autoFocus
-                      />
-                    ) : (
-                      <span onClick={() => startEditing(group, index, entry.servingSize)} className="cursor-pointer">
-                        {entry.servingSize} {entry.unit || "g"}
-                      </span>
-                    )}
-                    <span>{Number(entry.calories).toFixed(2)} kcal</span>
-                  </div>
-                  </div>
-                ))}
+            {/* แสดงรายการอาหารและ Exercise */}
+{Object.keys(diaryEntries).map((group) => (
+  <div key={group} className="bg-white flex flex-col mb-[7]">
+    <div className="flex justify-between px-[10] py-[5] border-b">  
+      <span className="font-semibold">{group}</span>
+      <div className="">
+        <span className="text-sm">
+          {categoryTotals[group]?.calories ? categoryTotals[group].calories.toFixed(0) : "0"} kcal • 
+          {categoryTotals[group]?.protein ? categoryTotals[group].protein.toFixed(0) : "0"} g protein • 
+          {categoryTotals[group]?.carbs ? categoryTotals[group].carbs.toFixed(0) : "0"} g carbs • 
+          {categoryTotals[group]?.fat ? categoryTotals[group].fat.toFixed(0) : "0"} g fat
+        </span>
+        <button className="mx-[20] " onClick={() => toggleGroup(group)}>
+          {expandedGroups[group] ? <PiCaretDownBold className="rotate-180 transition-transform duration-300" /> : <PiCaretDownBold className="rotate-0 transition-transform duration-300"/>}
+        </button>
+      </div>
+    </div>
+
+    {/* ✅ แสดงรายการอาหาร */}
+    {expandedGroups[group] && diaryEntries[group].map((entry, index) => (
+      <div  
+        key={index}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setItemToDelete({ group, index, name: entry.name });
+          setIsDeleteModalOpen(true);
+        }}
+        className="flex justify-between px-[10] py-[2] text-sm border-b cursor-pointer hover:bg-gray-100"
+      >
+        <div className="flex items-center ">
+          <span className="mr-2">{group === "Exercise" ? "💪🏼" : "🍎"}</span>
+          <span>{entry.name}</span>
+        </div>
+        <div className="flex space-x-4">
+          {/* ✅ เช็คว่ากลุ่มเป็น Exercise หรือไม่ */}
+          {group === "Exercise" ? (
+            <>
+              <span>{entry.duration} min</span>
+              <span>{entry.calories.toFixed(2)} kcal</span>
+            </>
+          ) : (
+            <>
+              {editingEntry?.group === group && editingEntry?.index === index ? (
+                <input
+                  type="number"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value === "" ? "" : parseFloat(e.target.value))}
+                  onKeyDown={(e) => e.key === "Enter" && saveEdit()}
+                  className="w-16 border border-gray-400 rounded px-2 py-1 text-right"
+                  autoFocus
+                />
+              ) : (
+                <span onClick={() => startEditing(group, index, entry.servingSize!)} className="cursor-pointer">
+                  {entry.servingSize} {entry.unit || "g"}
+                </span>
+              )}
+              <span>{Number(entry.calories).toFixed(2)} kcal</span>
+            </>
+          )}
+        </div>
+      </div>
+    ))}
               </div>
             ))}
             <div>
