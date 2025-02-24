@@ -10,7 +10,16 @@ import FoodDiaryCalendar from "../components/FoodDiaryCalendar";
 import { format } from "date-fns"; 
 import Link from "next/link";
 
+interface Food {
+  id: number;
+  name: string;
+  unit?: string;
+  mealType: string;
+}
+
 interface FoodEntry {
+  type: "food";
+  food: Food;
   id: number;
   name: string;
   unit?: string;
@@ -19,13 +28,17 @@ interface FoodEntry {
   protein: number;
   carbs: number;
   fat: number;
+  mealType: string;
 }
 
 interface ExerciseEntry {
   id: number;
+  type: "exercise";
   name: string;
   duration: number; // ✅ ใช้ duration แทน servingSize
   calories: number;
+  mealType: "Exercise";
+  exercise: Exercise;
 }
 
 interface Exercise {
@@ -35,17 +48,7 @@ interface Exercise {
   baseCaloriesBurned: number;
 }
 
-interface DiaryEntry {
-  foodId: number;
-  food: FoodEntry; // ✅ ใช้ FoodEntry ที่มีอยู่แล้ว
-  exercise:ExerciseEntry;
-  quantity: number;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  mealType: string;
-}
+// ✅ แยก `FoodEntry` และ `ExerciseEntry` ให้ TypeScript เข้าใจ
 
 export default function Diary() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -68,25 +71,37 @@ export default function Diary() {
     if (!editingEntry) return;
   
     const { group, index } = editingEntry;
-    const newServingSize = Number(editValue) || 0;
+    const newAmount = Number(editValue) || 0;
   
-    // ✅ อัปเดต State โดยคำนวณค่าใหม่
     setDiaryEntries((prevEntries) => {
       const updatedEntries = { ...prevEntries };
       updatedEntries[group] = [...prevEntries[group]];
-      updatedEntries[group][index] = {
-        ...prevEntries[group][index],
-        servingSize: newServingSize,
-        calories: (prevEntries[group][index].calories / prevEntries[group][index].servingSize) * newServingSize,
-        protein: (prevEntries[group][index].protein / prevEntries[group][index].servingSize) * newServingSize,
-        carbs: (prevEntries[group][index].carbs / prevEntries[group][index].servingSize) * newServingSize,
-        fat: (prevEntries[group][index].fat / prevEntries[group][index].servingSize) * newServingSize,
-      };
+      
+      if (isFoodEntry(updatedEntries[group][index])) {
+        // ✅ อัปเดตค่าของอาหาร
+        updatedEntries[group][index] = {
+          ...updatedEntries[group][index],
+          servingSize: newAmount,
+          calories: (updatedEntries[group][index].calories / updatedEntries[group][index].servingSize) * newAmount,
+          protein: (updatedEntries[group][index].protein / updatedEntries[group][index].servingSize) * newAmount,
+          carbs: (updatedEntries[group][index].carbs / updatedEntries[group][index].servingSize) * newAmount,
+          fat: (updatedEntries[group][index].fat / updatedEntries[group][index].servingSize) * newAmount,
+        };
+      } else {
+        // ✅ อัปเดตค่าของ Exercise
+        updatedEntries[group][index] = {
+          ...updatedEntries[group][index],
+          duration: newAmount,
+          calories: (updatedEntries[group][index].calories / updatedEntries[group][index].duration) * newAmount,
+        };
+      }
+      
       return updatedEntries;
     });
   
     setEditingEntry(null);
   };
+  
   
 
   const handleDateChange = (direction: "prev" | "next") => {
@@ -104,9 +119,8 @@ export default function Diary() {
   } | null>(null);
 
   const [diaryEntries, setDiaryEntries] = useState<{
-    [key: string]: { id: number; name: string; servingSize: number; duration?: number; calories: number; protein: number; carbs: number; fat: number; unit?: string }[];
+    [key: string]: (FoodEntry | ExerciseEntry)[];
   }>({
-    Uncategorized: [],
     Breakfast: [],
     Lunch: [],
     Dinner: [],
@@ -114,6 +128,10 @@ export default function Diary() {
     Exercise: [],
   });
 
+  const isFoodEntry = (entry: FoodEntry | ExerciseEntry): entry is FoodEntry => {
+    return (entry as FoodEntry).servingSize !== undefined;
+  };
+  
   // State สำหรับเก็บ dailyCalorieGoal
   const [dailyCalorieGoal, setDailyCalorieGoal] = useState<number>(0);
 
@@ -124,18 +142,21 @@ export default function Diary() {
       carbs: 0,
       fat: 0,
     };
-
+  
     Object.values(diaryEntries).forEach((group) => {
       group.forEach((entry) => {
         totalValues.calories += Number(entry.calories) || 0;
-        totalValues.protein += Number(entry.protein) || 0;
-        totalValues.carbs += Number(entry.carbs) || 0;
-        totalValues.fat += Number(entry.fat) || 0;
+  
+        if (isFoodEntry(entry)) {
+          totalValues.protein += Number(entry.protein) || 0;
+          totalValues.carbs += Number(entry.carbs) || 0;
+          totalValues.fat += Number(entry.fat) || 0;
+        }
       });
     });
-
+  
     return totalValues;
-  }, [diaryEntries]);
+  }, [diaryEntries]);  
 
   const categoryTotals = useMemo(() => {
     const totals: { [key: string]: { calories: number; protein: number; carbs: number; fat: number } } = {};
@@ -150,19 +171,22 @@ export default function Diary() {
   
       entries.forEach((entry) => {
         totals[group].calories += Number(entry.calories) || 0;
-        totals[group].protein += Number(entry.protein) || 0;
-        totals[group].carbs += Number(entry.carbs) || 0;
-        totals[group].fat += Number(entry.fat) || 0;
+  
+        if (isFoodEntry(entry)) {
+          totals[group].protein += Number(entry.protein) || 0;
+          totals[group].carbs += Number(entry.carbs) || 0;
+          totals[group].fat += Number(entry.fat) || 0;
+        }
       });
     });
   
     console.log("📊 categoryTotals:", totals); // ✅ ตรวจสอบค่าใน Console
   
     return totals;
-  }, [diaryEntries]);
+  }, [diaryEntries]);  
 
   // คำนวณ remainingCalories
-  const remainingCalories = dailyCalorieGoal - totals.calories;
+  const remainingCalories = dailyCalorieGoal - totals.calories ;
 
   useEffect(() => {
     if (selectedDate) {
@@ -221,6 +245,8 @@ export default function Diary() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
+          type: "food",
+          mealType:food.mealType,
           meal_type: group,
           food_id: food.id,
           quantity: food.servingSize,
@@ -245,49 +271,85 @@ export default function Diary() {
     }
   };
   
-  // ✅ ฟังก์ชันสำหรับดึงรายการอาหารจากไดอารี่
   const getDiaryEntries = async (date: string) => {
     try {
+      console.log("📡 Fetching diary entries for date:", date);
+  
       const response = await fetch(`/api/auth/diary/${date}`, {
         method: "GET",
         credentials: "include",
       });
+  
+      console.log("🔹 API Response Status:", response.status);
   
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText || "Failed to fetch diary entries.");
       }
   
-      const fetchedEntries: DiaryEntry[] = await response.json(); // ✅ ใช้ Type ที่กำหนด
+      const responseData: { data: (FoodEntry | ExerciseEntry)[] } = await response.json();
+      console.log("📖 Diary Entries from API:", responseData);
   
-      console.log("📖 Diary Entries:", fetchedEntries);
+      if (!Array.isArray(responseData.data)) {
+        console.error("❌ Invalid API response:", responseData);
+        return;
+      }
   
-      // ✅ จัดกลุ่มรายการอาหารตามหมวดหมู่
-      const categorizedEntries: { [key: string]: FoodEntry[] } = {
+      // ✅ แยกหมวดหมู่ข้อมูล
+      const categorizedEntries: { [key: string]: (FoodEntry | ExerciseEntry)[] } = {
         Breakfast: [],
         Lunch: [],
         Dinner: [],
         Snacks: [],
+        Exercise: [],
       };
   
-      fetchedEntries.forEach((entry: DiaryEntry) => {
-        if (categorizedEntries[entry.mealType]) {
-          categorizedEntries[entry.mealType].push({
-            id: entry.foodId,
-            name: entry.food.name, // ✅ ใช้ `food.name` ที่ได้จาก API
-            servingSize: entry.quantity,
-            unit: entry.food.unit || "g",
+      responseData.data.forEach((entry) => {
+        if (entry.type === "food") {
+          // ✅ ตรวจสอบว่า `entry.food` มีค่าหรือไม่
+          if (!entry.food || !entry.food.name) {
+            console.error(`❌ Missing food data for id: ${entry.id}`);
+            return;
+          }
+  
+          // ✅ ตรวจสอบ mealType
+          const mealType = categorizedEntries[entry.mealType] ? entry.mealType : "Snacks";
+  
+          categorizedEntries[mealType].push({
+            type: "food",
+            id: entry.id,
+            food: entry.food,
+            mealType: entry.mealType,
+            name: entry.food.name,
+            servingSize: entry.servingSize,
+            unit: entry.unit,
             calories: entry.calories,
             protein: entry.protein,
             carbs: entry.carbs,
             fat: entry.fat,
           });
+  
+        } else if (entry.type === "exercise") {
+          // ✅ ตรวจสอบว่า `entry.exercise` มีค่าหรือไม่
+          if (!entry.exercise || !entry.exercise.name) {
+            console.error(`❌ Missing exercise data for id: ${entry.id}`);
+            return;
+          }
+  
+          categorizedEntries["Exercise"].push({
+            type: "exercise",
+            id: entry.id,
+            name: entry.exercise.name,
+            duration: entry.duration,
+            calories: entry.calories,
+            mealType: "Exercise",
+            exercise: entry.exercise,
+          });
         }
       });
   
-      // ✅ อัปเดต State
+      console.log("✅ Updated Categorized Entries:", categorizedEntries);
       setDiaryEntries(categorizedEntries);
-  
     } catch (error) {
       console.error("❌ Error fetching diary entries:", error);
     }
@@ -412,19 +474,31 @@ export default function Diary() {
   
       console.log("✅ Exercise added successfully!", responseData);
   
-      // ✅ อัปเดต State โดยเพิ่ม Exercise Entry เข้าไป
-      setDiaryEntries((prevEntries) => ({
-        ...prevEntries,
-        Exercise: [
-          ...prevEntries.Exercise,
-          {
-            id: exercise.id,
-            name: exercise.name,
-            duration,
-            calories: estimatedCaloriesBurned,
-          } as ExerciseEntry, // ✅ กำหนดเป็น ExerciseEntry เพื่อแก้ Type Error
-        ],
-      }));
+      // ✅ เลือกให้ Exercise ไปอยู่ในหมวดที่เลือก
+      const mealType = "Exercise"; // ✅ หรือใช้ค่าอื่นที่เกี่ยวข้อง เช่น Breakfast, Lunch
+  
+      setDiaryEntries((prevEntries) => {
+        const updatedEntries = {
+          ...prevEntries,
+          [mealType]: [
+            ...(prevEntries[mealType] ?? []),
+            {
+              id: exercise.id,
+              name: exercise.name,
+              duration,
+              calories: estimatedCaloriesBurned,
+            } as ExerciseEntry,
+          ],
+        };
+      
+        console.log("📖 Updated Diary Entries:", updatedEntries); // ✅ Debugging
+        return updatedEntries;
+      });
+      
+      // ✅ โหลดข้อมูลใหม่จาก API
+      const formattedDate = selectedDate.toISOString().split("T")[0];
+      getDiaryEntries(formattedDate);
+      
   
       alert("Exercise added successfully!");
   
@@ -438,8 +512,6 @@ export default function Diary() {
 
   // ✅ เพิ่มข้อมูล Biometric ลงในไดอารี่
   
-
-
   return (
     <>
       <AddFoodtoDiary
@@ -491,7 +563,7 @@ export default function Diary() {
               </div>
             </div>
             {/* แสดงรายการอาหารและ Exercise */}
-{Object.keys(diaryEntries).map((group) => (
+            {Object.keys(diaryEntries).map((group) => (
   <div key={group} className="bg-white flex flex-col mb-[7]">
     <div className="flex justify-between px-[10] py-[5] border-b">  
       <span className="font-semibold">{group}</span>
@@ -508,7 +580,7 @@ export default function Diary() {
       </div>
     </div>
 
-    {/* ✅ แสดงรายการอาหาร */}
+    {/* ✅ แสดงรายการอาหารและออกกำลังกาย */}
     {expandedGroups[group] && diaryEntries[group].map((entry, index) => (
       <div  
         key={index}
@@ -520,12 +592,12 @@ export default function Diary() {
         className="flex justify-between px-[10] py-[2] text-sm border-b cursor-pointer hover:bg-gray-100"
       >
         <div className="flex items-center ">
-          <span className="mr-2">{group === "Exercise" ? "💪🏼" : "🍎"}</span>
+          <span className="mr-2">{'duration' in entry ? "💪🏼" : "🍎"}</span>
           <span>{entry.name}</span>
         </div>
         <div className="flex space-x-4">
-          {/* ✅ เช็คว่ากลุ่มเป็น Exercise หรือไม่ */}
-          {group === "Exercise" ? (
+          {/* ✅ แยก FoodEntry และ ExerciseEntry ออกจากกัน */}
+          {"duration" in entry ? (
             <>
               <span>{entry.duration} min</span>
               <span>{entry.calories.toFixed(2)} kcal</span>
@@ -552,8 +624,9 @@ export default function Diary() {
         </div>
       </div>
     ))}
-              </div>
-            ))}
+  </div>
+))}
+
             <div>
               <div className="mt-6">
                 <EnergySummary

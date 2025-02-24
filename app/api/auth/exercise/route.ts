@@ -38,7 +38,7 @@ export async function GET(req: Request) {
   const diaryEntries = await prisma.userExerciseDiary.findMany({
     where: {
       userId: user.userId,
-      date: new Date(date),
+      date,
     },
     include: {
       exercise: true, // ✅ ดึงข้อมูล Exercise ที่เกี่ยวข้อง
@@ -98,6 +98,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Invalid intensity ID" }, { status: 400 });
       }
     }
+    console.log("📅 Date received:", date);
 
     // ✅ บันทึกข้อมูลลงในฐานข้อมูล
     const newEntry = await prisma.userExerciseDiary.create({
@@ -108,7 +109,7 @@ export async function POST(req: Request) {
         duration,
         caloriesBurned,
         weight: userWeight,
-        date: new Date(date),
+        date,
       },
     });
 
@@ -142,7 +143,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       caloriesBurned,
       intensityId,
       weight,  // ✅ เพิ่ม weight
-      date: new Date(date),
+      date,
     },
   });
 
