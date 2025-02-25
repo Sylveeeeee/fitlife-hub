@@ -302,7 +302,7 @@ model BiometricEntry {
   metricId   Int
   value      Float
   unit       String
-  recordedAt DateTime @default(now())
+  recordedAt String @db.VarChar(10)
   createdAt  DateTime @default(now()) @db.Timestamp(0)
 
   user     users             @relation(fields: [userId], references: [id], onDelete: Cascade)

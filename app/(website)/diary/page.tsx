@@ -3,7 +3,7 @@ import { PiCaretLeft, PiCaretRight, PiCaretDownBold,} from "react-icons/pi";
 import React, { useState, useMemo, useEffect } from 'react';
 import AddFoodtoDiary from "../components/AddFoodtoDiary";
 import AddExerciseToDiary from "../components/AddExerciseToDiary"; // ✅ เพิ่ม Component สำหรับ Exercise
-// import AddBiometricToDiary from "../components/AddBiometricToDiary"; // ✅ เพิ่ม Component สำหรับ Biometric
+import AddBiometricToDiary from "../components/AddBiometricToDiary"; // ✅ เพิ่ม Component สำหรับ Biometric
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 import EnergySummary from "../components/EnergySummary";
 import FoodDiaryCalendar from "../components/FoodDiaryCalendar";
@@ -48,8 +48,26 @@ interface ExerciseEntry {
   exercise: Exercise;
 }
 
+interface Biometric {
+  id: number;
+  name: string;
+  unit: string;
+}
+
+interface BiometricEntry {
+  id: number;
+  type: "biometric"; // ✅ ระบุว่าเป็นค่าชีวภาพ
+  name: string;
+  value: number;
+  unit: string;
+  date: string; // ✅ เก็บวันที่ที่บันทึก Biometric
+  categoryId: number;  // เพิ่ม categoryId ใน BiometricEntry
+  metricId: number;    // เพิ่ม metricId ใน BiometricEntry
+  biometric: Biometric; // ✅ ข้อมูลค่าชีวภาพ
+}
+
 // ✅ ใช้ Union Type เพื่อรองรับทั้งอาหารและการออกกำลังกาย
-type DiaryEntry = FoodEntry | ExerciseEntry;
+type DiaryEntry = FoodEntry | ExerciseEntry | BiometricEntry;
 
 
 // ✅ แยก `FoodEntry` และ `ExerciseEntry` ให้ TypeScript เข้าใจ
@@ -57,7 +75,7 @@ type DiaryEntry = FoodEntry | ExerciseEntry;
 export default function Diary() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isExerciseModalOpen, setIsExerciseModalOpen] = useState(false); // ✅ State เปิด/ปิด Exercise Modal
-  // const [isBiometricModalOpen, setIsBiometricModalOpen] = useState(false); // ✅ State เปิด/ปิด Biometric Modal
+  const [isBiometricModalOpen, setIsBiometricModalOpen] = useState(false); // ✅ State เปิด/ปิด Biometric Modal
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date()); // ✅ ให้แน่ใจว่า selectedDate เป็น Date object
   const [expandedGroups, setExpandedGroups] = useState<{ [key: string]: boolean }>({});
@@ -80,33 +98,39 @@ export default function Diary() {
     setDiaryEntries((prevEntries) => {
       const updatedEntries = { ...prevEntries };
       updatedEntries[group] = [...prevEntries[group]];
-      
-      if (isFoodEntry(updatedEntries[group][index])) {
+  
+      const entry = updatedEntries[group][index];
+  
+      if (entry.type === "food") {  // ✅ ใช้ entry.type === "food" แทนการใช้ isFoodEntry()
         // ✅ อัปเดตค่าของอาหาร
         updatedEntries[group][index] = {
-          ...updatedEntries[group][index],
+          ...entry,
           servingSize: newAmount,
-          calories: (updatedEntries[group][index].calories / updatedEntries[group][index].servingSize) * newAmount,
-          protein: (updatedEntries[group][index].protein / updatedEntries[group][index].servingSize) * newAmount,
-          carbs: (updatedEntries[group][index].carbs / updatedEntries[group][index].servingSize) * newAmount,
-          fat: (updatedEntries[group][index].fat / updatedEntries[group][index].servingSize) * newAmount,
+          calories: (entry.calories / entry.servingSize) * newAmount,
+          protein: (entry.protein / entry.servingSize) * newAmount,
+          carbs: (entry.carbs / entry.servingSize) * newAmount,
+          fat: (entry.fat / entry.servingSize) * newAmount,
         };
-      } else {
+      } else if (entry.type === "exercise") {
         // ✅ อัปเดตค่าของ Exercise
         updatedEntries[group][index] = {
-          ...updatedEntries[group][index],
+          ...entry,
           duration: newAmount,
-          calories: (updatedEntries[group][index].calories / updatedEntries[group][index].duration) * newAmount,
+          calories: (entry.calories / entry.duration) * newAmount,
+        };
+      } else if (entry.type === "biometric") {
+        // ✅ อัปเดตค่าของ Biometric
+        updatedEntries[group][index] = {
+          ...entry,
+          value: newAmount, // ✅ Biometric ใช้ value แทน
         };
       }
-      
+  
       return updatedEntries;
     });
   
     setEditingEntry(null);
   };
-  
-  
 
   const handleDateChange = (direction: "prev" | "next") => {
     setSelectedDate((prevDate) => {
@@ -123,19 +147,16 @@ export default function Diary() {
   } | null>(null);
 
   const [diaryEntries, setDiaryEntries] = useState<{
-    [key: string]: (FoodEntry | ExerciseEntry)[];
+    [key: string]: (FoodEntry | ExerciseEntry | BiometricEntry)[];
   }>({
     Breakfast: [],
     Lunch: [],
     Dinner: [],
     Snacks: [],
     Exercise: [],
+    Biometric: [], // ✅ เพิ่มหมวดหมู่ Biometric
   });
 
-  const isFoodEntry = (entry: FoodEntry | ExerciseEntry): entry is FoodEntry => {
-    return (entry as FoodEntry).servingSize !== undefined;
-  };
-  
   // State สำหรับเก็บ dailyCalorieGoal
   const [dailyCalorieGoal, setDailyCalorieGoal] = useState<number>(0);
 
@@ -149,9 +170,11 @@ export default function Diary() {
   
     Object.values(diaryEntries).forEach((group) => {
       group.forEach((entry) => {
-        totalValues.calories += Number(entry.calories) || 0;
+        if (entry.type === "food" || entry.type === "exercise") { // ✅ ตรวจสอบว่าเป็น Food หรือ Exercise เท่านั้น
+          totalValues.calories += Number(entry.calories) || 0;
+        }
   
-        if (isFoodEntry(entry)) {
+        if (entry.type === "food") { // ✅ ตรวจสอบว่าเป็น Food เท่านั้น
           totalValues.protein += Number(entry.protein) || 0;
           totalValues.carbs += Number(entry.carbs) || 0;
           totalValues.fat += Number(entry.fat) || 0;
@@ -160,7 +183,8 @@ export default function Diary() {
     });
   
     return totalValues;
-  }, [diaryEntries]);  
+  }, [diaryEntries]);
+  
 
   const categoryTotals = useMemo(() => {
     const totals: { [key: string]: { calories: number; protein: number; carbs: number; fat: number } } = {};
@@ -174,9 +198,11 @@ export default function Diary() {
       };
   
       entries.forEach((entry) => {
-        totals[group].calories += Number(entry.calories) || 0;
+        if (entry.type === "food" || entry.type === "exercise") { // ✅ ตรวจสอบว่าเป็น Food หรือ Exercise เท่านั้น
+          totals[group].calories += Number(entry.calories) || 0;
+        }
   
-        if (isFoodEntry(entry)) {
+        if (entry.type === "food") { // ✅ ตรวจสอบว่าเป็น Food เท่านั้น
           totals[group].protein += Number(entry.protein) || 0;
           totals[group].carbs += Number(entry.carbs) || 0;
           totals[group].fat += Number(entry.fat) || 0;
@@ -187,7 +213,8 @@ export default function Diary() {
     console.log("📊 categoryTotals:", totals); // ✅ ตรวจสอบค่าใน Console
   
     return totals;
-  }, [diaryEntries]);  
+  }, [diaryEntries]);
+  
 
   // คำนวณ remainingCalories
   const remainingCalories = dailyCalorieGoal - totals.calories ;
@@ -309,13 +336,14 @@ export default function Diary() {
         return;
       }
   
-      // ✅ แยกข้อมูลเป็นหมวดหมู่ (อาหาร & ออกกำลังกาย)
+      // ✅ แยกข้อมูลเป็นหมวดหมู่ (อาหาร, ออกกำลังกาย, และ Biometric)
       const categorizedEntries: { [key: string]: DiaryEntry[] } = {
         Breakfast: [],
         Lunch: [],
         Dinner: [],
         Snacks: [],
         Exercise: [],
+        Biometric: [], // ✅ เพิ่ม Biometric ให้เป็นส่วนหนึ่งของไดอารี่
       };
   
       responseData.data.forEach((entry: DiaryEntry) => {
@@ -338,6 +366,15 @@ export default function Diary() {
             duration: entry.duration || 0,
             calories: entry.calories || 0,
           });
+  
+        } else if (entry.type === "biometric" && entry.name) { // ✅ ใช้ entry.name แทน entry.biometric?.name
+          categorizedEntries["Biometric"].push({
+            ...entry,
+            name: entry.name,
+            value: entry.value || 0,
+            unit: entry.unit || "",
+          });
+  
         } else {
           console.warn(`⚠️ Skipping invalid entry:`, entry);
         }
@@ -350,6 +387,8 @@ export default function Diary() {
       console.error("❌ Error fetching diary entries:", error);
     }
   };
+  
+  
   
   const handleRemoveItem = async () => {
     if (!itemToDelete || !(selectedDate instanceof Date) || isNaN(selectedDate.getTime())) {
@@ -366,14 +405,22 @@ export default function Diary() {
     }
   
     try {
-      const isFoodEntry = "food" in entry; // ✅ ตรวจสอบว่าเป็นอาหารหรือไม่
-      const requestBody = isFoodEntry
-        ? { food_id: entry.food.id, meal_type: itemToDelete.group } // ✅ แก้ไขให้ใช้ entry.food.id
-        : { exercise_id: entry.exercise.id, date: formattedDate }; // ✅ แก้ไขให้ใช้ entry.exercise.id
+      let requestBody;
+  
+      if (entry.type === "food") {
+        requestBody = { food_id: entry.food.id, meal_type: itemToDelete.group }; // ✅ ใช้ entry.food.id เฉพาะเมื่อเป็น food
+      } else if (entry.type === "exercise") {
+        requestBody = { exercise_id: entry.exercise.id, date: formattedDate }; // ✅ ใช้ entry.exercise.id เฉพาะเมื่อเป็น exercise
+      } else if (entry.type === "biometric") {
+        requestBody = { biometric_id: entry.id, date: formattedDate }; // ✅ ใช้ entry.id สำหรับ Biometric
+      } else {
+        console.warn("⚠️ Unknown entry type:", entry);
+        return;
+      }
   
       console.log("📡 Sending DELETE request:", requestBody); // ✅ Debug
   
-      // ✅ ใช้ `/api/auth/diary/${formattedDate}` สำหรับทั้งอาหารและออกกำลังกาย
+      // ✅ ใช้ `/api/auth/diary/${formattedDate}` สำหรับทั้งอาหาร, ออกกำลังกาย และ Biometric
       const endpoint = `/api/auth/diary/${formattedDate}`;
   
       const response = await fetch(endpoint, {
@@ -405,8 +452,7 @@ export default function Diary() {
       alert(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   };
-    
-
+  
   const toggleGroup = (group: string) => {
     setExpandedGroups(prev => ({
       ...prev,
@@ -521,7 +567,95 @@ export default function Diary() {
     }
   };  
 
-  // ✅ เพิ่มข้อมูล Biometric ลงในไดอารี่
+  const handleAddBiometricToDiary = async (biometric: BiometricEntry) => {
+    try {
+      console.log("📡 Sending request to API for biometric data:", biometric);
+  
+      // ✅ ตรวจสอบ biometric และข้อมูลที่จำเป็น
+      if (!biometric || !biometric.id || !biometric.categoryId || !biometric.metricId) {
+        console.error("❌ Invalid biometric data:", biometric);
+        alert("Invalid biometric data. Please try again.");
+        return;
+      }
+  
+      // ✅ ตรวจสอบ selectedDate และตั้งค่า default หากไม่มี
+      const formattedDate = selectedDate instanceof Date && !isNaN(selectedDate.getTime()) 
+        ? selectedDate.toISOString().split("T")[0] 
+        : new Date().toISOString().split("T")[0];
+  
+      // ✅ สร้าง request body ตามข้อมูลใน `biometric`
+      const requestBody = {
+        categoryId: biometric.categoryId,  // ใช้ categoryId จาก `biometric`
+        metricId: biometric.metricId,  // ใช้ metricId จาก `biometric`
+        value: biometric.value,
+        unit: biometric.unit,
+        date: formattedDate, // ใช้วันที่จาก selectedDate
+      };
+  
+      console.log("📡 Request Body:", requestBody); // ตรวจสอบ request
+  
+      const response = await fetch(`/api/auth/biometric/entry`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(requestBody),
+      });
+  
+      let responseData;
+      try {
+        responseData = await response.json();
+      } catch (error) {
+        console.error("❌ Failed to parse API response:", error);
+        alert("Invalid response from server.");
+        return;
+      }
+  
+      console.log("🔹 API Response:", responseData); // Log API response
+  
+      if (!response.ok) {
+        console.error("❌ API Error Response:", responseData);
+        alert(`Error: ${responseData.error || "Failed to add biometric data."}`);
+        return;
+      }
+  
+      console.log("✅ Biometric data added successfully!", responseData);
+  
+      setDiaryEntries((prevEntries) => {
+        const updatedEntries = { ...prevEntries };
+        updatedEntries["Biometric"] = [
+          ...(prevEntries["Biometric"] ?? []),
+          {
+            id: responseData.id || biometric.metricId, // ✅ ใช้ id จาก API ถ้ามี
+            type: "biometric", // ✅ กำหนดว่าเป็นประเภท biometric
+            name: biometric.name,
+            value: biometric.value,
+            unit: biometric.unit,
+            date: formattedDate, // ✅ ใช้ `date` ตามที่ระบุใน Type
+            categoryId: biometric.categoryId, // ✅ เพิ่ม categoryId
+            metricId: biometric.metricId, // ✅ เพิ่ม metricId
+            biometric: {
+              id: biometric.metricId, // ✅ ต้องใช้ `id` สำหรับ `Biometric`
+              name: biometric.name,
+              unit: biometric.unit,
+            },
+          } as BiometricEntry, // ✅ TypeScript รับรู้ว่าเป็น `BiometricEntry`
+        ];
+      
+        console.log("📖 Updated Diary Entries:", updatedEntries);
+        return updatedEntries;
+      });
+      
+      // ✅ อัปเดตไดอารี่
+      setExpandedGroups((prev) => ({
+        ...prev,
+        Biometric: true,
+      }));
+  
+    } catch (error) {
+      console.error("❌ Error adding biometric to diary:", error);
+      alert(error instanceof Error ? error.message : "An error occurred while adding biometric data.");
+    }
+  };
   
   return (
     <>
@@ -539,13 +673,13 @@ export default function Diary() {
         onAdd={handleAddExerciseToDiary}
         onExerciseAdded={() => getDiaryEntries(selectedDate.toISOString().split("T")[0])}
       />
-      {/* <AddBiometricToDiary
+      <AddBiometricToDiary
         isOpen={isBiometricModalOpen}
         closeModal={() => setIsBiometricModalOpen(false)}
         selectedDate={selectedDate}
         onAdd={handleAddBiometricToDiary}
         onBiometricAdded={() => getDiaryEntries(selectedDate.toISOString().split("T")[0])}
-      /> */}
+      />
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen && !!itemToDelete}
         onClose={() => setIsDeleteModalOpen(false)}
@@ -563,9 +697,9 @@ export default function Diary() {
                 <button onClick={() => setIsExerciseModalOpen(true)} className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]">
                   <div className="mr-[6]">💪🏼</div>EXERCISE
                 </button>
-                {/* <button onClick={() => setIsBiometricModalOpen(true)} className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]">
+                <button onClick={() => setIsBiometricModalOpen(true)} className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]">
                   <div className="mr-[6]">🧬</div>BIOMETRIC
-                </button> */}
+                </button>
                 <Link href="/posts">
                 <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]">
                   <div className="mr-[6]">📝</div>NOTE
@@ -591,50 +725,72 @@ export default function Diary() {
                 </div>
               </div>
 
-              {/* ✅ แสดงรายการอาหารและออกกำลังกาย */}
-              {expandedGroups[group] && diaryEntries[group].map((entry, index) => (
-                <div  
-                  key={index}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    setItemToDelete({ group, index, name: 'exercise' in entry ? entry.exercise.name : entry.food.name });
-                    setIsDeleteModalOpen(true);
-                  }}
-                  className="flex justify-between px-[10] py-[2] text-sm border-b cursor-pointer hover:bg-gray-100"
-                >
-                  <div className="flex items-center ">
-                    <span className="mr-2">{'duration' in entry ? "💪🏼" : "🍎"}</span>
-                    <span>{'exercise' in entry ? entry.exercise.name : entry.food.name}</span> {/* ✅ ใช้ชื่อที่ถูกต้อง */}
-                  </div>
-                  <div className="flex space-x-4">
-                    {/* ✅ แยก FoodEntry และ ExerciseEntry ออกจากกัน */}
-                    {"duration" in entry ? (
-                      <>
-                        <span>{entry.duration} min</span>
-                        <span>{entry.calories.toFixed(2)} kcal</span>
-                      </>
-                    ) : (
-                      <>
-                        {editingEntry?.group === group && editingEntry?.index === index ? (
-                          <input
-                            type="number"
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value === "" ? "" : parseFloat(e.target.value))}
-                            onKeyDown={(e) => e.key === "Enter" && saveEdit()}
-                            className="w-16 border border-gray-400 rounded px-2 py-1 text-right"
-                            autoFocus
-                          />
-                        ) : (
-                          <span onClick={() => startEditing(group, index, entry.servingSize!)} className="cursor-pointer">
-                            {entry.servingSize} {entry.unit || "g"}
-                          </span>
-                        )}
-                        <span>{Number(entry.calories).toFixed(2)} kcal</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
+              {/* ✅ แสดงรายการอาหาร, ออกกำลังกาย และค่าชีวภาพ */}
+{expandedGroups[group] && diaryEntries[group].map((entry, index) => (
+  <div  
+    key={index}
+    onContextMenu={(e) => {
+      e.preventDefault();
+      setItemToDelete({ 
+        group, 
+        index, 
+        name: entry.type === "exercise" 
+          ? entry.exercise.name 
+          : entry.type === "food" 
+            ? entry.food.name // ✅ ใช้ entry.food.name เพื่อแสดงชื่ออาหาร
+            : entry.name // ✅ รองรับ BiometricEntry
+      });
+      setIsDeleteModalOpen(true);
+    }}
+    className="flex justify-between px-[10] py-[2] text-sm border-b cursor-pointer hover:bg-gray-100"
+  >
+    <div className="flex items-center">
+      <span className="mr-2">
+        {entry.type === "exercise" ? "💪🏼" : entry.type === "biometric" ? "🧬" : "🍎"}
+      </span>
+      <span>
+        {entry.type === "exercise" 
+          ? entry.exercise.name 
+          : entry.type === "food" 
+            ? entry.food.name  // ✅ ใช้ entry.food.name เพื่อแสดงชื่ออาหาร
+            : entry.name}
+      </span>
+    </div>
+    <div className="flex space-x-4">
+      {/* ✅ แยก FoodEntry, ExerciseEntry และ BiometricEntry ออกจากกัน */}
+      {entry.type === "exercise" ? (
+        <>
+          <span>{entry.duration} min</span>
+          <span>{entry.calories.toFixed(2)} kcal</span>
+        </>
+      ) : entry.type === "biometric" ? (
+        <>
+          <span>{entry.value} {entry.unit}</span> {/* ✅ แสดงค่าชีวภาพ */}
+        </>
+      ) : (
+        <>
+          {editingEntry?.group === group && editingEntry?.index === index ? (
+            <input
+              type="number"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value === "" ? "" : parseFloat(e.target.value))}
+              onKeyDown={(e) => e.key === "Enter" && saveEdit()}
+              className="w-16 border border-gray-400 rounded px-2 py-1 text-right"
+              autoFocus
+            />
+          ) : (
+            <span onClick={() => startEditing(group, index, entry.servingSize!)} className="cursor-pointer">
+              {entry.servingSize} {entry.unit || "g"}
+            </span>
+          )}
+          <span>{Number(entry.calories).toFixed(2)} kcal</span>
+        </>
+      )}
+    </div>
+  </div>
+))}
+
+
             </div>
           ))}
             <div>

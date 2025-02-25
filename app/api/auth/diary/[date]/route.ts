@@ -85,7 +85,7 @@ export async function POST(req: NextRequest, context: { params: { date?: string 
   }
 }
 
-// ✅ GET: ดึงรายการอาหารและการออกกำลังกายจากไดอารี่
+// ✅ GET: ดึงรายการอาหาร, ออกกำลังกาย และค่าชีวภาพจากไดอารี่
 export async function GET(req: NextRequest, context: { params: { date?: string } }) {
   try {
     const date = context.params?.date;
@@ -105,26 +105,30 @@ export async function GET(req: NextRequest, context: { params: { date?: string }
 
     // ✅ ดึงข้อมูลจาก Prisma
     const foodEntries = await prisma.foodDiary.findMany({
-      where: { userId: user.userId, date},
+      where: { userId: user.userId, date },
       include: { food: { select: { id: true, name: true, unit: true } } },
     });
 
     const exerciseEntries = await prisma.userExerciseDiary.findMany({
-      where: { userId: user.userId, date},
+      where: { userId: user.userId, date },
       include: { exercise: { select: { id: true, name: true } } },
+    });
+
+    const biometricEntries = await prisma.biometricEntry.findMany({
+      where: { userId: user.userId, recordedAt: date },
+      include: { metric: { select: { id: true, name: true, unit: true } } },
     });
 
     console.log("📖 Food Entries:", foodEntries);
     console.log("💪🏼 Exercise Entries:", exerciseEntries);
+    console.log("🧬 Biometric Entries:", biometricEntries);
 
     // ✅ จัดรูปแบบข้อมูลก่อนส่งกลับ
     const formattedFoodEntries = foodEntries.map((entry) => ({
       id: entry.id,
       type: "food",
       foodId: entry.foodId,
-      food: entry.food
-        ? { id: entry.food.id, name: entry.food.name ?? "Unknown", unit: entry.food.unit ?? "g" }
-        : null,
+      food: entry.food ? { id: entry.food.id, name: entry.food.name ?? "Unknown", unit: entry.food.unit ?? "g" } : null,
       quantity: entry.quantity,
       mealType: entry.mealType,
       calories: entry.calories,
@@ -132,20 +136,28 @@ export async function GET(req: NextRequest, context: { params: { date?: string }
       carbs: entry.carbs,
       fat: entry.fat,
     }));
-    
+
     const formattedExerciseEntries = exerciseEntries.map((entry) => ({
       id: entry.id,
       type: "exercise",
       exerciseId: entry.exercise?.id ?? 0,
-      exercise: entry.exercise
-        ? { id: entry.exercise.id, name: entry.exercise.name ?? "Unknown Exercise" }
-        : null,
+      exercise: entry.exercise ? { id: entry.exercise.id, name: entry.exercise.name ?? "Unknown Exercise" } : null,
       duration: entry.duration,
       calories: entry.caloriesBurned,
       mealType: "Exercise",
-    }));        
+    }));
 
-    return NextResponse.json({ data: [...formattedFoodEntries, ...formattedExerciseEntries] }, { status: 200 });
+    const formattedBiometricEntries = biometricEntries.map((entry) => ({
+      id: entry.id,
+      type: "biometric",
+      metricId: entry.metric.id,
+      name: entry.metric.name,
+      value: entry.value,
+      unit: entry.unit,
+      recordedAt: entry.recordedAt,
+    }));
+
+    return NextResponse.json({ data: [...formattedFoodEntries, ...formattedExerciseEntries, ...formattedBiometricEntries] }, { status: 200 });
 
   } catch (error) {
     console.error("❌ API ERROR:", error);
@@ -153,8 +165,7 @@ export async function GET(req: NextRequest, context: { params: { date?: string }
   }
 }
 
-// ✅ DELETE: ลบอาหารหรือการออกกำลังกายออกจาก Diary
-// ✅ DELETE: ลบอาหารหรือการออกกำลังกายออกจาก Diary
+// ✅ DELETE: ลบอาหาร, การออกกำลังกาย หรือค่าชีวภาพออกจาก Diary
 export async function DELETE(req: NextRequest, context: { params: { date?: string } }) {
   try {
     const date = context.params?.date;
@@ -170,20 +181,20 @@ export async function DELETE(req: NextRequest, context: { params: { date?: strin
 
     // ✅ อ่านข้อมูลจาก request body
     const body = await req.json();
-    const { food_id, exercise_id, meal_type } = body;
+    const { food_id, exercise_id, meal_type, biometric_id } = body;
 
-    if (!food_id && !exercise_id) {
-      return NextResponse.json({ error: "Provide either 'food_id' or 'exercise_id'" }, { status: 400 });
+    if (!food_id && !exercise_id && !biometric_id) {
+      return NextResponse.json({ error: "Provide either 'food_id', 'exercise_id', or 'biometric_id'" }, { status: 400 });
     }
 
+    // ✅ ลบอาหารจากไดอารี่
     if (food_id && meal_type) {
-      // ✅ ลบอาหารจากไดอารี่
       const existingFoodEntry = await prisma.foodDiary.findFirst({
         where: {
           userId: user.userId,
           date: date,
-          mealType: meal_type.toLowerCase(), // ✅ ป้องกัน case-sensitive
-          foodId: food_id, // ✅ ใช้ foodId แทน id
+          mealType: meal_type.toLowerCase(),
+          foodId: food_id,
         },
       });
 
@@ -195,13 +206,11 @@ export async function DELETE(req: NextRequest, context: { params: { date?: strin
       // ✅ ใช้ Transaction ลบอาหารออกจากไดอารี่
       await prisma.$transaction([
         prisma.foodDiary.delete({
-          where: {
-            id: existingFoodEntry.id, // ✅ ลบโดยใช้ id ที่ Prisma สร้าง
-          },
+          where: { id: existingFoodEntry.id },
         }),
         prisma.foods.update({
           where: { id: food_id },
-          data: { added_count: { decrement: 1 } }, // ✅ ลดจำนวนครั้งที่ถูกเพิ่ม
+          data: { added_count: { decrement: 1 } },
         }),
       ]);
 
@@ -209,11 +218,11 @@ export async function DELETE(req: NextRequest, context: { params: { date?: strin
       return NextResponse.json({ message: "Food entry deleted successfully" }, { status: 200 });
     }
 
+    // ✅ ลบรายการออกกำลังกายจากไดอารี่
     if (exercise_id) {
-      // ✅ ลบรายการออกกำลังกายจากไดอารี่
-      const existingExerciseEntry = await prisma.userExerciseDiary.findFirst({ // ✅ เช็คว่า model ใช้ชื่อ exerciseDiary หรือ userExerciseDiary
+      const existingExerciseEntry = await prisma.userExerciseDiary.findFirst({
         where: {
-          userId: user.userId, // ✅ ป้องกันลบของคนอื่น
+          userId: user.userId,
           date: date,
           exerciseId: exercise_id,
         },
@@ -224,15 +233,31 @@ export async function DELETE(req: NextRequest, context: { params: { date?: strin
         return NextResponse.json({ error: "Exercise entry not found" }, { status: 404 });
       }
 
-      // ✅ ลบการออกกำลังกาย
-      await prisma.userExerciseDiary .delete({
-        where: {
-          id: existingExerciseEntry.id, // ✅ ลบโดยใช้ id ที่ Prisma สร้าง
-        },
+      await prisma.userExerciseDiary.delete({
+        where: { id: existingExerciseEntry.id },
       });
 
       console.log("✅ Exercise entry deleted:", existingExerciseEntry);
       return NextResponse.json({ message: "Exercise entry deleted successfully" }, { status: 200 });
+    }
+
+    // ✅ ลบค่าชีวภาพออกจากไดอารี่
+    if (biometric_id) {
+      const existingBiometricEntry = await prisma.biometricEntry.findFirst({
+        where: { userId: user.userId, id: biometric_id },
+      });
+
+      if (!existingBiometricEntry) {
+        console.log("🚨 Biometric entry not found:", { userId: user.userId, biometric_id });
+        return NextResponse.json({ error: "Biometric entry not found" }, { status: 404 });
+      }
+
+      await prisma.biometricEntry.delete({
+        where: { id: biometric_id },
+      });
+
+      console.log("✅ Biometric entry deleted:", existingBiometricEntry);
+      return NextResponse.json({ message: "Biometric entry deleted successfully" }, { status: 200 });
     }
 
   } catch (error) {
@@ -240,4 +265,5 @@ export async function DELETE(req: NextRequest, context: { params: { date?: strin
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
+
 
