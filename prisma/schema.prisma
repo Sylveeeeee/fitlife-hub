@@ -17,101 +17,82 @@ model Role {
 }
 
 model users {
-  id             Int                   @id @default(autoincrement())
-  email          String                @unique(map: "email") @db.VarChar(255)
-  password       String                @db.VarChar(255)
-  name           String?               @db.VarChar(100)
-  age            Int?
-  sex            users_sex? // เปลี่ยนจาก gender เป็น sex
-  weight         Float?                @db.Float
-  height         Float?                @db.Float
-  birthday       DateTime?             @db.Date
-  activity_level users_activity_level?
-  diet_goal      users_diet_goal?      @default(maintain_weight)
-  created_at     DateTime?             @default(now()) @db.Timestamp(0)
-  updated_at     DateTime?             @default(now()) @updatedAt @db.Timestamp(0)
-  roleId         BigInt
-  username       String?               @unique @db.VarChar(100)
-  diet_goals     diet_goals[]
-  meal_records   meal_records[]
-  role           Role                  @relation("UserRole", fields: [roleId], references: [id], onDelete: Cascade)
-  workouts       workouts[]
+  id               Int                   @id @default(autoincrement())
+  email            String                @unique(map: "email") @db.VarChar(255)
+  password         String                @db.VarChar(255)
+  name             String?               @db.VarChar(100)
+  age              Int?
+  sex              users_sex? // เปลี่ยนจาก gender เป็น sex
+  weight           Float?                @db.Float
+  height           Float?                @db.Float
+  birthday         DateTime?             @db.Date
+  activity_level   users_activity_level?
+  diet_goal        users_diet_goal?      @default(maintain_weight)
+  created_at       DateTime?             @default(now()) @db.Timestamp(0)
+  updated_at       DateTime?             @default(now()) @updatedAt @db.Timestamp(0)
+  roleId           BigInt
+  username         String?               @unique @db.VarChar(100)
+  diet_goals       diet_goals[]
+  meal_records     meal_records[]
+  role             Role                  @relation("UserRole", fields: [roleId], references: [id], onDelete: Cascade)
+  workouts         workouts[]
   foodDiaryEntries FoodDiary[]
-  last_login     DateTime?             @db.Timestamp(0) // 📌 ติดตามการล็อกอินล่าสุด
-  is_active      Boolean               @default(true)  // 📌 เช็คว่าผู้ใช้ Active อยู่หรือไม่
-  total_logins   Int                   @default(0)     // 📌 นับจำนวนครั้งที่ผู้ใช้ล็อกอิน
-  behavior_logs  user_behavior_logs[]  
-  biometrics     Biometric[]
-  exerciseDiary  UserExerciseDiary[] 
+  last_login       DateTime?             @db.Timestamp(0) // 📌 ติดตามการล็อกอินล่าสุด
+  is_active        Boolean               @default(true) // 📌 เช็คว่าผู้ใช้ Active อยู่หรือไม่
+  total_logins     Int                   @default(0) // 📌 นับจำนวนครั้งที่ผู้ใช้ล็อกอิน
+  behavior_logs    user_behavior_logs[]
+  biometrics       Biometric[]
+  biometricEntries BiometricEntry[] // ✅ เพิ่มความสัมพันธ์ย้อนกลับ
+  exerciseDiary    UserExerciseDiary[]
 
   @@index([roleId], map: "users_roleId_fkey")
 }
 
 model user_behavior_logs {
-  id          Int       @id @default(autoincrement())
-  userId      Int
-  action      String    @db.VarChar(255)  // เช่น "Login", "Add Food", "Update Profile"
-  timestamp   DateTime  @default(now())   @db.Timestamp(0)
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  action    String   @db.VarChar(255) // เช่น "Login", "Add Food", "Update Profile"
+  timestamp DateTime @default(now()) @db.Timestamp(0)
 
-  user        users     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  user users @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId], map: "behavior_userId_idx")
 }
 
 model foods {
-  id           Int                 @id @default(autoincrement())
-  name         String              @db.VarChar(255)
-  calories     Decimal?            @default(0.00) @db.Decimal(5, 2)
-  protein      Decimal?            @default(0.00) @db.Decimal(5, 2)
-  carbs        Decimal?            @default(0.00) @db.Decimal(5, 2)
-  fat          Decimal?            @default(0.00) @db.Decimal(5, 2)
-  unit         UnitType            @default(GRAM) // ✅ ใช้ Enum แทน String
-  created_at   DateTime?           @default(now()) @db.Timestamp(0)
-  updated_at   DateTime?           @default(now()) @updatedAt @db.Timestamp(0)
-  category     FoodCategory?       @default(COMMON_FOOD)
-  source       String?             @db.VarChar(255)
-  meal_items   meal_items[]
+  id               Int           @id @default(autoincrement())
+  name             String        @db.VarChar(255)
+  calories         Decimal?      @default(0.00) @db.Decimal(5, 2)
+  protein          Decimal?      @default(0.00) @db.Decimal(5, 2)
+  carbs            Decimal?      @default(0.00) @db.Decimal(5, 2)
+  fat              Decimal?      @default(0.00) @db.Decimal(5, 2)
+  unit             UnitType      @default(GRAM) // ✅ ใช้ Enum แทน String
+  created_at       DateTime?     @default(now()) @db.Timestamp(0)
+  updated_at       DateTime?     @default(now()) @updatedAt @db.Timestamp(0)
+  category         FoodCategory? @default(COMMON_FOOD)
+  source           String?       @db.VarChar(255)
+  meal_items       meal_items[]
   foodDiaryEntries FoodDiary[]
-  added_count  Int      @default(0)
+  added_count      Int           @default(0)
 }
-
-model Biometric {
-  id         Int      @id @default(autoincrement())
-  userId     Int
-  weight     Float?   @db.Float // น้ำหนัก (kg)
-  bodyFat    Float?   @db.Float // เปอร์เซ็นต์ไขมัน (%)
-  muscleMass Float?   @db.Float // มวลกล้ามเนื้อ (kg)
-  bmi        Float?   @db.Float // ค่าดัชนีมวลกาย
-  bmr        Float?   @db.Float // อัตราการเผาผลาญพื้นฐาน
-  tdee       Float?   @db.Float // ปริมาณแคลอรี่ที่เผาผลาญต่อวัน
-  hydration  Float?   @db.Float // ปริมาณน้ำในร่างกาย (%)
-  createdAt  DateTime @default(now()) @db.Timestamp(0)
-
-  user       users    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId], map: "biometric_userId_fkey")
-}
-
-
 
 model FoodDiary {
-  id        Int      @id @default(autoincrement())
-  userId    Int      // เปลี่ยนจาก String เป็น Int
-  date      String   @db.VarChar(10) // YYYY-MM-DD
-  mealType  String
-  foodId    Int
-  quantity  Decimal @default(1.00) @db.Decimal(5,2) // ใช้ Decimal เหมือน foods
-  calories  Decimal @default(0.00) @db.Decimal(5,2)
-  protein   Decimal @default(0.00) @db.Decimal(5,2)
-  carbs     Decimal @default(0.00) @db.Decimal(5,2)
-  fat       Decimal @default(0.00) @db.Decimal(5,2)
+  id       Int     @id @default(autoincrement())
+  userId   Int // เปลี่ยนจาก String เป็น Int
+  date     String  @db.VarChar(10) // YYYY-MM-DD
+  mealType String
+  foodId   Int
+  quantity Decimal @default(1.00) @db.Decimal(5, 2) // ใช้ Decimal เหมือน foods
+  calories Decimal @default(0.00) @db.Decimal(5, 2)
+  protein  Decimal @default(0.00) @db.Decimal(5, 2)
+  carbs    Decimal @default(0.00) @db.Decimal(5, 2)
+  fat      Decimal @default(0.00) @db.Decimal(5, 2)
 
-  user      users   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  food      foods   @relation(fields: [foodId], references: [id], onDelete: Cascade)
+  user users @relation(fields: [userId], references: [id], onDelete: Cascade)
+  food foods @relation(fields: [foodId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date, mealType, foodId])
 }
-
 
 model diet_goals {
   id             Int       @id @default(autoincrement())
@@ -123,17 +104,17 @@ model diet_goals {
   created_at     DateTime? @default(now()) @db.Timestamp(0)
   updated_at     DateTime? @default(now()) @db.Timestamp(0)
   users          users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "diet_goals_ibfk_1")
-
 }
+
 model meal_items {
-  id             Int      @id @default(autoincrement())
+  id             Int          @id @default(autoincrement())
   meal_record_id Int
   food_id        Int
-  quantity       Float    @db.Float
-  calories       Float    @default(0) @db.Float
-  protein        Float    @default(0) @db.Float
-  carbs          Float    @default(0) @db.Float
-  fat            Float    @default(0) @db.Float
+  quantity       Float        @db.Float
+  calories       Float        @default(0) @db.Float
+  protein        Float        @default(0) @db.Float
+  carbs          Float        @default(0) @db.Float
+  fat            Float        @default(0) @db.Float
   meal_records   meal_records @relation(fields: [meal_record_id], references: [id], onDelete: Cascade)
   foods          foods        @relation(fields: [food_id], references: [id], onDelete: Cascade)
 
@@ -142,18 +123,18 @@ model meal_items {
 }
 
 model meal_records {
-  id             Int       @id @default(autoincrement())
+  id             Int                    @id @default(autoincrement())
   user_id        Int
   meal_type      meal_records_meal_type
   date           DateTime
-  total_calories Float     @default(0)
-  total_protein  Float     @default(0)
-  total_carbs    Float     @default(0)
-  total_fat      Float     @default(0)
-  created_at     DateTime  @default(now())
-  updated_at     DateTime  @updatedAt
+  total_calories Float                  @default(0)
+  total_protein  Float                  @default(0)
+  total_carbs    Float                  @default(0)
+  total_fat      Float                  @default(0)
+  created_at     DateTime               @default(now())
+  updated_at     DateTime               @updatedAt
   meal_items     meal_items[]
-  user           users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user           users                  @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, date, meal_type])
 }
@@ -169,14 +150,14 @@ model workouts {
 
   @@index([user_id], map: "user_id")
 }
-model UserTarget {
-  id        Int    @id @default(autoincrement())
-  calories  Int
-  protein   Float
-  carbs     Float
-  fat       Float
-}
 
+model UserTarget {
+  id       Int   @id @default(autoincrement())
+  calories Int
+  protein  Float
+  carbs    Float
+  fat      Float
+}
 
 model post {
   id        Int      @id @default(autoincrement())
@@ -209,17 +190,16 @@ enum FoodCategory {
   COMMON_FOOD
   BEVERAGES
   RESTAURANTS
-
 }
 
-enum UnitType { // ✅ Enum สำหรับหน่วยของอาหาร
-  GRAM      // กรัม (g)
-  ML        // มิลลิลิตร (ml)
-  CUP       // ถ้วย
-  TBSP      // ช้อนโต๊ะ
-  TSP       // ช้อนชา
-  PIECE     // ชิ้น
-  SERVING   // หน่วยบริโภค
+enum UnitType {
+  GRAM // กรัม (g)
+  ML // มิลลิลิตร (ml)
+  CUP // ถ้วย
+  TBSP // ช้อนโต๊ะ
+  TSP // ช้อนชา
+  PIECE // ชิ้น
+  SERVING // หน่วยบริโภค
 }
 
 model Glass {
@@ -235,65 +215,113 @@ enum users_sex {
 }
 
 model ExerciseCategory {
-  id            Int                      @id @default(autoincrement())
-  name          String                   @unique
+  id            Int                   @id @default(autoincrement())
+  name          String                @unique
   subCategories ExerciseSubCategory[]
-  createdAt     DateTime                 @default(now())
+  createdAt     DateTime              @default(now())
 }
 
 model ExerciseSubCategory {
-  id            Int                      @id @default(autoincrement())
-  name          String
-  categoryId    Int
-  category      ExerciseCategory         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  exercises     Exercise[]
-  createdAt     DateTime                 @default(now())
+  id         Int              @id @default(autoincrement())
+  name       String
+  categoryId Int
+  category   ExerciseCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  exercises  Exercise[]
+  createdAt  DateTime         @default(now())
 
-  @@unique([name, categoryId])  // ✅ ป้องกันการมีหมวดหมู่ย่อยที่ซ้ำกันภายใต้หมวดหมู่เดียวกัน
+  @@unique([name, categoryId]) // ✅ ป้องกันการมีหมวดหมู่ย่อยที่ซ้ำกันภายใต้หมวดหมู่เดียวกัน
 }
 
 model Exercise {
-  id                    Int                @id @default(autoincrement())
-  name                  String
-  subCategoryId         Int
-  subCategory           ExerciseSubCategory @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
-  baseCaloriesBurned    Float
-  intensities           ExerciseIntensity[]
-  createdAt             DateTime           @default(now())
+  id                 Int                 @id @default(autoincrement())
+  name               String
+  subCategoryId      Int
+  subCategory        ExerciseSubCategory @relation(fields: [subCategoryId], references: [id], onDelete: Cascade)
+  baseCaloriesBurned Float
+  intensities        ExerciseIntensity[]
+  createdAt          DateTime            @default(now())
 
   // ✅ เพิ่มความสัมพันธ์ย้อนกลับ
   userExerciseDiaryEntries UserExerciseDiary[]
 }
 
 model ExerciseIntensity {
-  id                    Int                @id @default(autoincrement())
-  exerciseId            Int
-  exercise              Exercise           @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
-  level                 String
-  intensityFactor       Float
-  createdAt             DateTime           @default(now())
+  id              Int      @id @default(autoincrement())
+  exerciseId      Int
+  exercise        Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  level           String
+  intensityFactor Float
+  createdAt       DateTime @default(now())
 
   // ✅ เพิ่มความสัมพันธ์ย้อนกลับ
   userExerciseDiaryEntries UserExerciseDiary[]
 }
 
 model UserExerciseDiary {
-  id            Int                      @id @default(autoincrement())
-  userId        Int
-  user          users                    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  exerciseId    Int
-  exercise      Exercise                 @relation(fields: [exerciseId], references: [id], onDelete: Cascade)  
-  date          String   @db.VarChar(10) // YYYY-MM-DD
-  duration      Int 
-  intensityId   Int?
-  intensity     ExerciseIntensity?        @relation(fields: [intensityId], references: [id], onDelete: SetNull)
-  weight        Float?
+  id             Int                @id @default(autoincrement())
+  userId         Int
+  user           users              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exerciseId     Int
+  exercise       Exercise           @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  date           String             @db.VarChar(10) // YYYY-MM-DD
+  duration       Int
+  intensityId    Int?
+  intensity      ExerciseIntensity? @relation(fields: [intensityId], references: [id], onDelete: SetNull)
+  weight         Float?
   caloriesBurned Float
-  createdAt     DateTime                  @default(now())
+  createdAt      DateTime           @default(now())
 
   @@index([userId])
   @@index([exerciseId])
 }
 
+model Biometric {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  weight     Float?   @db.Float // น้ำหนัก (kg)
+  bodyFat    Float?   @db.Float // เปอร์เซ็นต์ไขมัน (%)
+  muscleMass Float?   @db.Float // มวลกล้ามเนื้อ (kg)
+  bmi        Float?   @db.Float // ค่าดัชนีมวลกาย
+  bmr        Float?   @db.Float // อัตราการเผาผลาญพื้นฐาน
+  tdee       Float?   @db.Float // ปริมาณแคลอรี่ที่เผาผลาญต่อวัน
+  hydration  Float?   @db.Float // ปริมาณน้ำในร่างกาย (%)
+  systolic   Int? // ค่าความดันโลหิตตัวบน (Systolic mmHg)
+  diastolic  Int? // ค่าความดันโลหิตตัวล่าง (Diastolic mmHg)
+  heartRate  Int? // อัตราการเต้นของหัวใจ (bpm)
+  createdAt  DateTime @default(now()) @db.Timestamp(0)
 
+  user users @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId], map: "biometric_userId_fkey")
+}
+
+model BiometricEntry {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  categoryId Int
+  metricId   Int
+  value      Float
+  unit       String
+  recordedAt DateTime @default(now())
+  createdAt  DateTime @default(now()) @db.Timestamp(0)
+
+  user     users             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category BiometricCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  metric   BiometricMetric   @relation(fields: [metricId], references: [id], onDelete: Cascade)
+}
+
+model BiometricCategory {
+  id      Int               @id @default(autoincrement())
+  name    String            @unique // เช่น Body, Cardio, Labs, Mental
+  entries BiometricEntry[] // ✅ เพิ่มความสัมพันธ์ย้อนกลับ
+  metrics BiometricMetric[]
+}
+
+model BiometricMetric {
+  id         Int               @id @default(autoincrement())
+  categoryId Int
+  name       String            @unique // เช่น Weight, Body Fat, Blood Pressure
+  unit       String // หน่วย เช่น kg, %, mmHg, bpm
+  category   BiometricCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  entries    BiometricEntry[]
+}

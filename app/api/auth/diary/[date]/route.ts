@@ -153,7 +153,8 @@ export async function GET(req: NextRequest, context: { params: { date?: string }
   }
 }
 
-// ✅ DELETE: ลบอาหารออกจาก Food Diary
+// ✅ DELETE: ลบอาหารหรือการออกกำลังกายออกจาก Diary
+// ✅ DELETE: ลบอาหารหรือการออกกำลังกายออกจาก Diary
 export async function DELETE(req: NextRequest, context: { params: { date?: string } }) {
   try {
     const date = context.params?.date;
@@ -167,37 +168,76 @@ export async function DELETE(req: NextRequest, context: { params: { date?: strin
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // ✅ ตรวจสอบ request body
+    // ✅ อ่านข้อมูลจาก request body
     const body = await req.json();
-    const { food_id, meal_type } = body;
+    const { food_id, exercise_id, meal_type } = body;
 
-    if (!food_id || !meal_type) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    if (!food_id && !exercise_id) {
+      return NextResponse.json({ error: "Provide either 'food_id' or 'exercise_id'" }, { status: 400 });
     }
 
-    // ✅ ค้นหาและลบรายการอาหาร
-    const existingEntry = await prisma.foodDiary.findFirst({
-      where: { userId: user.userId, date, foodId: food_id, mealType: meal_type },
-    });
+    if (food_id && meal_type) {
+      // ✅ ลบอาหารจากไดอารี่
+      const existingFoodEntry = await prisma.foodDiary.findFirst({
+        where: {
+          userId: user.userId,
+          date: date,
+          mealType: meal_type.toLowerCase(), // ✅ ป้องกัน case-sensitive
+          foodId: food_id, // ✅ ใช้ foodId แทน id
+        },
+      });
 
-    if (!existingEntry) {
-      return NextResponse.json({ error: "Food entry not found" }, { status: 404 });
+      if (!existingFoodEntry) {
+        console.log("🚨 Food entry not found:", { userId: user.userId, date, mealType: meal_type, foodId: food_id });
+        return NextResponse.json({ error: "Food entry not found" }, { status: 404 });
+      }
+
+      // ✅ ใช้ Transaction ลบอาหารออกจากไดอารี่
+      await prisma.$transaction([
+        prisma.foodDiary.delete({
+          where: {
+            id: existingFoodEntry.id, // ✅ ลบโดยใช้ id ที่ Prisma สร้าง
+          },
+        }),
+        prisma.foods.update({
+          where: { id: food_id },
+          data: { added_count: { decrement: 1 } }, // ✅ ลดจำนวนครั้งที่ถูกเพิ่ม
+        }),
+      ]);
+
+      console.log("✅ Food entry deleted:", existingFoodEntry);
+      return NextResponse.json({ message: "Food entry deleted successfully" }, { status: 200 });
     }
 
-    // ✅ ใช้ Transaction ลบข้อมูลและอัปเดต `added_count`
-    await prisma.$transaction([
-      prisma.foodDiary.delete({ where: { id: existingEntry.id } }),
-      prisma.foods.update({
-        where: { id: food_id },
-        data: { added_count: { decrement: 1 } },
-      }),
-    ]);
+    if (exercise_id) {
+      // ✅ ลบรายการออกกำลังกายจากไดอารี่
+      const existingExerciseEntry = await prisma.userExerciseDiary.findFirst({ // ✅ เช็คว่า model ใช้ชื่อ exerciseDiary หรือ userExerciseDiary
+        where: {
+          userId: user.userId, // ✅ ป้องกันลบของคนอื่น
+          date: date,
+          exerciseId: exercise_id,
+        },
+      });
 
-    console.log("✅ Food entry deleted:", existingEntry);
-    return NextResponse.json({ message: "Food entry deleted successfully" }, { status: 200 });
+      if (!existingExerciseEntry) {
+        console.log("🚨 Exercise entry not found:", { userId: user.userId, date, exerciseId: exercise_id });
+        return NextResponse.json({ error: "Exercise entry not found" }, { status: 404 });
+      }
+
+      // ✅ ลบการออกกำลังกาย
+      await prisma.userExerciseDiary .delete({
+        where: {
+          id: existingExerciseEntry.id, // ✅ ลบโดยใช้ id ที่ Prisma สร้าง
+        },
+      });
+
+      console.log("✅ Exercise entry deleted:", existingExerciseEntry);
+      return NextResponse.json({ message: "Exercise entry deleted successfully" }, { status: 200 });
+    }
 
   } catch (error) {
-    console.error("❌ Error deleting food diary entry:", error);
+    console.error("❌ Error deleting diary entry:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
+

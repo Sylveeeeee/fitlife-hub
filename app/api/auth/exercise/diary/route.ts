@@ -41,7 +41,7 @@ export async function POST(req: Request) {
         exerciseId,
         duration,
         caloriesBurned,
-        date: new Date(date),
+        date,
       },
     });
 

@@ -196,7 +196,33 @@ const AddExerciseToDiary: React.FC<AddExerciseToDiaryProps> = ({
           />
           <FiSearch className="absolute left-3 top-3 text-gray-500" />
         </div>
+        {/* Breadcrumb Navigation */}
+        <div className="mb-4 text-xl text-gray-700 flex gap-2">
+          <span
+            className={`cursor-pointer ${selectedCategory ? "text-black font-bold" : "text-gray-500"}`}
+            onClick={() => {
+              setSelectedCategory(null);
+              setSelectedSubCategory(null);
+            }}
+          >
+            ALL CATEGORIES
+          </span>
+          {selectedCategory && <span className="text-gray-500">›</span>}
+          
+          {selectedCategory && (
+            <span
+              className={`cursor-pointer ${selectedSubCategory ? "text-black font-bold" : "text-gray-500"}`}
+              onClick={() => setSelectedSubCategory(null)}
+            >
+              {selectedCategory.name.toUpperCase()}
+            </span>
+          )}
+          {selectedSubCategory && <span className="text-gray-500">›</span>}
 
+          {selectedSubCategory && (
+            <span className="text-gray-500">{selectedSubCategory.name.toUpperCase()}</span>
+          )}
+        </div>
         {/* Step 1: เลือกประเภท */}
         {!selectedCategory && (
           <div className="grid grid-cols-3 gap-4">
@@ -255,7 +281,7 @@ const AddExerciseToDiary: React.FC<AddExerciseToDiaryProps> = ({
               onChange={(e) => setDuration(Number(e.target.value))}
               className="border p-2 rounded w-full"
             />
-            <button onClick={handleAddExercise} className="mt-4 bg-blue-500 text-white px-4 py-2 rounded w-full">
+            <button onClick={handleAddExercise} className="mt-4 bg-black text-white px-4 py-2 rounded w-full">
               Add to Diary
             </button>
           </div>

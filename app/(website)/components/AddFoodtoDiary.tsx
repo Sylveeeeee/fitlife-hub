@@ -10,6 +10,7 @@ interface Food {
   calories: number;
   source: string;
   servingSize: number;
+  mealType: string;
 }
 
 interface AddFoodToDiaryProps {
