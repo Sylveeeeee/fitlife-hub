@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 
-// Define the TypeScript interface for the diet goals data
+// ✅ TypeScript Interface สำหรับ Diet Goals
 interface DietGoals {
   daily_calories: number;
   daily_protein: number;
@@ -13,94 +13,115 @@ export default function DietGoalCalculation() {
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [dietGoalsData, setDietGoalsData] = useState<DietGoals | null>(null); // Use the DietGoals type
+  const [dietGoalsData, setDietGoalsData] = useState<DietGoals | null>(null);
 
+  // ✅ คำนวณและบันทึกเป้าหมายอาหารของผู้ใช้
   const calculateAndSaveDietGoals = async () => {
     setLoading(true);
     setSuccessMessage(null);
     setErrorMessage(null);
 
     try {
-      // ดึง userId จาก Token โดยใช้ API `/api/auth/user`
+      // ✅ ดึง userId จาก Token โดยใช้ API `/api/auth/user`
       const userResponse = await fetch("/api/auth/user", {
         method: "GET",
         headers: { "Content-Type": "application/json" },
-        credentials: "include", // ใช้ Cookie ที่มีอยู่
+        credentials: "include",
       });
 
       if (!userResponse.ok) {
-        setErrorMessage("Failed to fetch user information.");
+        setErrorMessage("❌ Failed to fetch user information.");
         return;
       }
 
       const userData = await userResponse.json();
-      const userId = userData.id; // คาดหวังว่า API จะคืน `id` เป็น userId
+      if (!userData.id) {
+        setErrorMessage("❌ User ID not found.");
+        return;
+      }
 
-      // เรียก API `/api/auth/diet-goals` เพื่อคำนวณและบันทึกเป้าหมาย
+      const userId = userData.id;
+
+      // ✅ เรียก API `/api/auth/diet-goals` เพื่อคำนวณและบันทึก
       const dietGoalsResponse = await fetch("/api/auth/diet-goals", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId, // ส่ง userId ไปพร้อมกับข้อมูล
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
       });
 
       if (!dietGoalsResponse.ok) {
         const error = await dietGoalsResponse.json();
-        setErrorMessage(error.error || "Failed to calculate diet goals.");
+        setErrorMessage(error.error || "❌ Failed to calculate diet goals.");
         return;
       }
 
       const dietGoalsData = await dietGoalsResponse.json();
-      setDietGoalsData(dietGoalsData); // เก็บข้อมูลเป้าหมายอาหารใน state
-      setSuccessMessage("Diet goals successfully updated!");
+      setDietGoalsData(dietGoalsData); // ✅ เก็บข้อมูลใน `state`
+      setSuccessMessage("✅ Diet goals successfully updated!");
     } catch (error) {
-      console.error("Error:", error);
-      setErrorMessage("An error occurred while calculating diet goals.");
+      console.error("❌ Error:", error);
+      setErrorMessage("❌ An error occurred while calculating diet goals.");
     } finally {
       setLoading(false);
     }
   };
 
-  // ฟังก์ชันดึงข้อมูลเป้าหมายอาหารของผู้ใช้ (เมื่อล็อกอินแล้ว)
+  // ✅ ดึงข้อมูลเป้าหมายอาหารของผู้ใช้
   const fetchDietGoals = async () => {
     try {
       const response = await fetch("/api/auth/diet-goals", {
         method: "GET",
         headers: { "Content-Type": "application/json" },
-        credentials: "include", // ใช้ Cookie ที่มีอยู่
+        credentials: "include",
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch diet goals.");
+        throw new Error("❌ Failed to fetch diet goals.");
       }
 
       const data = await response.json();
-      setDietGoalsData(data); // เก็บข้อมูลที่ดึงมาใน state
+      setDietGoalsData(data);
     } catch (error) {
-      console.error("Error fetching diet goals:", error);
-      setErrorMessage("Failed to fetch diet goals.");
+      console.error("❌ Error fetching diet goals:", error);
+      setErrorMessage("❌ Failed to fetch diet goals.");
     }
   };
 
+  // ✅ ดึงค่าเป้าหมายอาหารเมื่อ Component โหลด
   useEffect(() => {
-    fetchDietGoals(); // เรียกใช้ฟังก์ชันเพื่อดึงข้อมูลเมื่อคอมโพเนนต์โหลด
+    fetchDietGoals();
   }, []);
 
   return (
-    <div className=" font-mono text-black max-w-4xl mx-auto bg-[#cdffe0] shadow-md rounded-lg mt-10 ">
-      {dietGoalsData && (
-        <div className="">
-          
-          <div className=" mb-10 p-4 text-center">
+    <div className="font-mono text-black max-w-4xl mx-auto  shadow-md rounded-lg mt-10 p-6">
+      <h2 className="text-center text-xl font-bold mb-4">Diet Goal Calculation</h2>
+
+      {/* ✅ แสดงข้อความแจ้งเตือน */}
+      {successMessage && <p className="text-green-600 text-center">{successMessage}</p>}
+      {errorMessage && <p className="text-red-600 text-center">{errorMessage}</p>}
+
+      {/* ✅ แสดงข้อมูล Diet Goals ถ้ามี */}
+      {dietGoalsData ? (
+        <div className="text-center">
           <p><strong>Total Energy Burned (TDEE) =</strong> {dietGoalsData.daily_calories} kcal</p>
-          
-          </div>
+          <p><strong>Protein Goal:</strong> {dietGoalsData.daily_protein} g</p>
+          <p><strong>Carbs Goal:</strong> {dietGoalsData.daily_carbs} g</p>
+          <p><strong>Fat Goal:</strong> {dietGoalsData.daily_fat} g</p>
         </div>
+      ) : (
+        <p className="text-center text-gray-500">No diet goals set. Click the button below to calculate.</p>
       )}
-      
+
+      {/* ✅ ปุ่มคำนวณใหม่ */}
+      <div className="text-center mt-6">
+        <button
+          onClick={calculateAndSaveDietGoals}
+          disabled={loading}
+          className="bg-black text-white px-6 py-2 rounded hover:bg-gray-900 disabled:bg-gray-400"
+        >
+          {loading ? "Calculating..." : "Calculate Diet Goals"}
+        </button>
+      </div>
     </div>
   );
 }

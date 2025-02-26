@@ -1,9 +1,9 @@
 /* ✅ วันที่มีข้อมูลอาหาร (สีฟ้าอ่อน) */
 .food-day {
-  background-color: #02a3f3 !important; /* ฟ้าอ่อน */
+  background-color: #c3ebff !important; /* ฟ้าอ่อน */
   border-radius: 8px;
   font-weight: bold;
-  color: #006699 !important; /* ฟ้าเข้ม */
+  color: #000000 !important; /* ฟ้าเข้ม */
 }
 
 /* ✅ ทำให้ hover วันที่มีข้อมูลอาหารมีสีเข้มขึ้น */
@@ -22,7 +22,7 @@
 
 /* ✅ ทำให้ hover ของวันที่เลือกมีสีเข้มขึ้น */
 .react-calendar__tile--active:hover {
-  background-color: #005f99 !important;
+  background-color: #0073bb !important;
 }
 
 /* ✅ ปรับดีไซน์ปฏิทินให้ดูพรีเมียมขึ้น */
@@ -73,10 +73,10 @@
 
 /* ✅ ทำให้วันที่ปัจจุบันดูโดดเด่นขึ้น */
 .react-calendar__tile--now {
-  background: #e0f7ff;
+  background: #ffffff;
   font-weight: bold;
   border-radius: 8px;
-  color: #005f99;
+  color: #be2020;
 }
 
 /* ✅ ปรับสไตล์ของหัวข้อวันในปฏิทิน */

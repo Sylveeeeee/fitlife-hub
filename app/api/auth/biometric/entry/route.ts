@@ -39,26 +39,32 @@ export async function GET(req: Request) {
     const biometricEntries = await prisma.biometricEntry.findMany({
       where: {
         userId: user.userId,
-        recordedAt: {
-          gte: new Date(date + "T00:00:00.000Z"),
-          lt: new Date(date + "T23:59:59.999Z"),
-        },
+        recordedAt: date,
       },
       include: {
-        metric: true, // ✅ รวมข้อมูล Metric เช่น Weight, Body Fat
-        category: true, // ✅ รวมข้อมูล Category
+        metric: true, // รวมข้อมูล Metric เช่น Weight, Body Fat
+        category: true, // รวมข้อมูล Category
       },
       orderBy: {
         recordedAt: "asc",
       },
     });
 
-    return NextResponse.json({ data: biometricEntries }, { status: 200 });
+    // เตรียมข้อมูลสำหรับการสร้างกราฟ
+    const chartData = biometricEntries.map((entry) => ({
+      label: entry.metric.name,
+      value: entry.value,
+      category: entry.category.name,
+      recordedAt: entry.recordedAt,
+    }));
+
+    return NextResponse.json({ data: chartData }, { status: 200 });
   } catch (error) {
     console.error("❌ Error fetching biometric entries:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
 
 // ✅ POST: เพิ่มค่าชีวภาพใหม่ลงใน Diary
 export async function POST(req: Request) {
@@ -142,7 +148,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         categoryId, // ✅ เพิ่ม categoryId ให้สามารถอัปเดตได้
         value: parseFloat(value),
         unit,
-        recordedAt: new Date(date),
+        recordedAt: date,
       },
     });
 

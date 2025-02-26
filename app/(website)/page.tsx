@@ -3,6 +3,8 @@ import Posts from "./components/Posts";
 import WaterTracker from "./components/WaterTracker";
 import Card from "./components/Card";
 import Link from "next/link";
+import BiometricChart from "./components/BiometricChart";
+
 
 export default function Home() {
     return (
@@ -31,6 +33,8 @@ export default function Home() {
               
             </div>
           </div>
+          <BiometricChart initialDate="" /> {/* กำหนด initialDate ที่คุณต้องการ */}
+
           <Posts />
           <div className="flex space-x-4">
             <div className="flex-1">

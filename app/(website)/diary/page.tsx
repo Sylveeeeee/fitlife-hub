@@ -186,38 +186,47 @@ export default function Diary() {
   }, [diaryEntries]);
   
 
-  const categoryTotals = useMemo(() => {
-    const totals: { [key: string]: { calories: number; protein: number; carbs: number; fat: number } } = {};
-  
-    Object.entries(diaryEntries).forEach(([group, entries]) => {
-      totals[group] = {
-        calories: 0,
-        protein: 0,
-        carbs: 0,
-        fat: 0,
-      };
-  
-      entries.forEach((entry) => {
-        if (entry.type === "food" || entry.type === "exercise") { // ✅ ตรวจสอบว่าเป็น Food หรือ Exercise เท่านั้น
-          totals[group].calories += Number(entry.calories) || 0;
-        }
-  
-        if (entry.type === "food") { // ✅ ตรวจสอบว่าเป็น Food เท่านั้น
-          totals[group].protein += Number(entry.protein) || 0;
-          totals[group].carbs += Number(entry.carbs) || 0;
-          totals[group].fat += Number(entry.fat) || 0;
-        }
-      });
-    });
-  
-    console.log("📊 categoryTotals:", totals); // ✅ ตรวจสอบค่าใน Console
-  
-    return totals;
-  }, [diaryEntries]);
-  
+  const foodTotals = useMemo(() => {
+  const totals: { [key: string]: { calories: number; protein: number; carbs: number; fat: number } } = {};
 
-  // คำนวณ remainingCalories
-  const remainingCalories = dailyCalorieGoal - totals.calories ;
+  Object.entries(diaryEntries).forEach(([group, entries]) => {
+    totals[group] = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+
+    entries.forEach((entry) => {
+      if (entry.type === "food") { // ✅ คำนวณเฉพาะอาหาร
+        totals[group].calories += Number(entry.calories) || 0;
+        totals[group].protein += Number(entry.protein) || 0;
+        totals[group].carbs += Number(entry.carbs) || 0;
+        totals[group].fat += Number(entry.fat) || 0;
+      }
+    });
+  });
+
+  console.log("📊 Food Totals:", totals);
+  return totals;
+}, [diaryEntries]);
+
+const exerciseTotals = useMemo(() => {
+  let totalCaloriesBurned = 0;
+
+  Object.values(diaryEntries).forEach((group) => {
+    group.forEach((entry) => {
+      if (entry.type === "exercise") { // ✅ คำนวณเฉพาะการออกกำลังกาย
+        totalCaloriesBurned += Number(entry.calories) || 0;
+      }
+    });
+  });
+
+  console.log("🔥 Exercise Calories Burned:", totalCaloriesBurned);
+  return totalCaloriesBurned;
+}, [diaryEntries]);
+
+// ✅ คำนวณ remainingCalories
+const totalFoodCalories = Object.values(foodTotals).reduce((acc, group) => acc + group.calories, 0);
+const remainingCalories = dailyCalorieGoal - (totalFoodCalories - exerciseTotals);
+
+console.log("⚖️ Remaining Calories:", remainingCalories);
+
 
   useEffect(() => {
     if (selectedDate) {
@@ -714,10 +723,10 @@ export default function Diary() {
                 <span className="font-semibold">{group}</span>
                 <div className="">
                   <span className="text-sm">
-                    {categoryTotals[group]?.calories ? categoryTotals[group].calories.toFixed(0) : "0"} kcal • 
-                    {categoryTotals[group]?.protein ? categoryTotals[group].protein.toFixed(0) : "0"} g protein • 
-                    {categoryTotals[group]?.carbs ? categoryTotals[group].carbs.toFixed(0) : "0"} g carbs • 
-                    {categoryTotals[group]?.fat ? categoryTotals[group].fat.toFixed(0) : "0"} g fat
+                    {foodTotals[group]?.calories ? foodTotals[group].calories.toFixed(0) : "0"} kcal • 
+                    {foodTotals[group]?.protein ? foodTotals[group].protein.toFixed(0) : "0"} g protein • 
+                    {foodTotals[group]?.carbs ? foodTotals[group].carbs.toFixed(0) : "0"} g carbs • 
+                    {foodTotals[group]?.fat ? foodTotals[group].fat.toFixed(0) : "0"} g fat
                   </span>
                   <button className="mx-[20] " onClick={() => toggleGroup(group)}>
                     {expandedGroups[group] ? <PiCaretDownBold className="rotate-180 transition-transform duration-300" /> : <PiCaretDownBold className="rotate-0 transition-transform duration-300"/>}
@@ -799,6 +808,7 @@ export default function Diary() {
                   totals={totals}
                   burnedCalories={dailyCalorieGoal}  // เป้าหมายแคลอรี่ที่เผาผลาญ
                   remainingCalories={remainingCalories}  // แคลอรี่ที่เหลือ
+                  exerciseTotals={exerciseTotals}
                 />
               </div>
             </div>

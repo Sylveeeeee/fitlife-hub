@@ -21,12 +21,14 @@ interface EnergySummaryProps {
   };
   burnedCalories: number;
   remainingCalories: number;
+  exerciseTotals: number;
 }
 
 const EnergySummary: React.FC<EnergySummaryProps> = ({
   totals,
   burnedCalories,
   remainingCalories,
+  exerciseTotals,
 }) => {
   const [targets, setTargets] = useState<DietGoals | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -66,34 +68,36 @@ const EnergySummary: React.FC<EnergySummaryProps> = ({
 
   // Doughnut chart data for the consumed, burned, and remaining calories
   const energyData = {
-    labels: ["Consumed", "Remaining"],
+    labels:["Net Carbs", "Fat" ,"Protein"], 
     datasets: [
       {
-        data: [totals.calories, remainingCalories],
-        backgroundColor: ["#2a9dca", "#D3D3D3"],
-        hoverBackgroundColor: ["#FF6384", "#D3D3D3"],
+        data: [totals.carbs,totals.fat,totals.protein ],
+        backgroundColor: ["#0de3ff", "#ff4d4d","#30df20"],
+        hoverBackgroundColor: ["#0de3ff", "#ff4d4d","#30df20"],
       },
     ],
+    
   };
 
+  
   const burnedData = {
-    labels: ["Burned", "Remaining"],
+    labels: ["Burned","Exercise"],
     datasets: [
       {
-        data: [burnedCalories, remainingCalories],
-        backgroundColor: ["#ffad41", "#D3D3D3"],
-        hoverBackgroundColor: ["#ffad41", "#D3D3D3"],
+        data: [burnedCalories,exerciseTotals],
+        backgroundColor: ["#ffad41", "#f07f90"],
+        hoverBackgroundColor: ["#ffad41", "#f07f90"],
       },
     ],
   };
 
   const remainingData = {
-    labels: ["Remaining", "Consumed"],
+    labels: ["Consumed","Remaining"],
     datasets: [
       {
-        data: [remainingCalories, totals.calories],
-        backgroundColor: ["#D3D3D3", "#7e7e7e"],
-        hoverBackgroundColor: ["#D3D3D3", "#FF6384"],
+        data: [totals.calories,remainingCalories, ],
+        backgroundColor: ["#7e7e7e","#D3D3D3"],
+        hoverBackgroundColor: ["#7e7e7e", "#D3D3D3"],
       },
     ],
   };
@@ -108,9 +112,9 @@ const EnergySummary: React.FC<EnergySummaryProps> = ({
       <p className="font-bold text-[20px]">Energy Summary</p>
       <div className="grid grid-cols-3 gap-8">
         {/* Left Side: Doughnut Chart for Consumed and Remaining */}
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center justify-center text-center">
           <div className="w-32 h-32 mb-4">
-            <Doughnut data={energyData} />
+            <Doughnut className="flex items-center text-center" data={energyData} />
           </div>
           <p className="text-lg font-semibold">Consumed</p>
           <p className="text-sm text-gray-500">{totals.calories} kcal</p>
@@ -123,7 +127,7 @@ const EnergySummary: React.FC<EnergySummaryProps> = ({
             <Doughnut data={burnedData} />
           </div>
           <p className="text-lg font-semibold">Burned</p>
-          <p className="text-sm text-gray-500">{burnedCalories} kcal</p>
+          <p className="text-sm text-gray-500">{burnedCalories+exerciseTotals} kcal</p>
         </div>
 
         {/* Right Side: Doughnut Chart for Remaining and Consumed */}
@@ -169,7 +173,7 @@ const EnergySummary: React.FC<EnergySummaryProps> = ({
           <p className="">Protein</p>
           <div className="w-full bg-gray-300 rounded h-4 relative">
             <div
-              className="bg-green-500 h-4 rounded"
+              className="bg-[#30df20] h-4 rounded"
               style={progressBarStyle(totals.protein, targets.daily_protein)}
             />
             <div className="absolute inset-0 flex justify-between text-xs px-4">
@@ -192,7 +196,7 @@ const EnergySummary: React.FC<EnergySummaryProps> = ({
           <p className="">Net Carbs</p>
           <div className="w-full bg-gray-300 rounded h-4 relative">
             <div
-              className="bg-blue-500 h-4 rounded"
+              className="bg-[#0de3ff] h-4 rounded"
               style={progressBarStyle(totals.carbs, targets.daily_carbs)}
             />
             <div className="absolute inset-0 flex justify-between text-xs px-4">
@@ -215,7 +219,7 @@ const EnergySummary: React.FC<EnergySummaryProps> = ({
           <p className="">Fat</p>
           <div className="w-full bg-gray-300 rounded h-4 relative">
             <div
-              className="bg-red-500 h-4 rounded"
+              className="bg-[#ff4d4d] h-4 rounded"
               style={progressBarStyle(totals.fat, targets.daily_fat)}
             />
             <div className="absolute inset-0 flex justify-between text-xs px-4">

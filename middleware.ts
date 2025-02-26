@@ -51,5 +51,5 @@ export async function middleware(req: NextRequest) {
 
 // ✅ ให้ Middleware ทำงานเฉพาะ `/admin`, `/website`, และ `/api/auth/protected`
 export const config = {
-  matcher: ["/admin/:path*",  "/dashboard", "/profile", "/posts", "/BMI", "/diary", "/foods", "/NutritionReport", "/tdee", "/api/auth/protected"],
+  matcher: ["/admin/:path*",  "/", "/profile", "/posts", "/BMI", "/diary", "/foods", "/NutritionReport", "/tdee", "/api/auth/protected"],
 };
