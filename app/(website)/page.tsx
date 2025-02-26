@@ -1,5 +1,4 @@
 'use client';
-import { VscDiffAdded } from "react-icons/vsc";
 import Posts from "./components/Posts";
 import WaterTracker from "./components/WaterTracker";
 import Card from "./components/Card";
