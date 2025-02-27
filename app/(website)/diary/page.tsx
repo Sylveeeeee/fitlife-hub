@@ -170,11 +170,9 @@ export default function Diary() {
   
     Object.values(diaryEntries).forEach((group) => {
       group.forEach((entry) => {
-        if (entry.type === "food" || entry.type === "exercise") { // ✅ ตรวจสอบว่าเป็น Food หรือ Exercise เท่านั้น
-          totalValues.calories += Number(entry.calories) || 0;
-        }
-  
+         
         if (entry.type === "food") { // ✅ ตรวจสอบว่าเป็น Food เท่านั้น
+          totalValues.calories += Number(entry.calories) || 0;
           totalValues.protein += Number(entry.protein) || 0;
           totalValues.carbs += Number(entry.carbs) || 0;
           totalValues.fat += Number(entry.fat) || 0;
@@ -193,7 +191,10 @@ export default function Diary() {
     totals[group] = { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
     entries.forEach((entry) => {
-      if (entry.type === "food") { // ✅ คำนวณเฉพาะอาหาร
+      if (entry.type === "exercise" ) { // ✅ ตรวจสอบว่าเป็น Food หรือ Exercise เท่านั้น
+        totals[group].calories -= Number(entry.calories) || 0;
+      }
+      if (entry.type === "food" ) { // ✅ คำนวณเฉพาะอาหาร
         totals[group].calories += Number(entry.calories) || 0;
         totals[group].protein += Number(entry.protein) || 0;
         totals[group].carbs += Number(entry.carbs) || 0;
@@ -628,7 +629,10 @@ console.log("⚖️ Remaining Calories:", remainingCalories);
       }
   
       console.log("✅ Biometric data added successfully!", responseData);
-  
+      if (typeof window !== "undefined") {
+        const event = new Event("updateDietGoals");
+        window.dispatchEvent(event);
+      }
       setDiaryEntries((prevEntries) => {
         const updatedEntries = { ...prevEntries };
         updatedEntries["Biometric"] = [
@@ -735,71 +739,69 @@ console.log("⚖️ Remaining Calories:", remainingCalories);
               </div>
 
               {/* ✅ แสดงรายการอาหาร, ออกกำลังกาย และค่าชีวภาพ */}
-{expandedGroups[group] && diaryEntries[group].map((entry, index) => (
-  <div  
-    key={index}
-    onContextMenu={(e) => {
-      e.preventDefault();
-      setItemToDelete({ 
-        group, 
-        index, 
-        name: entry.type === "exercise" 
-          ? entry.exercise.name 
-          : entry.type === "food" 
-            ? entry.food.name // ✅ ใช้ entry.food.name เพื่อแสดงชื่ออาหาร
-            : entry.name // ✅ รองรับ BiometricEntry
-      });
-      setIsDeleteModalOpen(true);
-    }}
-    className="flex justify-between px-[10] py-[2] text-sm border-b cursor-pointer hover:bg-gray-100"
-  >
-    <div className="flex items-center">
-      <span className="mr-2">
-        {entry.type === "exercise" ? "💪🏼" : entry.type === "biometric" ? "🧬" : "🍎"}
-      </span>
-      <span>
-        {entry.type === "exercise" 
-          ? entry.exercise.name 
-          : entry.type === "food" 
-            ? entry.food.name  // ✅ ใช้ entry.food.name เพื่อแสดงชื่ออาหาร
-            : entry.name}
-      </span>
-    </div>
-    <div className="flex space-x-4">
-      {/* ✅ แยก FoodEntry, ExerciseEntry และ BiometricEntry ออกจากกัน */}
-      {entry.type === "exercise" ? (
-        <>
-          <span>{entry.duration} min</span>
-          <span>{entry.calories.toFixed(2)} kcal</span>
-        </>
-      ) : entry.type === "biometric" ? (
-        <>
-          <span>{entry.value} {entry.unit}</span> {/* ✅ แสดงค่าชีวภาพ */}
-        </>
-      ) : (
-        <>
-          {editingEntry?.group === group && editingEntry?.index === index ? (
-            <input
-              type="number"
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value === "" ? "" : parseFloat(e.target.value))}
-              onKeyDown={(e) => e.key === "Enter" && saveEdit()}
-              className="w-16 border border-gray-400 rounded px-2 py-1 text-right"
-              autoFocus
-            />
-          ) : (
-            <span onClick={() => startEditing(group, index, entry.servingSize!)} className="cursor-pointer">
-              {entry.servingSize} {entry.unit || "g"}
-            </span>
-          )}
-          <span>{Number(entry.calories).toFixed(2)} kcal</span>
-        </>
-      )}
-    </div>
-  </div>
-))}
-
-
+              {expandedGroups[group] && diaryEntries[group].map((entry, index) => (
+                <div  
+                  key={index}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setItemToDelete({ 
+                      group, 
+                      index, 
+                      name: entry.type === "exercise" 
+                        ? entry.exercise.name 
+                        : entry.type === "food" 
+                          ? entry.food.name // ✅ ใช้ entry.food.name เพื่อแสดงชื่ออาหาร
+                          : entry.name // ✅ รองรับ BiometricEntry
+                    });
+                    setIsDeleteModalOpen(true);
+                  }}
+                  className="flex justify-between px-[10] py-[2] text-sm border-b cursor-pointer hover:bg-gray-100"
+                >
+                  <div className="flex items-center">
+                    <span className="mr-2">
+                      {entry.type === "exercise" ? "💪🏼" : entry.type === "biometric" ? "🧬" : "🍎"}
+                    </span>
+                    <span>
+                      {entry.type === "exercise" 
+                        ? entry.exercise.name 
+                        : entry.type === "food" 
+                          ? entry.food.name  // ✅ ใช้ entry.food.name เพื่อแสดงชื่ออาหาร
+                          : entry.name}
+                    </span>
+                  </div>
+                  <div className="flex space-x-4">
+                    {/* ✅ แยก FoodEntry, ExerciseEntry และ BiometricEntry ออกจากกัน */}
+                    {entry.type === "exercise" ? (
+                      <>
+                        <span>{entry.duration} min</span>
+                        <span>{entry.calories.toFixed(2)} kcal</span>
+                      </>
+                    ) : entry.type === "biometric" ? (
+                      <>
+                        <span>{entry.value} {entry.unit}</span> {/* ✅ แสดงค่าชีวภาพ */}
+                      </>
+                    ) : (
+                      <>
+                        {editingEntry?.group === group && editingEntry?.index === index ? (
+                          <input
+                            type="number"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value === "" ? "" : parseFloat(e.target.value))}
+                            onKeyDown={(e) => e.key === "Enter" && saveEdit()}
+                            className="w-16 border border-gray-400 rounded px-2 py-1 text-right"
+                            autoFocus
+                          />
+                        ) : (
+                          <span onClick={() => startEditing(group, index, entry.servingSize!)} className="cursor-pointer">
+                            {entry.servingSize} {entry.unit || "g"}
+                          </span>
+                        )}
+                        <span>{Number(entry.calories).toFixed(2)} kcal</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           ))}
             <div>

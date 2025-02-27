@@ -19,17 +19,37 @@ async function verifyUser(req: Request) {
   }
 }
 
-// ✅ GET: ดึงข้อมูล Biometric
+// ✅ GET: ดึงข้อมูล Biometric ตามวันที่
 export async function GET(req: Request) {
   const user = await verifyUser(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const biometrics = await prisma.biometric.findMany({
-    where: { userId: user.userId },
-    orderBy: { createdAt: "desc" },
-  });
+  const url = new URL(req.url);
+  const date = url.searchParams.get("date");
 
-  return NextResponse.json(biometrics);
+  if (!date) {
+    return NextResponse.json({ error: "Date is required" }, { status: 400 });
+  }
+
+  try {
+    const biometricEntries = await prisma.biometricEntry.findMany({
+      where: { userId: user.userId, recordedAt: date },
+      include: { metric: true, category: true },
+      orderBy: { recordedAt: "asc" },
+    });
+
+    const formattedData = biometricEntries.map((entry) => ({
+      label: entry.metric.name,
+      value: entry.value,
+      category: entry.category.name,
+      recordedAt: entry.recordedAt,
+    }));
+
+    return NextResponse.json({ data: formattedData }, { status: 200 });
+  } catch (error) {
+    console.error("❌ Error fetching biometric entries:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 // ✅ POST: เพิ่มข้อมูล Biometric

@@ -54,10 +54,8 @@ export async function GET(req: Request) {
         id: true,
         email: true,
         username: true,
-         
         age: true,
         sex: true,
-        weight: true,
         height: true,
         activity_level: true,
         diet_goal: true,
@@ -68,7 +66,19 @@ export async function GET(req: Request) {
       return NextResponse.json({ message: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json(user);
+    // ✅ ดึงน้ำหนักล่าสุดจาก BiometricEntry
+    const latestWeightEntry = await prisma.biometricEntry.findFirst({
+      where: { userId: Number(userId), metric: { name: "Weight" } },
+      orderBy: {  createdAt: "desc" }, // ดึงค่าล่าสุด
+      select: { value: true, unit: true, recordedAt: true },
+    });
+
+    return NextResponse.json({
+      ...user,
+      weight: latestWeightEntry?.value || null, // ถ้าไม่มีค่า ให้เป็น null
+      weightUnit: latestWeightEntry?.unit || "kg",
+      weightRecordedAt: latestWeightEntry?.recordedAt || null,
+    });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ message: 'Unauthorized: Invalid token' }, { status: 401 });

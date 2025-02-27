@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import {prisma} from "@/lib/prisma";
 import jwt from "jsonwebtoken";
+import { getUserProfile } from '@/lib/userService';
+import { calculateTDEE, calculateMacroTargets } from '@/utils/calculations';
 
 // ✅ ฟังก์ชันตรวจสอบสิทธิ์ผู้ใช้
 async function verifyUser(req: Request) {
@@ -84,21 +86,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // ✅ ตรวจสอบว่า categoryId มีอยู่ในฐานข้อมูลหรือไม่
-    const categoryExists = await prisma.biometricCategory.findUnique({
-      where: { id: categoryId },
-    });
-
+    // ✅ ตรวจสอบ categoryId และ metricId ในฐานข้อมูล
+    const categoryExists = await prisma.biometricCategory.findUnique({ where: { id: categoryId } });
     if (!categoryExists) {
       console.error("🚨 Invalid categoryId:", categoryId);
       return NextResponse.json({ error: "Invalid category ID" }, { status: 400 });
     }
 
-    // ✅ ตรวจสอบว่า metricId มีอยู่ในฐานข้อมูลหรือไม่
-    const metricExists = await prisma.biometricMetric.findUnique({
-      where: { id: metricId },
-    });
-
+    const metricExists = await prisma.biometricMetric.findUnique({ where: { id: metricId } });
     if (!metricExists) {
       console.error("🚨 Invalid metricId:", metricId);
       return NextResponse.json({ error: "Invalid metric ID" }, { status: 400 });
@@ -106,7 +101,7 @@ export async function POST(req: Request) {
 
     console.log("📅 Date received:", date);
 
-    // ✅ บันทึกข้อมูลลงในฐานข้อมูล
+    // ✅ บันทึกข้อมูล Biometric Entry ลงฐานข้อมูล
     const newEntry = await prisma.biometricEntry.create({
       data: {
         userId: user.userId,
@@ -119,7 +114,63 @@ export async function POST(req: Request) {
     });
 
     console.log("✅ Successfully added biometric entry:", newEntry);
-    return NextResponse.json(newEntry, { status: 201 });
+    
+    // ✅ ถ้า metricId เป็น "น้ำหนัก" ให้ปรับ users.weight
+    if (unit === "kg") {
+      await prisma.users.update({
+        where: { id: user.userId },
+        data: { weight: parseFloat(value) },
+      });
+      console.log(`✅ Updated user weight to ${value} kg`);
+    }
+
+    // ✅ ดึงข้อมูลโปรไฟล์ผู้ใช้จาก userService หลังจากอัปเดตน้ำหนัก
+    const userProfile = await getUserProfile(user.userId);
+
+    if (!userProfile) {
+      return NextResponse.json({ error: "User profile not found" }, { status: 404 });
+    }
+
+    // ✅ คำนวณ TDEE และเป้าหมายโภชนาการ โดยใช้ค่าที่อัปเดตล่าสุด
+    const formattedProfile = {
+      weight: userProfile.weight ?? 70, // ใช้ค่าที่อัปเดตแล้ว
+      height: userProfile.height ?? 170, 
+      age: userProfile.age ?? 25, 
+      sex: userProfile.sex ?? "male",
+      activityLevel: userProfile.activity_level || "sedentary",
+    };
+
+    const tdee = calculateTDEE(formattedProfile);
+    const { protein, carbs, fat } = calculateMacroTargets(tdee);
+
+    // ✅ ใช้ upsert เพื่อเพิ่มหรืออัปเดต diet_goals
+    const updatedGoals = await prisma.diet_goals.upsert({
+      where: { user_id: user.userId },
+      update: {
+        daily_calories: tdee,
+        daily_protein: protein,
+        daily_carbs: carbs,
+        daily_fat: fat,
+        updated_at: new Date(),
+      },
+      create: {
+        user_id: user.userId,
+        daily_calories: tdee,
+        daily_protein: protein,
+        daily_carbs: carbs,
+        daily_fat: fat,
+      },
+    });
+
+    console.log("✅ Updated diet goals:", updatedGoals);
+
+    return NextResponse.json(
+      {
+        biometricEntry: newEntry,
+        updatedDietGoals: updatedGoals,
+      },
+      { status: 201 }
+    );
 
   } catch (error) {
     console.error("❌ Database error:", error);

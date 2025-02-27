@@ -5,8 +5,31 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import DietGoalCalculation from "../components/DietGoalCalculation";
 import Link from "next/link";
+import AddBiometricToDiary from "../components/AddBiometricToDiary";
+
+interface BiometricMetric {
+  id: number;
+  name: string;
+  unit: string;
+  categoryId: number;
+}
+
+interface BiometricEntry {
+  userId?: number;
+  id: number;
+  type: "biometric";
+  name: string;
+  value: number;
+  unit: string;
+  date: string; // ✅ วันที่ที่บันทึก
+  categoryId: number;  // เพิ่ม categoryId ใน BiometricEntry
+  metricId: number;    // เพิ่ม metricId ใน BiometricEntry
+  biometric: BiometricMetric; // ✅ เชื่อมโยงกับ `BiometricMetric`
+}
 
 export default function Profile() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const [profile, setProfile] = useState({
     email: "",
     username: "",
@@ -21,7 +44,43 @@ export default function Profile() {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(true);
   const [successMessage, setSuccessMessage] = useState("");
+  const [selectedDate, ] = useState(new Date()); // ✅ ใช้วันที่ปัจจุบัน
+  const [, setBiometricEntries] = useState<BiometricEntry[]>([]);
+  const [isFromUpdate, setIsFromUpdate] = useState(false); // ✅ บอกว่า Modal ถูกเปิดจากปุ่ม Update หรือไม่
 
+  const handleAddBiometric = async (newEntry: BiometricEntry) => {
+    try {
+      const response = await fetch("/api/auth/biometric", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: newEntry.userId,
+          categoryId: newEntry.categoryId,
+          metricId: newEntry.metricId,
+          value: newEntry.value,
+          unit: newEntry.unit,
+          recordedAt: newEntry.date,
+        }),
+      });
+  
+      if (response.ok) {
+        const savedEntry = await response.json();
+        setProfile((prevProfile) => ({
+          ...prevProfile,
+          weight: savedEntry.data.value, // ✅ อัปเดตน้ำหนักที่เพิ่งบันทึก
+        }));
+        setIsModalOpen(false); // ✅ ปิด Modal
+      } else {
+        alert("Failed to save data.");
+      }
+    } catch (error) {
+      console.error("Error saving biometric:", error);
+      alert("Error saving data.");
+    }
+    setIsFromUpdate(isFromUpdate); // ✅ ตั้งค่าเมื่อกดปุ่ม Update
+    setBiometricEntries((prevEntries) => [...prevEntries, newEntry]); // ✅ อัปเดตรายการ  
+  };
+  
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -90,6 +149,11 @@ export default function Profile() {
       if (response.ok) {
         toast.success("Profile updated successfully!", { autoClose: 3000 });
         setSuccessMessage("✔ Profile updated successfully!");
+
+        if (typeof window !== "undefined") {
+          const event = new Event("updateDietGoals");
+          window.dispatchEvent(event);
+        }
       } else {
         throw new Error(data.message || "Failed to save profile");
       }
@@ -159,16 +223,30 @@ export default function Profile() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium">Weight (kg)</label>
+          <label className="block text-sm font-medium">Weight (kg)</label>
+          <div className="flex items-center">
             <input
               type="number"
               name="weight"
               value={profile.weight}
               onChange={handleInputChange}
               className="mt-1 w-full p-2 border rounded"
-              disabled={!isEditing}
-            />
+              disabled={isEditing} 
+            />            
           </div>
+
+          {/* ✅ Modal เพิ่มน้ำหนัก */}
+          {isModalOpen && (
+            <AddBiometricToDiary
+              isOpen={isModalOpen}
+              closeModal={() => setIsModalOpen(false)}
+              selectedDate={selectedDate}
+              onAdd={handleAddBiometric} // ✅ เพิ่มข้อมูลใหม่ลงใน State
+              onBiometricAdded={() => console.log("Biometric added!")}
+              isFromUpdate={true} // ✅ ส่งค่า isFromUpdate = true
+            />
+          )}
+        </div>
           <div>
             <label className="block text-sm font-medium">Height (cm)</label>
             <input

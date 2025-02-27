@@ -33,7 +33,7 @@ export default function Home() {
               
             </div>
           </div>
-          <BiometricChart initialDate="" /> {/* กำหนด initialDate ที่คุณต้องการ */}
+          <BiometricChart initialDate={new Date().toISOString().split("T")[0]} />
 
           <Posts />
           <div className="flex space-x-4">

@@ -15,6 +15,7 @@ interface BiometricCategory {
 }
 
 interface BiometricEntry {
+
   id: number;
   type: "biometric";
   name: string;
@@ -32,6 +33,8 @@ interface AddBiometricToDiaryProps {
   selectedDate: Date;
   onAdd: (biometric: BiometricEntry) => Promise<void>; // ✅ เพิ่ม prop ที่ถูกต้อง
   onBiometricAdded: () => void;
+  isFromUpdate?: boolean; // ✅ ทำให้เป็น Optional
+  onResetFocusFlag?: () => void; // callback เพื่อรีเซ็ต flag หลังโฟกัส
 }
 
 const AddBiometricToDiary: React.FC<AddBiometricToDiaryProps> = ({
@@ -40,6 +43,7 @@ const AddBiometricToDiary: React.FC<AddBiometricToDiaryProps> = ({
   selectedDate,
   onAdd,
   onBiometricAdded,
+  isFromUpdate = false,
 }) => {
   const [categories, setCategories] = useState<BiometricCategory[]>([]);
   const [metrics, setMetrics] = useState<BiometricMetric[]>([]);
@@ -54,6 +58,22 @@ const AddBiometricToDiary: React.FC<AddBiometricToDiaryProps> = ({
     if (isOpen) fetchCategories();
   }, [isOpen]);
 
+  useEffect(() => {
+    if (isFromUpdate) {
+      const weightCategory = categories.find((c) => c.name === "Body");
+      if (weightCategory) {
+        setSelectedCategory(weightCategory);
+        fetchMetrics(weightCategory.id).then(() => {
+          const weightMetric = metrics.find((m) => m.name === "Weight");
+          if (weightMetric) {
+            setSelectedMetric(weightMetric);
+          }
+        });
+      }
+    }
+  }, [isFromUpdate, categories, metrics]);
+  
+  
   const fetchCategories = async () => {
     try {
       const response = await fetch("/api/auth/biometric/categories");

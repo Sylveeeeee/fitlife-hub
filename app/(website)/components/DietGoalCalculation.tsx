@@ -10,15 +10,11 @@ interface DietGoals {
 }
 
 export default function DietGoalCalculation() {
-  const [loading, setLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [dietGoalsData, setDietGoalsData] = useState<DietGoals | null>(null);
 
   // ✅ คำนวณและบันทึกเป้าหมายอาหารของผู้ใช้
   const calculateAndSaveDietGoals = async () => {
-    setLoading(true);
-    setSuccessMessage(null);
     setErrorMessage(null);
 
     try {
@@ -57,12 +53,10 @@ export default function DietGoalCalculation() {
 
       const dietGoalsData = await dietGoalsResponse.json();
       setDietGoalsData(dietGoalsData); // ✅ เก็บข้อมูลใน `state`
-      setSuccessMessage("✅ Diet goals successfully updated!");
     } catch (error) {
       console.error("❌ Error:", error);
       setErrorMessage("❌ An error occurred while calculating diet goals.");
     } finally {
-      setLoading(false);
     }
   };
 
@@ -90,6 +84,17 @@ export default function DietGoalCalculation() {
   // ✅ ดึงค่าเป้าหมายอาหารเมื่อ Component โหลด
   useEffect(() => {
     fetchDietGoals();
+
+    // ✅ ดักฟัง Event `updateDietGoals` แล้วเรียก API ใหม่
+    const handleUpdateDietGoals = () => {
+      calculateAndSaveDietGoals();
+    };
+
+    window.addEventListener("updateDietGoals", handleUpdateDietGoals);
+
+    return () => {
+      window.removeEventListener("updateDietGoals", handleUpdateDietGoals);
+    };
   }, []);
 
   return (
@@ -97,7 +102,6 @@ export default function DietGoalCalculation() {
       <h2 className="text-center text-xl font-bold mb-4">Diet Goal Calculation</h2>
 
       {/* ✅ แสดงข้อความแจ้งเตือน */}
-      {successMessage && <p className="text-green-600 text-center">{successMessage}</p>}
       {errorMessage && <p className="text-red-600 text-center">{errorMessage}</p>}
 
       {/* ✅ แสดงข้อมูล Diet Goals ถ้ามี */}
@@ -112,16 +116,7 @@ export default function DietGoalCalculation() {
         <p className="text-center text-gray-500">No diet goals set. Click the button below to calculate.</p>
       )}
 
-      {/* ✅ ปุ่มคำนวณใหม่ */}
-      <div className="text-center mt-6">
-        <button
-          onClick={calculateAndSaveDietGoals}
-          disabled={loading}
-          className="bg-black text-white px-6 py-2 rounded hover:bg-gray-900 disabled:bg-gray-400"
-        >
-          {loading ? "Calculating..." : "Calculate Diet Goals"}
-        </button>
-      </div>
+      
     </div>
   );
 }
