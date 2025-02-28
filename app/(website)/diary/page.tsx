@@ -77,7 +77,10 @@ export default function Diary() {
   const [isExerciseModalOpen, setIsExerciseModalOpen] = useState(false); // ✅ State เปิด/ปิด Exercise Modal
   const [isBiometricModalOpen, setIsBiometricModalOpen] = useState(false); // ✅ State เปิด/ปิด Biometric Modal
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date()); // ✅ ให้แน่ใจว่า selectedDate เป็น Date object
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = new Date();
+    return new Date(today.getFullYear(), today.getMonth(), today.getDate()); // ✅ ตั้งให้เป็นแค่วัน
+  });
   const [expandedGroups, setExpandedGroups] = useState<{ [key: string]: boolean }>({});
   const [editingEntry, setEditingEntry] = useState<{ group: string; index: number } | null>(null);
   const [editValue, setEditValue] = useState<number | "">(""); // ใช้ "" เพื่อให้รองรับ input ที่ว่าง
@@ -229,34 +232,38 @@ const remainingCalories = dailyCalorieGoal - (totalFoodCalories - exerciseTotals
 console.log("⚖️ Remaining Calories:", remainingCalories);
 
 
-  useEffect(() => {
-    if (selectedDate) {
-      const formattedDate = selectedDate.toISOString().split("T")[0];
-      getDiaryEntries(formattedDate);
+const fetchDailyCalorieGoal = async () => {
+  try {
+    const response = await fetch("/api/auth/diet-goals", {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include", // ใช้ cookies
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch diet goals.");
     }
-    // ฟังก์ชั่น fetch สำหรับดึงค่า dailyCalorieGoal จาก API หรือแหล่งข้อมูลอื่นๆ
-    const fetchDailyCalorieGoal = async () => {
-      try {
-        const response = await fetch("/api/auth/diet-goals", {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include", // ใช้ cookies
-        });
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch diet goals.");
-        }
+    const data = await response.json();
+    setDailyCalorieGoal(data.daily_calories); // อัปเดตค่า dailyCalorieGoal
+  } catch (error) {
+    console.error("Error fetching daily calorie goal:", error);
+    setDailyCalorieGoal(2000); // กำหนดค่า default หากเกิดข้อผิดพลาด
+  }
+};
 
-        const data = await response.json();
-        setDailyCalorieGoal(data.daily_calories); // เซ็ตค่า dailyCalorieGoal จาก API
-      } catch (error) {
-        console.error("Error fetching daily calorie goal:", error);
-        setDailyCalorieGoal(2000); // กำหนดค่า default หากไม่สามารถดึงข้อมูลได้
-      }
-    };
-
-    fetchDailyCalorieGoal(); // เรียกใช้ฟังก์ชั่นดึงข้อมูล
-  }, [selectedDate]); // เรียกใช้เมื่อ component ถูก mount
+// ✅ เรียกใช้ใน useEffect
+useEffect(() => {
+  if (selectedDate) {
+    console.log("📅 Fetching Diary for Date:", selectedDate);
+    
+    const formattedDate = selectedDate.toLocaleDateString("en-CA"); // ✅ ใช้ local date
+    console.log("📅 Formatted Date (Local Time):", formattedDate);
+    
+    getDiaryEntries(formattedDate);
+  }
+  fetchDailyCalorieGoal();
+}, [selectedDate]);
 
   const openModal = () => setIsModalOpen(true);
   const closeModal = () => setIsModalOpen(false);
@@ -267,7 +274,7 @@ console.log("⚖️ Remaining Calories:", remainingCalories);
       return;
     }
   
-    const formattedDate = selectedDate.toISOString().split("T")[0];
+    const formattedDate = selectedDate.toLocaleDateString("en-CA");
   
     // ✅ แปลง Food เป็น FoodEntry ถ้ายังไม่ได้แปลง
     const foodEntry: FoodEntry =
@@ -398,15 +405,13 @@ console.log("⚖️ Remaining Calories:", remainingCalories);
     }
   };
   
-  
-  
   const handleRemoveItem = async () => {
     if (!itemToDelete || !(selectedDate instanceof Date) || isNaN(selectedDate.getTime())) {
       console.error("❌ Invalid data for deletion:", itemToDelete, selectedDate);
       return;
     }
   
-    const formattedDate = selectedDate.toISOString().split("T")[0];
+    const formattedDate = selectedDate.toLocaleDateString("en-CA");
     const entry = diaryEntries[itemToDelete.group]?.[itemToDelete.index];
   
     if (!entry) {
@@ -447,7 +452,16 @@ console.log("⚖️ Remaining Calories:", remainingCalories);
   
       console.log("✅ Entry deleted successfully!", entry);
   
-      // ✅ อัปเดต UI โดยไม่ต้องโหลด API ใหม่
+      if (typeof window !== "undefined") {
+        const event = new Event("updateDietGoals");
+        window.dispatchEvent(event);
+      }
+
+      if (response.ok) {
+        await fetchDailyCalorieGoal();
+        await getDiaryEntries(selectedDate?.toLocaleDateString("en-CA"));
+      }
+            // ✅ อัปเดต UI โดยไม่ต้องโหลด API ใหม่
       setDiaryEntries((prevEntries) => {
         const updatedEntries = { ...prevEntries };
         updatedEntries[itemToDelete.group] = updatedEntries[itemToDelete.group]?.filter((_, idx) => idx !== itemToDelete.index) || [];
@@ -471,7 +485,7 @@ console.log("⚖️ Remaining Calories:", remainingCalories);
   };
   const handleFoodAdded = (mealType: string) => {
     
-    const date = selectedDate.toISOString().split("T")[0];
+    const date = selectedDate.toLocaleDateString("en-CA");
   
     getDiaryEntries(date); // ✅ โหลดข้อมูลใหม่
   
@@ -520,7 +534,7 @@ console.log("⚖️ Remaining Calories:", remainingCalories);
         exerciseId: exercise.id,
         duration,
         caloriesBurned: estimatedCaloriesBurned,
-        date: selectedDate.toISOString().split("T")[0], // ใช้ selectedDate ที่เลือก
+        date: selectedDate.toLocaleDateString("en-CA"), // ใช้ selectedDate ที่เลือก
       });
   
       const response = await fetch(`/api/auth/exercise`, {
@@ -531,7 +545,7 @@ console.log("⚖️ Remaining Calories:", remainingCalories);
           exerciseId: exercise.id,
           duration,
           caloriesBurned: estimatedCaloriesBurned,
-          date: selectedDate.toISOString().split("T")[0], // ใช้ selectedDate ที่เลือก
+          date: selectedDate.toLocaleDateString("en-CA"), // ใช้ selectedDate ที่เลือก
         }),
       });
   
@@ -590,8 +604,9 @@ console.log("⚖️ Remaining Calories:", remainingCalories);
   
       // ✅ ตรวจสอบ selectedDate และตั้งค่า default หากไม่มี
       const formattedDate = selectedDate instanceof Date && !isNaN(selectedDate.getTime()) 
-        ? selectedDate.toISOString().split("T")[0] 
-        : new Date().toISOString().split("T")[0];
+        ? selectedDate.toLocaleDateString("en-CA") 
+        : new Date().toLocaleDateString("en-CA");
+  
   
       // ✅ สร้าง request body ตามข้อมูลใน `biometric`
       const requestBody = {
@@ -633,6 +648,12 @@ console.log("⚖️ Remaining Calories:", remainingCalories);
         const event = new Event("updateDietGoals");
         window.dispatchEvent(event);
       }
+
+      if (response.ok) {
+        await fetchDailyCalorieGoal();
+        await getDiaryEntries(selectedDate?.toLocaleDateString("en-CA"));
+      }
+
       setDiaryEntries((prevEntries) => {
         const updatedEntries = { ...prevEntries };
         updatedEntries["Biometric"] = [
@@ -684,14 +705,14 @@ console.log("⚖️ Remaining Calories:", remainingCalories);
         closeModal={() => setIsExerciseModalOpen(false)}
         selectedDate={selectedDate}
         onAdd={handleAddExerciseToDiary}
-        onExerciseAdded={() => getDiaryEntries(selectedDate.toISOString().split("T")[0])}
+        onExerciseAdded={() => getDiaryEntries(selectedDate.toLocaleDateString("en-CA"))}
       />
       <AddBiometricToDiary
         isOpen={isBiometricModalOpen}
         closeModal={() => setIsBiometricModalOpen(false)}
         selectedDate={selectedDate}
         onAdd={handleAddBiometricToDiary}
-        onBiometricAdded={() => getDiaryEntries(selectedDate.toISOString().split("T")[0])}
+        onBiometricAdded={() => getDiaryEntries(selectedDate.toLocaleDateString("en-CA"))}
       />
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen && !!itemToDelete}
@@ -845,6 +866,10 @@ console.log("⚖️ Remaining Calories:", remainingCalories);
                 selectedDate={selectedDate} // ✅ ส่ง selectedDate
                 setSelectedDate={setSelectedDate}
                   onChange={(date) => {
+                    console.log("📅 Selected Date:", date);
+                    console.log("📅 ISO String:", date.toISOString()); // ✅ ตรวจสอบค่า UTC
+                    console.log("📅 Local Date String:", date.toLocaleDateString("en-CA"));
+                    setSelectedDate(date as Date);
                     setSelectedDate(date as Date);
                     setIsCalendarOpen(false); // ✅ ปิดปฏิทินเมื่อเลือกวัน
                   }}

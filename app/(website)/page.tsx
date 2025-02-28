@@ -4,7 +4,7 @@ import WaterTracker from "./components/WaterTracker";
 import Card from "./components/Card";
 import Link from "next/link";
 import BiometricChart from "./components/BiometricChart";
-
+import EnergyHistoryChart from "./components/EnergyHistoryChart"
 
 export default function Home() {
     return (
@@ -33,7 +33,10 @@ export default function Home() {
               
             </div>
           </div>
-          <BiometricChart initialDate={new Date().toISOString().split("T")[0]} />
+          < div className="flex justify-between">
+          <BiometricChart />
+          <EnergyHistoryChart />
+          </div>
 
           <Posts />
           <div className="flex space-x-4">

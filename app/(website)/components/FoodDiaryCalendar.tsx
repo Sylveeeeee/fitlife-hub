@@ -35,15 +35,19 @@ const FoodDiaryCalendar: React.FC<FoodDiaryCalendarProps> = ({ selectedDate, set
   
   return (
     <Calendar
-      onChange={(date) => setSelectedDate(date as Date)}
-      value={selectedDate}
-      tileClassName={({ date, view }) => {
-        if (view === "month") {
-          const dateString = date.toISOString().split("T")[0];
-          return foodDiaryDates.has(dateString) ? "food-day" : "";
-        }
-      }}
-    />
+    onChange={(date) => {
+      console.log("📅 Date selected from Calendar:", date);
+      setSelectedDate(date as Date);
+    }}    
+  value={selectedDate}
+  tileClassName={({ date, view }) => {
+    if (view === "month") {
+      const dateString = date.toLocaleDateString("en-CA"); // ✅ ใช้ local date string
+      return foodDiaryDates.has(dateString) ? "food-day" : "";
+    }
+  }}
+/>
+
   );
 };
 

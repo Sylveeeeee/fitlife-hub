@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import jwt from "jsonwebtoken";
+import { calculateMacroTargets, calculateTDEE } from "@/utils/calculations";
+import { getUserProfile } from "@/lib/userService";
+const WEIGHT_METRIC_ID = 1; // กำหนด metricId สำหรับน้ำหนัก
 
 // ✅ ฟังก์ชันตรวจสอบสิทธิ์ผู้ใช้
 async function verifyUser(req: NextRequest) {
@@ -199,45 +202,33 @@ export async function DELETE(req: NextRequest, context: { params: { date?: strin
       });
 
       if (!existingFoodEntry) {
-        console.log("🚨 Food entry not found:", { userId: user.userId, date, mealType: meal_type, foodId: food_id });
         return NextResponse.json({ error: "Food entry not found" }, { status: 404 });
       }
 
       // ✅ ใช้ Transaction ลบอาหารออกจากไดอารี่
       await prisma.$transaction([
-        prisma.foodDiary.delete({
-          where: { id: existingFoodEntry.id },
-        }),
+        prisma.foodDiary.delete({ where: { id: existingFoodEntry.id } }),
         prisma.foods.update({
           where: { id: food_id },
           data: { added_count: { decrement: 1 } },
         }),
       ]);
 
-      console.log("✅ Food entry deleted:", existingFoodEntry);
       return NextResponse.json({ message: "Food entry deleted successfully" }, { status: 200 });
     }
 
     // ✅ ลบรายการออกกำลังกายจากไดอารี่
     if (exercise_id) {
       const existingExerciseEntry = await prisma.userExerciseDiary.findFirst({
-        where: {
-          userId: user.userId,
-          date: date,
-          exerciseId: exercise_id,
-        },
+        where: { userId: user.userId, date: date, exerciseId: exercise_id },
       });
 
       if (!existingExerciseEntry) {
-        console.log("🚨 Exercise entry not found:", { userId: user.userId, date, exerciseId: exercise_id });
         return NextResponse.json({ error: "Exercise entry not found" }, { status: 404 });
       }
 
-      await prisma.userExerciseDiary.delete({
-        where: { id: existingExerciseEntry.id },
-      });
+      await prisma.userExerciseDiary.delete({ where: { id: existingExerciseEntry.id } });
 
-      console.log("✅ Exercise entry deleted:", existingExerciseEntry);
       return NextResponse.json({ message: "Exercise entry deleted successfully" }, { status: 200 });
     }
 
@@ -248,15 +239,70 @@ export async function DELETE(req: NextRequest, context: { params: { date?: strin
       });
 
       if (!existingBiometricEntry) {
-        console.log("🚨 Biometric entry not found:", { userId: user.userId, biometric_id });
         return NextResponse.json({ error: "Biometric entry not found" }, { status: 404 });
       }
 
-      await prisma.biometricEntry.delete({
-        where: { id: biometric_id },
-      });
+      // ✅ ลบค่าชีวภาพจากฐานข้อมูล
+      await prisma.biometricEntry.delete({ where: { id: biometric_id } });
 
-      console.log("✅ Biometric entry deleted:", existingBiometricEntry);
+      // ✅ ถ้าค่าที่ถูกลบเป็น "น้ำหนัก" ให้ดึงค่าล่าสุดจาก biometricEntry
+      if (existingBiometricEntry.metricId === WEIGHT_METRIC_ID) {
+        console.log(`✅ Weight entry deleted, updating latest weight for user ${user.userId}`);
+
+        // ✅ ดึงน้ำหนักล่าสุด
+        const latestWeightEntry = await prisma.biometricEntry.findFirst({
+          where: { userId: user.userId, metricId: WEIGHT_METRIC_ID },
+          orderBy: { recordedAt: "desc" },
+        });
+
+        const latestWeight = latestWeightEntry ? parseFloat(String(latestWeightEntry.value)) : null;
+
+        // ✅ อัปเดต users.weight ถ้ามีค่าล่าสุด
+        if (latestWeight !== null) {
+          await prisma.users.update({
+            where: { id: user.userId },
+            data: { weight: latestWeight },
+          });
+          console.log(`✅ Updated user weight to latest: ${latestWeight} kg`);
+
+          // ✅ คำนวณ TDEE ใหม่
+          const userProfile = await getUserProfile(user.userId);
+          if (userProfile) {
+            const formattedProfile = {
+              weight: latestWeight ?? userProfile.weight ?? 70, // ใช้ค่าน้ำหนักที่อัปเดต
+              height: userProfile.height ?? 170,
+              age: userProfile.age ?? 25,
+              sex: userProfile.sex ?? "male",
+              activityLevel: userProfile.activity_level || "sedentary",
+            };
+
+            const tdee = calculateTDEE(formattedProfile);
+            const { protein, carbs, fat } = calculateMacroTargets(tdee);
+
+            // ✅ อัปเดต diet_goals
+            const updatedGoals = await prisma.diet_goals.upsert({
+              where: { user_id: user.userId },
+              update: {
+                daily_calories: tdee,
+                daily_protein: protein,
+                daily_carbs: carbs,
+                daily_fat: fat,
+                updated_at: new Date(),
+              },
+              create: {
+                user_id: user.userId,
+                daily_calories: tdee,
+                daily_protein: protein,
+                daily_carbs: carbs,
+                daily_fat: fat,
+              },
+            });
+
+            console.log("✅ Updated diet goals:", updatedGoals);
+          }
+        }
+      }
+
       return NextResponse.json({ message: "Biometric entry deleted successfully" }, { status: 200 });
     }
 
@@ -265,5 +311,6 @@ export async function DELETE(req: NextRequest, context: { params: { date?: strin
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
+
 
 

@@ -88,7 +88,7 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onF
     setIsLoading(true);
   
     // ✅ ใช้วันที่ที่เลือกจาก props
-    const date = selectedDate.toISOString().split("T")[0]; 
+    const date = selectedDate.toLocaleDateString("en-CA"); 
     console.log("📅 Selected Date:", date);
   
     const requestData = {

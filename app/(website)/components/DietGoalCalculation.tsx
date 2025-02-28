@@ -80,7 +80,6 @@ export default function DietGoalCalculation() {
       setErrorMessage("❌ Failed to fetch diet goals.");
     }
   };
-
   // ✅ ดึงค่าเป้าหมายอาหารเมื่อ Component โหลด
   useEffect(() => {
     fetchDietGoals();

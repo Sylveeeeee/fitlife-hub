@@ -1,127 +1,171 @@
 import React, { useState, useEffect } from "react";
 import { Line } from "react-chartjs-2";
-import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css"; // นำเข้า CSS ของ Datepicker
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from "chart.js";
 
-interface Biometric {
-  id: number;
-  name: string;
-  unit: string;
-}
-
 interface BiometricEntry {
   id: number;
-  type: "biometric"; // ระบุว่าเป็นค่าชีวภาพ
-  name: string;
   value: number;
-  unit: string;
-  date: string; // วันที่ที่บันทึก Biometric
-  categoryId: number;  // เพิ่ม categoryId ใน BiometricEntry
-  metricId: number;    // เพิ่ม metricId ใน BiometricEntry
-  biometric: Biometric; // ข้อมูลค่าชีวภาพ
-  recordedAt: string;   // วันที่ที่บันทึก
+  recordedAt: string; // วันที่ที่บันทึก
 }
 
 interface ChartData {
-  labels: string[]; // วันที่
+  labels: string[];
   datasets: {
     label: string;
-    data: number[];  // ค่าของ Biometrics
+    data: number[];
     borderColor: string;
     backgroundColor: string;
     fill: boolean;
-    borderDash?: number[]; // สำหรับเส้นประของ Weight Goal
-    hidden?: boolean; // ซ่อนกราฟ Weight Goal
+    borderDash?: number[];
+    hidden?: boolean;
   }[];
 }
 
 // ติดตั้ง Chart.js
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-const BiometricChart = ({ initialDate }: { initialDate: string }) => {
+const BiometricChart = () => {
   const [chartData, setChartData] = useState<ChartData | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string>(initialDate);
+  const [selectedRange, setSelectedRange] = useState<number | "all">(7);
   const [showWeightGoal, setShowWeightGoal] = useState<boolean>(false);
+  const [weightGoal, setWeightGoal] = useState<number>(70);
+  const [weightChange, setWeightChange] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // ฟังก์ชันสำหรับดึงข้อมูลจาก API
   useEffect(() => {
     const fetchBiometricData = async () => {
-      const response = await fetch(`/api/auth/biometric?date=${selectedDate}`);
-      const data = await response.json();
+      setLoading(true);
+      setError(null);
 
-      if (data.data) {
-        // เตรียมข้อมูลกราฟ
-        const labels = data.data.map((entry: BiometricEntry) => entry.recordedAt); // วันที่
-        const values = data.data.map((entry: BiometricEntry) => entry.value); // ค่า biometrics
-        const categories = data.data.map((entry: BiometricEntry) => entry.categoryId); // หมวดหมู่
+      const now = new Date();
+      const endDate = now.toLocaleDateString("en-CA"); // วันที่ปัจจุบัน
 
+      let startDateStr = null;
+    if (selectedRange !== "all") {
+      const startDate = new Date();
+      startDate.setDate(now.getDate() - selectedRange); // คำนวณ startDate
+      startDateStr = startDate.toLocaleDateString("en-CA");
+    }
+  
+      try {
+        const url = `/api/auth/biometric?${selectedRange !== "all" ? `startDate=${startDateStr}&endDate=${endDate}` : `endDate=${endDate}`}`;
+      const response = await fetch(url);
+        if (!response.ok) throw new Error("Failed to fetch data");
+  
+        const data = await response.json();
+        
+        if (data.data.length === 0) {
+          setChartData(null); // ถ้าไม่มีข้อมูลเลย ให้ setChartData เป็น null
+          setWeightChange(0);
+          return;
+        }
+  
+        // ✅ ใช้เฉพาะวันที่มีข้อมูล
+        const labels = data.data.map((entry: BiometricEntry) => entry.recordedAt);
+        const values = data.data.map((entry: BiometricEntry) => entry.value);
+  
+        // ✅ คำนวณการเปลี่ยนแปลงน้ำหนัก
+        const initialWeight = values[0] || 0; // ค่าน้ำหนักในวันแรก
+        const lastWeight = values[values.length - 1] || initialWeight; // ค่าน้ำหนักในวันสุดท้าย
+        const weightChange = lastWeight - initialWeight;
+
+        setWeightChange(weightChange); // เก็บค่าน้ำหนักที่เปลี่ยนแปลง
+  
         setChartData({
-          labels,
+          labels, // 👈 แสดงเฉพาะวันที่มีข้อมูล
           datasets: [
             {
-              label: categories.join(", "), // แสดงชื่อหมวดหมู่
+              label: "Weight (kg)",
               data: values,
-              borderColor: "rgb(75, 192, 192)",
-              backgroundColor: "rgba(75, 192, 192, 0.2)",
+              borderColor: "rgb(255, 99, 132)",
+              backgroundColor: "rgba(255, 99, 132, 0.2)",
               fill: false,
             },
             {
               label: "Weight Goal",
-              data: values.map(() => 70), // กำหนดเป็นค่าเป้าหมาย เช่น 70 kg
-              borderColor: "rgb(255, 99, 132)",
-              backgroundColor: "rgba(255, 99, 132, 0.2)",
+              data: values.map(() => weightGoal),
+              borderColor: "rgb(75, 192, 192)",
+              backgroundColor: "rgba(75, 192, 192, 0.2)",
               fill: false,
-              borderDash: [5, 5], // เส้นประสำหรับเป้าหมาย
-              hidden: !showWeightGoal, // สามารถซ่อนแสดงค่าเป้าหมาย
+              borderDash: [5, 5],
+              hidden: !showWeightGoal,
             },
           ],
         });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error");
+      } finally {
+        setLoading(false);
       }
     };
-
+  
     fetchBiometricData();
-  }, [selectedDate, showWeightGoal]);
-
-  if (!chartData) return <div>Loading...</div>;
-
+  }, [selectedRange, weightGoal, showWeightGoal]); // 👈 อย่าลืม dependency
+  
   return (
-    <div>
-      <h2>Biometric Data Chart</h2>
+    <div className="p-4 border rounded-lg shadow-md bg-white mt-5 w-[49%]">
+      <h2 className="text-xl font-semibold mb-2">Weight Tracking</h2>
 
-      {/* DatePicker เพื่อให้เลือกวันที่ */}
-      <div className="mb-4">
-        <DatePicker
-          selected={new Date(selectedDate)}
-          onChange={(date: Date | null) => {
-            if (date) {
-              setSelectedDate(date.toISOString().split("T")[0]); // แปลง Date เป็น String
-            }
-          }}
-          dateFormat="yyyy-MM-dd"
-          className="border p-2 rounded"
-        />
-      </div>
+      {loading && <p>Loading...</p>}
+      {error && <p className="text-red-500">{error}</p>}
+      {!loading && !error && chartData && (
+        <>
+          <h3
+  className={`font-bold mb-2 ${
+          weightChange > 0
+            ? "text-green-500"
+            : weightChange < 0
+            ? "text-red-500"
+            : "text-gray-700"
+        }`}
+      >
+        Weight Change: {weightChange !== null && weightChange !== undefined ? weightChange.toFixed(1) : "0.0"} kg
+      </h3>
 
-      {/* กราฟแสดงข้อมูล */}
-      <Line data={chartData} />
+          <Line data={chartData} />
 
-      {/* ปรับแสดง Weight Goal */}
-      <div className="mt-4">
-        <div>
-          <strong>Weight Goal: </strong> 70 kg
-        </div>
-        <div>
-          <label>
+          {/* ตัวเลือกช่วงเวลา */}
+          <div className="flex justify-between">
+          <div className="mt-4 w-[45%]">
+            <label className="block font-medium">Time Range:</label>
+            <select
+              value={selectedRange}
+              onChange={(e) => setSelectedRange(e.target.value === "all" ? "all" : Number(e.target.value))}
+              className="border p-2 rounded-md w-full"
+            >
+              <option value={7}>Last 7 days</option>
+              <option value={14}>Last 14 days</option>
+              <option value={30}>Last 30 days</option>
+              <option value="all">All Time</option>
+            </select>
+          </div>
+
+          {/* เป้าหมาย */}
+          <div className="mt-4 w-[45%] ">
+            <label className="block font-medium">Weight Goal:</label>
+            <input
+              type="number"
+              value={weightGoal}
+              onChange={(e) => setWeightGoal(Number(e.target.value))}
+              className="border p-2 rounded-md text-center w-[30%] h-[39px]"
+            />{" "}
+            kg
+          </div>
+          </div>
+          {/* แสดง Weight Goal */}
+          <div className="mt-4 flex items-center">
             <input
               type="checkbox"
               checked={showWeightGoal}
               onChange={() => setShowWeightGoal(!showWeightGoal)}
-            />{" "}
-            Show Weight Goal
-          </label>
-        </div>
-      </div>
+              className="mr-2"
+            />
+            <label>Show Weight Goal</label>
+          </div>
+        </>
+      )}
     </div>
   );
 };

@@ -115,13 +115,26 @@ export async function POST(req: Request) {
 
     console.log("✅ Successfully added biometric entry:", newEntry);
     
-    // ✅ ถ้า metricId เป็น "น้ำหนัก" ให้ปรับ users.weight
-    if (unit === "kg") {
+    // ✅ ดึงค่าล่าสุดของ "น้ำหนัก" จาก biometricEntry
+    const latestWeightEntry = await prisma.biometricEntry.findFirst({
+      where: {
+        userId: user.userId,
+        metricId: 1,
+      },
+      orderBy: {
+        recordedAt: 'desc', // ดึงค่าล่าสุดจากฐานข้อมูล
+      },
+    });
+
+    const latestWeight = latestWeightEntry ? parseFloat(String(latestWeightEntry.value)) : null;
+
+    // ✅ อัปเดตน้ำหนักใน users ถ้าพบค่าล่าสุด
+    if (latestWeight !== null) {
       await prisma.users.update({
         where: { id: user.userId },
-        data: { weight: parseFloat(value) },
+        data: { weight: latestWeight },
       });
-      console.log(`✅ Updated user weight to ${value} kg`);
+      console.log(`✅ Updated user weight to ${latestWeight} kg`);
     }
 
     // ✅ ดึงข้อมูลโปรไฟล์ผู้ใช้จาก userService หลังจากอัปเดตน้ำหนัก
@@ -133,7 +146,7 @@ export async function POST(req: Request) {
 
     // ✅ คำนวณ TDEE และเป้าหมายโภชนาการ โดยใช้ค่าที่อัปเดตล่าสุด
     const formattedProfile = {
-      weight: userProfile.weight ?? 70, // ใช้ค่าที่อัปเดตแล้ว
+      weight:  latestWeight ?? userProfile.weight ?? 70, // ใช้ค่าที่อัปเดตแล้ว
       height: userProfile.height ?? 170, 
       age: userProfile.age ?? 25, 
       sex: userProfile.sex ?? "male",
