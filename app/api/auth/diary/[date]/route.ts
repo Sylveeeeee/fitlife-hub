@@ -89,23 +89,24 @@ export async function POST(req: NextRequest, context: { params: { date?: string 
 }
 
 // ✅ GET: ดึงรายการอาหาร, ออกกำลังกาย และค่าชีวภาพจากไดอารี่
-export async function GET(req: NextRequest, { params }: { params: { date: string } }) {
+export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
+  const date = url.searchParams.get("date");
+
+  if (!date) {
+    return NextResponse.json({ error: "Date is required" }, { status: 400 });
+  }
+
+  // ✅ ตรวจสอบการยืนยันตัวผู้ใช้
+  const user = await verifyUser(req);
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  console.log("📅 Fetching diary for date:", date);
+  console.log("✅ Authorized User:", user.userId);
+
   try {
-    const date = params.date; // ข้อมูล date ควรมีใน params
-    if (!date) {
-      return NextResponse.json({ error: "Missing date parameter" }, { status: 400 });
-    }
-
-    console.log("📅 Fetching diary for date:", date);
-
-    // ✅ ดึง `user` จาก token
-    const user = await verifyUser(req);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    console.log("✅ Authorized User:", user.userId);
-
     // ✅ ดึงข้อมูลจาก Prisma
     const foodEntries = await prisma.foodDiary.findMany({
       where: { userId: user.userId, date },
