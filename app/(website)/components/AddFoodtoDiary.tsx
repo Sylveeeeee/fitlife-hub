@@ -88,30 +88,34 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onF
     setIsLoading(true);
   
     // ✅ ใช้วันที่ที่เลือกจาก props
-    const date = selectedDate.toLocaleDateString("en-CA"); 
+    const date = selectedDate.toLocaleDateString("en-CA");
     console.log("📅 Selected Date:", date);
   
     const requestData = {
-      meal_type: mealType || "Breakfast",
-      food_id: selectedFood?.id ?? null,
-      quantity: servingSize > 0 ? servingSize : 1,
+      date,
+      meal_type: mealType || "Breakfast", // เปลี่ยน mealType เป็น meal_type
+      food_id: selectedFood?.id ?? undefined,
+      quantity: servingSize,
       calories: selectedFood?.calories ? selectedFood.calories * servingSize : 0,
       protein: selectedFood?.protein ? selectedFood.protein * servingSize : 0,
       carbs: selectedFood?.carbs ? selectedFood.carbs * servingSize : 0,
       fat: selectedFood?.fat ? selectedFood.fat * servingSize : 0,
     };
-    
-    console.log("📝 Sending Request Data:", requestData); // ✅ Debug ดูค่าที่ส่งไปยัง API
-    
-    if (!requestData.food_id) {
-      console.error("❌ Food ID is missing!");
-      setApiError("Invalid food selection.");
+  
+    console.log("📝 Request Data:", requestData); // ✅ Debug ดูค่าที่ส่งไปยัง API
+  
+    // ตรวจสอบว่าไม่มีฟิลด์ที่ขาดหายไป
+    const missingFields = (Object.keys(requestData) as (keyof typeof requestData)[])
+      .filter(key => requestData[key] === undefined || requestData[key] === null);
+  
+    if (missingFields.length > 0) {
+      console.error("❌ Missing required fields:", missingFields);
+      setApiError(`Missing required fields: ${missingFields.join(", ")}`);
       return;
     }
-    
   
     try {
-      const response = await fetch(`/api/auth/diary/${date}`, {
+      const response = await fetch(`/api/auth/diary`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -121,13 +125,13 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onF
       const responseData = await response.json();
   
       if (!response.ok) {
+        console.error("❌ Error details:", responseData.error);
         throw new Error(responseData.error || "Failed to add food.");
       }
   
       console.log("✅ Food added successfully:", responseData);
-  
       closeModal();
-      onFoodAdded(mealType); // ✅ อัปเดต Diary
+      onFoodAdded(mealType);
   
     } catch (error) {
       if (error instanceof Error) {
@@ -139,9 +143,7 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onF
       setIsLoading(false);
     }
   };
-  
-  
-  
+
   if (!isOpen) return null;
 
   return (

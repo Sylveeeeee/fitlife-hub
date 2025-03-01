@@ -23,6 +23,7 @@ interface FoodEntry {
   id: number;
   name: string;
   unit?: string;
+  quantity:number;
   servingSize: number;
   calories: number;
   protein: number;
@@ -286,7 +287,8 @@ useEffect(() => {
             id: item.id,
             name: item.name,
             unit: item.unit || "g",
-            servingSize: 1, // ค่าเริ่มต้น
+            servingSize: 1,
+            quantity: 1, // เปลี่ยนจาก servingSize เป็น quantity
             calories: 0, // ต้องดึงค่าจาก API หรือกำหนดจากผู้ใช้
             protein: 0,
             carbs: 0,
@@ -299,17 +301,17 @@ useEffect(() => {
       console.log("📆 Date:", formattedDate);
       console.log("🍽 Meal Type:", group);
       console.log("🍎 Food ID:", foodEntry.id);
-      console.log("🔢 Serving Size:", foodEntry.servingSize);
+      console.log("🔢 Quantity:", foodEntry.quantity);
   
-      const response = await fetch(`/api/auth/diary/${formattedDate}`, {
+      const response = await fetch(`/api/auth/diary`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          type: "food",
-          mealType: foodEntry.mealType,
+          date: formattedDate,
+          meal_type: foodEntry.mealType,
           food_id: foodEntry.id,
-          quantity: foodEntry.servingSize,
+          quantity: foodEntry.quantity,
           calories: foodEntry.calories,
           protein: foodEntry.protein,
           carbs: foodEntry.carbs,
@@ -335,7 +337,7 @@ useEffect(() => {
     try {
       console.log("📡 Fetching diary entries for date:", date);
   
-      const response = await fetch(`/api/auth/diary/${date}`, {
+      const response = await fetch(`/api/auth/diary?date=${date}`, {
         method: "GET",
         credentials: "include",
       });
@@ -348,25 +350,23 @@ useEffect(() => {
       }
   
       const responseData: { data: DiaryEntry[] } = await response.json();
-      if (!responseData?.data || !Array.isArray(responseData.data) || responseData.data.length === 0) {
-        console.warn("⚠️ No diary entries found for this date.");
+      if (!responseData?.data || !Array.isArray(responseData.data)) {
+        console.error("❌ Invalid API response:", responseData);
         return;
       }
-      
-      // ✅ แยกข้อมูลเป็นหมวดหมู่ (อาหาร, ออกกำลังกาย, และ Biometric)
+  
       const categorizedEntries: { [key: string]: DiaryEntry[] } = {
         Breakfast: [],
         Lunch: [],
         Dinner: [],
         Snacks: [],
         Exercise: [],
-        Biometric: [], // ✅ เพิ่ม Biometric ให้เป็นส่วนหนึ่งของไดอารี่
+        Biometric: [],
       };
   
-      responseData.data.forEach((entry: DiaryEntry) => {
-        if (entry.type === "food" && entry.food?.name) {
+      responseData.data.forEach((entry) => {
+        if (entry.type === "food") {
           const mealType = categorizedEntries[entry.mealType] ? entry.mealType : "Snacks";
-          
           categorizedEntries[mealType].push({
             ...entry,
             servingSize: entry.servingSize || 1,
@@ -391,7 +391,6 @@ useEffect(() => {
             value: entry.value || 0,
             unit: entry.unit || "",
           });
-  
         } else {
           console.warn(`⚠️ Skipping invalid entry:`, entry);
         }
@@ -404,6 +403,7 @@ useEffect(() => {
       console.error("❌ Error fetching diary entries:", error);
     }
   };
+    
   
   const handleRemoveItem = async () => {
     if (!itemToDelete || !(selectedDate instanceof Date) || isNaN(selectedDate.getTime())) {
@@ -421,23 +421,32 @@ useEffect(() => {
   
     try {
       let requestBody;
+
+if (entry.type === "food") {
+  requestBody = {
+    food_id: entry.food.id, 
+    meal_type: itemToDelete.group,
+    date: formattedDate, // ✅ เพิ่ม date
+  };
+} else if (entry.type === "exercise") {
+  requestBody = {
+    exercise_id: entry.exercise.id, 
+    date: formattedDate, // ✅ เพิ่ม date
+  };
+} else if (entry.type === "biometric") {
+  requestBody = {
+    biometric_id: entry.id, 
+    date: formattedDate, // ✅ เพิ่ม date
+  };
+} else {
+  console.warn("⚠️ Unknown entry type:", entry);
+  return;
+}
+
+console.log("📡 Sending DELETE request with requestBody:", requestBody);
   
-      if (entry.type === "food") {
-        requestBody = { food_id: entry.food.id, meal_type: itemToDelete.group }; // ✅ ใช้ entry.food.id เฉพาะเมื่อเป็น food
-      } else if (entry.type === "exercise") {
-        requestBody = { exercise_id: entry.exercise.id, date: formattedDate }; // ✅ ใช้ entry.exercise.id เฉพาะเมื่อเป็น exercise
-      } else if (entry.type === "biometric") {
-        requestBody = { biometric_id: entry.id, date: formattedDate }; // ✅ ใช้ entry.id สำหรับ Biometric
-      } else {
-        console.warn("⚠️ Unknown entry type:", entry);
-        return;
-      }
-  
-      console.log("📡 Sending DELETE request:", requestBody); // ✅ Debug
-  
-      // ✅ ใช้ `/api/auth/diary/${formattedDate}` สำหรับทั้งอาหาร, ออกกำลังกาย และ Biometric
+      // ส่ง DELETE request
       const endpoint = `/api/auth/diary/${formattedDate}`;
-  
       const response = await fetch(endpoint, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
@@ -456,12 +465,13 @@ useEffect(() => {
         const event = new Event("updateDietGoals");
         window.dispatchEvent(event);
       }
-
+  
       if (response.ok) {
         await fetchDailyCalorieGoal();
         await getDiaryEntries(selectedDate?.toLocaleDateString("en-CA"));
       }
-            // ✅ อัปเดต UI โดยไม่ต้องโหลด API ใหม่
+  
+      // ✅ อัปเดต UI โดยไม่ต้องโหลด API ใหม่
       setDiaryEntries((prevEntries) => {
         const updatedEntries = { ...prevEntries };
         updatedEntries[itemToDelete.group] = updatedEntries[itemToDelete.group]?.filter((_, idx) => idx !== itemToDelete.index) || [];
@@ -476,6 +486,8 @@ useEffect(() => {
       alert(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   };
+  
+  
   
   const toggleGroup = (group: string) => {
     setExpandedGroups(prev => ({

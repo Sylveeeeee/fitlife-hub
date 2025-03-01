@@ -41,8 +41,8 @@ export async function POST(req: NextRequest) {
 
     // ✅ ตรวจสอบค่าจาก request body
     if (!date || !meal_type || !food_id || quantity == null || calories == null || protein == null || carbs == null || fat == null) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
+        return NextResponse.json({ error: `Missing required fields: ${!date ? 'date' : ''}${!meal_type ? ' meal_type' : ''}${!food_id ? ' food_id' : ''}${quantity == null ? ' quantity' : ''}${calories == null ? ' calories' : ''}${protein == null ? ' protein' : ''}${carbs == null ? ' carbs' : ''}${fat == null ? ' fat' : ''}` }, { status: 400 });
+      }
 
     // ✅ ใช้ Transaction ในการเพิ่มข้อมูลลง DB
     const diaryEntry = await prisma.foodDiary.create({
