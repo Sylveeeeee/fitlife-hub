@@ -2,24 +2,22 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import jwt from "jsonwebtoken";
 
-function getTokenFromCookies(req: Request) {
-  const cookieHeader = req.headers.get("cookie");
-  if (!cookieHeader) return null;
-
-  const cookies = cookieHeader.split("; ");
-  const tokenCookie = cookies.find((cookie) => cookie.startsWith("token="));
-  return tokenCookie ? tokenCookie.split("=")[1] : null;
-}
-
+// ✅ ตรวจสอบ Token และดึง `userId`
 async function verifyAdminRole(req: Request) {
-  const token = getTokenFromCookies(req);
+  const cookies = req.headers.get('cookie');
+  if (!cookies) return null;
+
+  const token = cookies
+    .split(';')
+    .find(cookie => cookie.trim().startsWith('token='))?.split('=')[1];
+
   if (!token) return null;
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { userId: number; role: string };
-    return decoded.role === "admin" ? decoded.userId : null;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload & { userId: string };
+    return { userId: Number(decoded.userId) }; // ✅ แปลง userId เป็น number
   } catch (err) {
-    console.error("JWT Error:", err);
+    console.error('JWT Error:', err);
     return null;
   }
 }
