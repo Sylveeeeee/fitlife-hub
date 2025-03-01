@@ -12,7 +12,7 @@ export default function Home() {
         <div className="text-black font-mono flex flex-col mx-[200px]">
           <div className="py-[15] text-[24px] mt-[30px] font-semibold">Your Dashboard</div>
           <div className="bg-white w-auto flex justify-between pl-[30] rounded-[4px]">
-            <div className="py-[10] font-semibold text-[18px]">Quick Add to Diary</div>
+            <div className="py-[10] font-semibold text-[18px] flex justify-center items-center">Quick Add to Diary</div>
             <div className="flex items-center justify-between w-[60%] mr-[100px] ml-[100px] h-[50px]">
               <Link href={"/diary"} >
               <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9px] pt-[13px]">

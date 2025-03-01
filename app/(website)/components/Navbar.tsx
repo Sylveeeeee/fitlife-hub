@@ -10,16 +10,11 @@ interface JwtPayload {
   email: string;
 }
 
-export default function WebsiteLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function Navbar() {
   const [user, setUser] = useState<JwtPayload | null>(null);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
 
   useEffect(() => {
-  
     const fetchUserData = async () => {
       try {
         const response = await fetch('/api/auth/protected', {
@@ -56,10 +51,7 @@ export default function WebsiteLayout({
       }
     };
     
-
     fetchUserData();
-
-    
   }, [isPopupOpen]);
 
   async function handleLogout() {
@@ -99,7 +91,6 @@ export default function WebsiteLayout({
     window.location.href = "/login";
   };
 
-
   useEffect(() => {
     if (isPopupOpen) {
       document.body.classList.add("overflow-hidden");
@@ -115,7 +106,7 @@ export default function WebsiteLayout({
         className="w-full h-[100] flex items-center justify-between"
         onClick={handleOutsideClick}
       >
-        <div className="flex items-center ml-[100]">
+        <div className="flex items-center ml-[100]  ">
           <Image
             src="/logo.png" // ใส่ Path ของรูปภาพของคุณ
             alt="FitLifeHub Logo"
@@ -124,9 +115,8 @@ export default function WebsiteLayout({
             className="mr-2 rounded-[20px]"
           />        
           <Link href="/"><div className="text-[16px] font-mono text-[#000]">FITLIFE_HUB</div></Link>
-          
         </div>
-        <div className="font-mono text-[#000] h-[100] items-center mr-[30] flex ">
+        <div className="font-mono text-[#000] h-[100] items-center mr-[30] flex   ">
           <Link href="/">
             <button className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold">
               DASHBOARD
@@ -148,7 +138,7 @@ export default function WebsiteLayout({
             </button>
           </Link>
           {user ? (
-            <div className="flex items-center relative ">
+            <div className="flex items-center relative " >
               <button
                 className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold"
                 onClick={handlePopupToggle}
@@ -183,13 +173,13 @@ export default function WebsiteLayout({
             <div>
               <p>Email: {user.email}</p>
               <Link href="/profile">
-                <button className="w-full bg-[#000000] text-white mt-4 p-2 hover:shadow-md hover:shadow-[#000000cc] ">
+                <button className="w-full bg-[#000000] text-white mt-4 p-2 hover:shadow-md hover:shadow-[#000000cc] " >
                   Targets+Profile
                 </button>
               </Link>
               {user.role.toLowerCase() === "admin" && (
                 <Link href="/admin/dashboard">
-                  <button className="w-full bg-[#213A58] text-white mt-4 p-2 hover:shadow-md hover:shadow-[#213A58cc] ">
+                  <button className="w-full bg-[#213A58] text-white mt-4 p-2 hover:shadow-md hover:shadow-[#213A58cc] " >
                     Admin Dashboard
                   </button>
                 </Link>
@@ -204,8 +194,6 @@ export default function WebsiteLayout({
           </div>
         </div>
       )}
-
-      <div>{children}</div>
     </>
   );
 }

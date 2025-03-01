@@ -9,6 +9,7 @@ import EnergySummary from "../components/EnergySummary";
 import FoodDiaryCalendar from "../components/FoodDiaryCalendar";
 import { format } from "date-fns"; 
 import Link from "next/link";
+import Navbar from "../components/Navbar";
 
 interface Food {
   id: number;
@@ -726,7 +727,9 @@ console.log("📡 Sending DELETE request with requestBody:", requestBody);
         onConfirm={handleRemoveItem}
         itemName={itemToDelete?.name || "this item"}
       />
+      
       <div className="">
+      <Navbar/>
         <div className="text-black font-mono flex justify-between mx-[50]">
           <div className="flex w-[75%] flex-col">
             <div className="bg-white flex pl-[20] mb-[7]">
