@@ -348,11 +348,11 @@ useEffect(() => {
       }
   
       const responseData: { data: DiaryEntry[] } = await response.json();
-      if (!responseData?.data || !Array.isArray(responseData.data)) {
-        console.error("❌ Invalid API response:", responseData);
+      if (!responseData?.data || !Array.isArray(responseData.data) || responseData.data.length === 0) {
+        console.warn("⚠️ No diary entries found for this date.");
         return;
       }
-  
+      
       // ✅ แยกข้อมูลเป็นหมวดหมู่ (อาหาร, ออกกำลังกาย, และ Biometric)
       const categorizedEntries: { [key: string]: DiaryEntry[] } = {
         Breakfast: [],
