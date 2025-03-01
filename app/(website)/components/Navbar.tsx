@@ -3,7 +3,6 @@ import { FiUser } from "react-icons/fi";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
 
 interface JwtPayload {
   userId: bigint;
@@ -11,18 +10,11 @@ interface JwtPayload {
   email: string;
 }
 
-export default function WebsiteLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function Navbar() {
   const [user, setUser] = useState<JwtPayload | null>(null);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
-  const [loading, setLoading] = useState<boolean>(true); // สร้าง state สำหรับการโหลด
-  const pathname = usePathname(); // ดึง path ปัจจุบัน เช่น "/diary"
 
   useEffect(() => {
-  
     const fetchUserData = async () => {
       try {
         const response = await fetch('/api/auth/protected', {
@@ -59,12 +51,7 @@ export default function WebsiteLayout({
       }
     };
     
-
     fetchUserData();
-    setTimeout(() => {
-      setLoading(false); // เปลี่ยนสถานะการโหลดเมื่อโหลดเสร็จ
-    }, 2000);
-    
   }, [isPopupOpen]);
 
   async function handleLogout() {
@@ -104,7 +91,6 @@ export default function WebsiteLayout({
     window.location.href = "/login";
   };
 
-
   useEffect(() => {
     if (isPopupOpen) {
       document.body.classList.add("overflow-hidden");
@@ -113,75 +99,48 @@ export default function WebsiteLayout({
     }
     return () => document.body.classList.remove("overflow-hidden");
   }, [isPopupOpen]);
-
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen ">
-        {/* แสดง spinner หรือข้อความระหว่างที่โหลด */}
-        <div className="loader text-black">Loading...</div>
-      </div>
-    );
-  }
   
   return (
     <>
       <div
-        className="w-full h-[100px] flex items-center justify-between px-10"
+        className="w-full h-[100] flex items-center justify-between"
         onClick={handleOutsideClick}
       >
-        <Link href="/">
-        <div className="flex items-center ml-[100px]">
+        <div className="flex items-center ml-[100]  ">
           <Image
             src="/logo.png" // ใส่ Path ของรูปภาพของคุณ
             alt="FitLifeHub Logo"
-            width={130} // ปรับขนาดของรูปภาพ
-            height={100} // ปรับขนาดของรูปภาพ
+            width={40} // ปรับขนาดของรูปภาพ
+            height={40} // ปรับขนาดของรูปภาพ
             className="mr-2 rounded-[20px]"
           />        
+          <Link href="/"><div className="text-[16px] font-mono text-[#000]">FITLIFE_HUB</div></Link>
         </div>
-        </Link>
-        <div className="font-mono text-[#000] h-[100px] items-center flex">
-      <Link href="/">
-        <button
-          className={`py-[10px] px-[50px] text-center mx-[10px] border-b-4 ${
-            pathname === "/" ? "border-[#213A58] text-[#213A58] font-bold" : "border-transparent " 
-          }`}
-        >
-          DASHBOARD
-        </button>
-      </Link>
-      <Link href="/diary">
-        <button
-          className={`py-[10px] px-[50px] text-center mx-[10px] border-b-4 ${
-            pathname === "/diary" ? "border-[#213A58] text-[#213A58] font-bold" : "border-transparent"
-          }`}
-        >
-          DIARY
-        </button>
-      </Link>
-      <Link href="/posts">
-        <button
-          className={`py-[10px] px-[50px] text-center mx-[10px] border-b-4 ${
-            pathname === "/posts" ? "border-[#213A58] text-[#213A58] font-bold" : "border-transparent"
-          }`}
-        >
-          POST
-        </button>
-      </Link>
-      <Link href="/BMI">
-        <button
-          className={`py-[10px] px-[50px] text-center mx-[10px] border-b-4 ${
-            pathname === "/BMI" ? "border-[#213A58] text-[#213A58] font-bold" : "border-transparent"
-          }`}
-        >
-          CALCULATOR
-        </button>
-      </Link>
+        <div className="font-mono text-[#000] h-[100] items-center mr-[30] flex   ">
+          <Link href="/">
+            <button className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold">
+              DASHBOARD
+            </button>
+          </Link>
+          <Link href="/diary">
+            <button className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold">
+              DIARY
+            </button>
+          </Link>
+          <Link href="/posts">
+            <button className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold">
+              POST
+            </button>
+          </Link>
+          <Link href="/BMI">
+            <button className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold">
+              CALCULATOR
+            </button>
+          </Link>
           {user ? (
-            <div className="flex items-center relative ">
+            <div className="flex items-center relative " >
               <button
-                className="py-[10] px-[50px] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58]  hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold"
+                className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold"
                 onClick={handlePopupToggle}
               >
                 Account
@@ -189,7 +148,7 @@ export default function WebsiteLayout({
             </div>
           ) : (
             <button
-              className="h-[40px] w-[40px] text-center rounded-full  flex justify-center items-center"
+              className="h-[40px] w-[40px] text-center rounded-full mx-[10px] flex justify-center items-center"
               onClick={handleLoginRedirect}
             >
               <div className="text-[30px]">
@@ -214,13 +173,13 @@ export default function WebsiteLayout({
             <div>
               <p>Email: {user.email}</p>
               <Link href="/profile">
-                <button className="w-full bg-[#000000] text-white mt-4 p-2 hover:shadow-md hover:shadow-[#000000cc] ">
+                <button className="w-full bg-[#000000] text-white mt-4 p-2 hover:shadow-md hover:shadow-[#000000cc] " >
                   Targets+Profile
                 </button>
               </Link>
               {user.role.toLowerCase() === "admin" && (
                 <Link href="/admin/dashboard">
-                  <button className="w-full bg-[#213A58] text-white mt-4 p-2 hover:shadow-md hover:shadow-[#213A58cc] ">
+                  <button className="w-full bg-[#213A58] text-white mt-4 p-2 hover:shadow-md hover:shadow-[#213A58cc] " >
                     Admin Dashboard
                   </button>
                 </Link>
@@ -235,8 +194,6 @@ export default function WebsiteLayout({
           </div>
         </div>
       )}
-
-      <div>{children}</div>
     </>
   );
 }

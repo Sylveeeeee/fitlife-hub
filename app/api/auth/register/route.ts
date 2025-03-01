@@ -91,6 +91,31 @@ export async function POST(req: NextRequest) {
       },
     });
 
+        // ✅ ค้นหา categoryId และ metricId ที่เกี่ยวข้องกับน้ำหนัก
+    const weightCategory = await prisma.biometricCategory.findFirst({
+      where: { name: "Body" },  // สมมติว่า category ของน้ำหนักชื่อ "Weight"
+    });
+
+    const weightMetric = await prisma.biometricMetric.findFirst({
+      where: { name: "Weight" },  // สมมติว่า metric ของน้ำหนักคือ "kg"
+    });
+
+    if (!weightCategory || !weightMetric) {
+      throw new Error("Biometric category or metric for weight not found");
+    }
+
+    // ✅ บันทึกค่า BiometricEntry สำหรับน้ำหนัก
+    await prisma.biometricEntry.create({
+      data: {
+        userId: newUser.id,
+        categoryId: weightCategory.id,
+        metricId: weightMetric.id,
+        value: weight ?? 0,
+        unit: "kg",
+        recordedAt: new Date().toISOString().slice(0, 10), // วันที่ปัจจุบันในรูปแบบ YYYY-MM-DD
+      },
+    });
+
     // ✅ บันทึกค่า `Biometric` ครั้งแรกให้ผู้ใช้
     await prisma.biometric.create({
       data: {

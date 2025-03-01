@@ -142,13 +142,16 @@ export async function POST(req: Request) {
 }
 
 // ✅ DELETE: ลบผู้ใช้
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request) {
   const decoded = await verifyAdminRole(req);
   if (!decoded) {
     return NextResponse.json({ message: 'Unauthorized: Invalid token' }, { status: 401 });
   }
 
-  const userId = Number(params.id);
+  // ดึง id จาก URL
+  const urlParts = req.url.split('/');
+  const userId = Number(urlParts[urlParts.length - 2]); // ดึง ID จาก URL
+
   if (isNaN(userId)) {
     return NextResponse.json({ error: 'Invalid user ID' }, { status: 400 });
   }
@@ -181,3 +184,4 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });
   }
 }
+

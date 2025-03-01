@@ -73,10 +73,10 @@
 
 /* ✅ ทำให้วันที่ปัจจุบันดูโดดเด่นขึ้น */
 .react-calendar__tile--now {
-  background: #ffffff;
+  border: solid 2 #007acc;
   font-weight: bold;
   border-radius: 8px;
-  color: #be2020;
+  color: #007acc;
 }
 
 /* ✅ ปรับสไตล์ของหัวข้อวันในปฏิทิน */

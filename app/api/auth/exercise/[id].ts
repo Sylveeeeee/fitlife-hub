@@ -28,7 +28,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   try {
     const updatedEntry = await prisma.userExerciseDiary.update({
       where: { id: entryId, userId: user.userId },
-      data: { duration, caloriesBurned, date: new Date(date) },
+      data: { duration, caloriesBurned, date: date },
     });
     return NextResponse.json(updatedEntry);
   } catch (error) {

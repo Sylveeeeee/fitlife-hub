@@ -105,26 +105,33 @@ export default function ManageFoods() {
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+  
     if (!validateForm()) {
       return;
     }
-
-    const url = isEditing && editId ? `/api/auth/foods/${editId}` : '/api/auth/foods';
+  
+    const foodId = isEditing && editId ? Number(editId) : null;
+  
+    if (foodId && isNaN(foodId)) {
+      alert('Invalid ID');
+      return;
+    }
+  
+    const url = foodId ? `/api/auth/foods/${foodId}` : '/api/auth/foods';
     const body = JSON.stringify(formData);
-
+  
     try {
       const response = await fetch(url, {
-        method: isEditing ? 'PUT' : 'POST',
+        method: foodId ? 'PUT' : 'POST',
         credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json',
         },
         body,
       });
-
+  
       if (response.ok) {
-        const successMessage = isEditing ? 'Food updated successfully!' : 'Food added successfully!';
+        const successMessage = foodId ? 'Food updated successfully!' : 'Food added successfully!';
         setNotification(successMessage);
         setFormData({});
         setIsEditing(false);

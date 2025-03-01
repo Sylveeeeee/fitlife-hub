@@ -23,6 +23,7 @@ interface FoodEntry {
   id: number;
   name: string;
   unit?: string;
+  quantity:number;
   servingSize: number;
   calories: number;
   protein: number;
@@ -286,7 +287,8 @@ useEffect(() => {
             id: item.id,
             name: item.name,
             unit: item.unit || "g",
-            servingSize: 1, // ค่าเริ่มต้น
+            servingSize: 1,
+            quantity: 1, // เปลี่ยนจาก servingSize เป็น quantity
             calories: 0, // ต้องดึงค่าจาก API หรือกำหนดจากผู้ใช้
             protein: 0,
             carbs: 0,
@@ -299,17 +301,17 @@ useEffect(() => {
       console.log("📆 Date:", formattedDate);
       console.log("🍽 Meal Type:", group);
       console.log("🍎 Food ID:", foodEntry.id);
-      console.log("🔢 Serving Size:", foodEntry.servingSize);
+      console.log("🔢 Quantity:", foodEntry.quantity);
   
-      const response = await fetch(`/api/auth/diary/${formattedDate}`, {
+      const response = await fetch(`/api/auth/diary`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          type: "food",
-          mealType: foodEntry.mealType,
+          date: formattedDate,
+          meal_type: foodEntry.mealType,
           food_id: foodEntry.id,
-          quantity: foodEntry.servingSize,
+          quantity: foodEntry.quantity,
           calories: foodEntry.calories,
           protein: foodEntry.protein,
           carbs: foodEntry.carbs,
@@ -335,7 +337,7 @@ useEffect(() => {
     try {
       console.log("📡 Fetching diary entries for date:", date);
   
-      const response = await fetch(`/api/auth/diary/${date}`, {
+      const response = await fetch(`/api/auth/diary?date=${date}`, {
         method: "GET",
         credentials: "include",
       });
@@ -353,20 +355,18 @@ useEffect(() => {
         return;
       }
   
-      // ✅ แยกข้อมูลเป็นหมวดหมู่ (อาหาร, ออกกำลังกาย, และ Biometric)
       const categorizedEntries: { [key: string]: DiaryEntry[] } = {
         Breakfast: [],
         Lunch: [],
         Dinner: [],
         Snacks: [],
         Exercise: [],
-        Biometric: [], // ✅ เพิ่ม Biometric ให้เป็นส่วนหนึ่งของไดอารี่
+        Biometric: [],
       };
   
-      responseData.data.forEach((entry: DiaryEntry) => {
-        if (entry.type === "food" && entry.food?.name) {
+      responseData.data.forEach((entry) => {
+        if (entry.type === "food") {
           const mealType = categorizedEntries[entry.mealType] ? entry.mealType : "Snacks";
-          
           categorizedEntries[mealType].push({
             ...entry,
             servingSize: entry.servingSize || 1,
@@ -391,7 +391,6 @@ useEffect(() => {
             value: entry.value || 0,
             unit: entry.unit || "",
           });
-  
         } else {
           console.warn(`⚠️ Skipping invalid entry:`, entry);
         }
@@ -404,6 +403,7 @@ useEffect(() => {
       console.error("❌ Error fetching diary entries:", error);
     }
   };
+    
   
   const handleRemoveItem = async () => {
     if (!itemToDelete || !(selectedDate instanceof Date) || isNaN(selectedDate.getTime())) {
@@ -421,23 +421,32 @@ useEffect(() => {
   
     try {
       let requestBody;
+
+if (entry.type === "food") {
+  requestBody = {
+    food_id: entry.food.id, 
+    meal_type: itemToDelete.group,
+    date: formattedDate, // ✅ เพิ่ม date
+  };
+} else if (entry.type === "exercise") {
+  requestBody = {
+    exercise_id: entry.exercise.id, 
+    date: formattedDate, // ✅ เพิ่ม date
+  };
+} else if (entry.type === "biometric") {
+  requestBody = {
+    biometric_id: entry.id, 
+    date: formattedDate, // ✅ เพิ่ม date
+  };
+} else {
+  console.warn("⚠️ Unknown entry type:", entry);
+  return;
+}
+
+console.log("📡 Sending DELETE request with requestBody:", requestBody);
   
-      if (entry.type === "food") {
-        requestBody = { food_id: entry.food.id, meal_type: itemToDelete.group }; // ✅ ใช้ entry.food.id เฉพาะเมื่อเป็น food
-      } else if (entry.type === "exercise") {
-        requestBody = { exercise_id: entry.exercise.id, date: formattedDate }; // ✅ ใช้ entry.exercise.id เฉพาะเมื่อเป็น exercise
-      } else if (entry.type === "biometric") {
-        requestBody = { biometric_id: entry.id, date: formattedDate }; // ✅ ใช้ entry.id สำหรับ Biometric
-      } else {
-        console.warn("⚠️ Unknown entry type:", entry);
-        return;
-      }
-  
-      console.log("📡 Sending DELETE request:", requestBody); // ✅ Debug
-  
-      // ✅ ใช้ `/api/auth/diary/${formattedDate}` สำหรับทั้งอาหาร, ออกกำลังกาย และ Biometric
+      // ส่ง DELETE request
       const endpoint = `/api/auth/diary/${formattedDate}`;
-  
       const response = await fetch(endpoint, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
@@ -456,17 +465,12 @@ useEffect(() => {
         const event = new Event("updateDietGoals");
         window.dispatchEvent(event);
       }
-
+  
       if (response.ok) {
+        
         await fetchDailyCalorieGoal();
         await getDiaryEntries(selectedDate?.toLocaleDateString("en-CA"));
       }
-            // ✅ อัปเดต UI โดยไม่ต้องโหลด API ใหม่
-      setDiaryEntries((prevEntries) => {
-        const updatedEntries = { ...prevEntries };
-        updatedEntries[itemToDelete.group] = updatedEntries[itemToDelete.group]?.filter((_, idx) => idx !== itemToDelete.index) || [];
-        return updatedEntries;
-      });
   
       setIsDeleteModalOpen(false);
       setItemToDelete(null);
@@ -476,6 +480,8 @@ useEffect(() => {
       alert(`Error: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   };
+  
+  
   
   const toggleGroup = (group: string) => {
     setExpandedGroups(prev => ({
@@ -690,7 +696,7 @@ useEffect(() => {
       alert(error instanceof Error ? error.message : "An error occurred while adding biometric data.");
     }
   };
-  
+   
   return (
     <>
       <AddFoodtoDiary
@@ -720,42 +726,46 @@ useEffect(() => {
         onConfirm={handleRemoveItem}
         itemName={itemToDelete?.name || "this item"}
       />
+      
       <div className="">
-        <div className="text-black font-mono flex justify-between mx-[50]">
+        <div className="text-black font-mono flex justify-between px-[50px]">
           <div className="flex w-[75%] flex-col">
-            <div className="bg-white flex pl-[20] mb-[7]">
-              <div className="flex items-center justify-between h-[50] flex-wrap ">
-                <button onClick={openModal} className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30] ">                 
-                  <div className="mr-[6]">🍎</div>FOOD
+            <div className="bg-white flex pl-[20] mb-[7px] rounded-md">
+              <div className="flex items-center justify-between h-[50px]  flex-wrap ">
+                <button onClick={openModal} className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9px] pt-[13px] mr-[30px] ">                 
+                  <div className="mr-[6px]">🍎</div>FOOD
                 </button>
-                <button onClick={() => setIsExerciseModalOpen(true)} className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]">
-                  <div className="mr-[6]">💪🏼</div>EXERCISE
+                <button onClick={() => setIsExerciseModalOpen(true)} className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9px] pt-[13px] mr-[30px]">
+                  <div className="mr-[6px]">💪🏼</div>EXERCISE
                 </button>
-                <button onClick={() => setIsBiometricModalOpen(true)} className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]">
-                  <div className="mr-[6]">🧬</div>BIOMETRIC
+                
+                <button onClick={() => setIsBiometricModalOpen(true)} className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9px] pt-[13px] mr-[30px]">
+                  <div className="mr-[6px]">🧬</div>BIOMETRIC
                 </button>
                 <Link href="/posts">
-                <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9] pt-[13] mr-[30]">
-                  <div className="mr-[6]">📝</div>NOTE
+                <button className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9px] pt-[13px] mr-[30px]">
+                  <div className="mr-[6px]">📝</div>NOTE
                 </button>
                 </Link>
               </div>
             </div>
             {/* แสดงรายการอาหารและ Exercise */}
             {Object.keys(diaryEntries).map((group) => (
-            <div key={group} className="bg-white flex flex-col mb-[7]">
-              <div className="flex justify-between px-[10] py-[5] border-b">  
+            <div key={group} className="bg-white flex flex-col my-[2px] rounded-sm">
+              <div className="flex justify-between px-[10px] py-[5px] border-b-2">  
                 <span className="font-semibold">{group}</span>
-                <div className="">
-                  <span className="text-sm">
+                <div className="flex w-[50%] justify-end">
+                  <div className="text-sm flex  items-center">
                     {foodTotals[group]?.calories ? foodTotals[group].calories.toFixed(0) : "0"} kcal • 
                     {foodTotals[group]?.protein ? foodTotals[group].protein.toFixed(0) : "0"} g protein • 
                     {foodTotals[group]?.carbs ? foodTotals[group].carbs.toFixed(0) : "0"} g carbs • 
                     {foodTotals[group]?.fat ? foodTotals[group].fat.toFixed(0) : "0"} g fat
-                  </span>
-                  <button className="mx-[20] " onClick={() => toggleGroup(group)}>
+                  </div>
+                  <div className=" flex">
+                  <button className="mx-[20px] " onClick={() => toggleGroup(group)}>
                     {expandedGroups[group] ? <PiCaretDownBold className="rotate-180 transition-transform duration-300" /> : <PiCaretDownBold className="rotate-0 transition-transform duration-300"/>}
                   </button>
+                  </div>
                 </div>
               </div>
 
@@ -776,7 +786,7 @@ useEffect(() => {
                     });
                     setIsDeleteModalOpen(true);
                   }}
-                  className="flex justify-between px-[10] py-[2] text-sm border-b cursor-pointer hover:bg-gray-100"
+                  className="flex justify-between px-[10px] py-[2px] text-sm border-b cursor-pointer bg-slate-100 hover:bg-slate-200"
                 >
                   <div className="flex items-center">
                     <span className="mr-2">
@@ -790,19 +800,28 @@ useEffect(() => {
                           : entry.name}
                     </span>
                   </div>
-                  <div className="flex space-x-4">
+                  <div className="flex w-[50%] justify-end ">
                     {/* ✅ แยก FoodEntry, ExerciseEntry และ BiometricEntry ออกจากกัน */}
                     {entry.type === "exercise" ? (
                       <>
+                      <div className="flex  w-[100%] justify-end">
                         <span>{entry.duration} min</span>
+                      <div className=" flex justify-end w-[65%]  mr-[20px]">
                         <span>{entry.calories.toFixed(2)} kcal</span>
+                      </div>
+                      </div>
                       </>
                     ) : entry.type === "biometric" ? (
                       <>
+                      <div className="flex w-[100%]">
+                      <div className=" flex justify-center w-[58%] ">
                         <span>{entry.value} {entry.unit}</span> {/* ✅ แสดงค่าชีวภาพ */}
+                        </div>
+                        </div>
                       </>
                     ) : (
                       <>
+                      <div className="flex w-[50%]">
                         {editingEntry?.group === group && editingEntry?.index === index ? (
                           <input
                             type="number"
@@ -817,7 +836,10 @@ useEffect(() => {
                             {entry.servingSize} {entry.unit || "g"}
                           </span>
                         )}
-                        <span>{Number(entry.calories).toFixed(2)} kcal</span>
+                        </div>
+                        <div className=" flex justify-end w-[20%] mr-[20px]">
+                        <span className="">{Number(entry.calories).toFixed(2)} kcal</span>
+                        </div>
                       </>
                     )}
                   </div>
@@ -836,7 +858,7 @@ useEffect(() => {
               </div>
             </div>
           </div>
-          <div className="w-[350px]   ">
+          <div className="w-[350px]">
             {/* ✅ แถบเลือกวันที่ (Today, ลูกศร, และปุ่มปฏิทิน) */}
             <div className="flex justify-between  items-center bg-white shadow-md px-4 py-2 rounded-md ">
               {/* เปลี่ยนวันก่อนหน้า */}
