@@ -89,9 +89,9 @@ export async function POST(req: NextRequest, context: { params: { date?: string 
 }
 
 // ✅ GET: ดึงรายการอาหาร, ออกกำลังกาย และค่าชีวภาพจากไดอารี่
-export async function GET(req: NextRequest, context: { params: { date?: string } }) {
+export async function GET(req: NextRequest, { params }: { params: { date?: string } }) {
   try {
-    const date = context.params?.date;
+    const date = params?.date;
     if (!date) {
       return NextResponse.json({ error: "Missing date parameter" }, { status: 400 });
     }
