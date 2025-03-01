@@ -27,14 +27,9 @@ async function verifyUser(req: NextRequest) {
 }
 
 // ✅ POST: เพิ่มอาหารเข้า Food Diary
-export async function POST(req: NextRequest, context: { params: { date?: string } }) {
+export async function POST(req: NextRequest) {
   try {
-    const date = context.params?.date;
-    if (!date) {
-      return NextResponse.json({ error: "Missing date parameter" }, { status: 400 });
-    }
-
-    // ✅ ตรวจสอบสิทธิ์ผู้ใช้
+    // ✅ ตรวจสอบการยืนยันตัวผู้ใช้
     const user = await verifyUser(req);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -42,9 +37,10 @@ export async function POST(req: NextRequest, context: { params: { date?: string 
 
     // ✅ ตรวจสอบ request body
     const body = await req.json();
-    const { meal_type, food_id, quantity, calories, protein, carbs, fat } = body;
+    const { date, meal_type, food_id, quantity, calories, protein, carbs, fat } = body;
 
-    if (!meal_type || !food_id || quantity == null || calories == null || protein == null || carbs == null || fat == null) {
+    // ✅ ตรวจสอบค่าจาก request body
+    if (!date || !meal_type || !food_id || quantity == null || calories == null || protein == null || carbs == null || fat == null) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -170,14 +166,9 @@ export async function GET(req: NextRequest) {
 }
 
 // ✅ DELETE: ลบอาหาร, การออกกำลังกาย หรือค่าชีวภาพออกจาก Diary
-export async function DELETE(req: NextRequest, context: { params: { date?: string } }) {
+export async function DELETE(req: NextRequest) {
   try {
-    const date = context.params?.date;
-    if (!date) {
-      return NextResponse.json({ error: "Missing date parameter" }, { status: 400 });
-    }
-
-    // ✅ ตรวจสอบสิทธิ์ผู้ใช้
+    // ✅ ตรวจสอบการยืนยันตัวผู้ใช้
     const user = await verifyUser(req);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -185,10 +176,11 @@ export async function DELETE(req: NextRequest, context: { params: { date?: strin
 
     // ✅ อ่านข้อมูลจาก request body
     const body = await req.json();
-    const { food_id, exercise_id, meal_type, biometric_id } = body;
+    const { date, food_id, exercise_id, meal_type, biometric_id } = body;
 
-    if (!food_id && !exercise_id && !biometric_id) {
-      return NextResponse.json({ error: "Provide either 'food_id', 'exercise_id', or 'biometric_id'" }, { status: 400 });
+    // ✅ ตรวจสอบการมีค่า date, food_id, exercise_id หรือ biometric_id
+    if (!date || (!food_id && !exercise_id && !biometric_id)) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
     // ✅ ลบอาหารจากไดอารี่
@@ -212,6 +204,12 @@ export async function DELETE(req: NextRequest, context: { params: { date?: strin
         prisma.foods.update({
           where: { id: food_id },
           data: { added_count: { decrement: 1 } },
+        }),
+        prisma.user_behavior_logs.create({
+          data: {
+            userId: user.userId,
+            action: "Delete Food from Diary",
+          },
         }),
       ]);
 
@@ -264,7 +262,6 @@ export async function DELETE(req: NextRequest, context: { params: { date?: strin
             where: { id: user.userId },
             data: { weight: latestWeight },
           });
-          console.log(`✅ Updated user weight to latest: ${latestWeight} kg`);
 
           // ✅ คำนวณ TDEE ใหม่
           const userProfile = await getUserProfile(user.userId);
