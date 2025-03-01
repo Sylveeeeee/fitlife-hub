@@ -467,16 +467,10 @@ console.log("📡 Sending DELETE request with requestBody:", requestBody);
       }
   
       if (response.ok) {
+        
         await fetchDailyCalorieGoal();
         await getDiaryEntries(selectedDate?.toLocaleDateString("en-CA"));
       }
-  
-      // ✅ อัปเดต UI โดยไม่ต้องโหลด API ใหม่
-      setDiaryEntries((prevEntries) => {
-        const updatedEntries = { ...prevEntries };
-        updatedEntries[itemToDelete.group] = updatedEntries[itemToDelete.group]?.filter((_, idx) => idx !== itemToDelete.index) || [];
-        return updatedEntries;
-      });
   
       setIsDeleteModalOpen(false);
       setItemToDelete(null);

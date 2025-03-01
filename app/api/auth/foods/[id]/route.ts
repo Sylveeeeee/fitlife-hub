@@ -36,15 +36,18 @@ async function verifyAdminRole(req: Request) {
 
 
 // GET: ดึงข้อมูลอาหารตาม ID
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request) {
   try {
-    if (!params.id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
-    const foodId = Number(params.id);
-    if (isNaN(foodId)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
+    const url = new URL(req.url);
+    const foodId = url.pathname.split('/').pop(); // ดึง id จาก URL path
+
+    if (!foodId) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+    const id = Number(foodId);
+    if (isNaN(id)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
 
     const food = await prisma.foods.findUnique({
-      where: { id: foodId },
-      select: { // ✅ เลือกเฉพาะฟิลด์ที่ต้องการ รวมถึง `unit`
+      where: { id },
+      select: {
         id: true,
         name: true,
         calories: true,
@@ -53,7 +56,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
         fat: true,
         category: true,
         source: true,
-        unit: true, // ✅ เพิ่ม unit ใน response
+        unit: true,
       }
     });
 
@@ -66,15 +69,14 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-
 // PUT: อัปเดตข้อมูลอาหาร
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request) {
   const decoded = await verifyAdminRole(req);
   if (!decoded) {
     return NextResponse.json({ message: 'Unauthorized: Invalid token' }, { status: 401 });
   }
 
-  // ✅ ตรวจสอบสิทธิ์ Admin
+  // ตรวจสอบสิทธิ์ Admin
   const adminUser = await prisma.users.findUnique({
     where: { id: decoded.userId },
     select: { role: { select: { name: true } } },
@@ -84,7 +86,9 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({ message: 'Forbidden: You do not have admin privileges' }, { status: 403 });
   }
 
-  const foodId = Number(params.id);
+  const url = new URL(req.url);
+  const foodId = Number(url.pathname.split('/').pop()); // ดึง `id` จาก URL
+
   if (isNaN(foodId)) {
     return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
   }
@@ -93,21 +97,17 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     const body = await req.json();
     const { name, calories, protein, carbs, fat, category, source, unit } = body;
 
-    // ✅ ตรวจสอบว่ามีค่า unit หรือไม่
     if (!name || calories === undefined || protein === undefined || carbs === undefined || fat === undefined || !unit) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
 
-    // ✅ ตรวจสอบค่าหมวดหมู่
     const normalizedCategory = normalizeFoodCategory(category);
 
-    // ✅ ตรวจสอบว่า unit ถูกต้อง
     const validUnits = ["GRAM", "ML", "CUP", "TBSP", "TSP", "PIECE", "SERVING"];
     if (!validUnits.includes(unit)) {
       return NextResponse.json({ error: "Invalid unit type" }, { status: 400 });
     }
 
-    // ✅ อัปเดตข้อมูลในฐานข้อมูล
     const updatedFood = await prisma.foods.update({
       where: { id: foodId },
       data: { name, calories, protein, carbs, fat, category: normalizedCategory, source, unit },
@@ -121,44 +121,38 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 }
 
 // DELETE: ลบข้อมูลอาหาร
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
-  // ตรวจสอบสิทธิ์ผู้ใช้
+export async function DELETE(req: Request) {
   const decoded = await verifyAdminRole(req);
-      if (!decoded) {
-        return NextResponse.json({ message: 'Unauthorized: Invalid token' }, { status: 401 });
-      }
-    
-      // ✅ ตรวจสอบสิทธิ์ Admin
-      const adminUser = await prisma.users.findUnique({
-        where: { id: decoded.userId },
-        select: { role: { select: { name: true } } },
-      });
+  if (!decoded) {
+    return NextResponse.json({ message: 'Unauthorized: Invalid token' }, { status: 401 });
+  }
 
-      if (!adminUser || adminUser.role?.name !== 'admin') {
-        return NextResponse.json({ message: 'Forbidden: You do not have admin privileges' }, { status: 403 });
-      }
-  
+  const adminUser = await prisma.users.findUnique({
+    where: { id: decoded.userId },
+    select: { role: { select: { name: true } } },
+  });
+
+  if (!adminUser || adminUser.role?.name !== 'admin') {
+    return NextResponse.json({ message: 'Forbidden: You do not have admin privileges' }, { status: 403 });
+  }
+
+  const url = new URL(req.url);
+  const foodId = Number(url.pathname.split('/').pop()); // ดึง `id` จาก URL
+
+  if (isNaN(foodId)) {
+    return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+  }
 
   try {
-    const { id } = params; // ไม่ต้องใช้ await
-    const foodId = Number(id);
-
-    if (isNaN(foodId)) {
-      return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
-    }
-
-    console.log('Attempting to delete food with ID:', foodId);
-
-    await prisma.foods.delete({ where: { id: foodId } });
-
-    console.log('Successfully deleted food with ID:', foodId);
+    await prisma.foods.delete({
+      where: { id: foodId },
+    });
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error('DELETE error:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete food', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    console.error("Error during DELETE request:", error);
+    return NextResponse.json({ error: "Failed to delete food" }, { status: 500 });
   }
 }
+
+
