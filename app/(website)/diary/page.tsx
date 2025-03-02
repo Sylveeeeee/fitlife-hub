@@ -730,7 +730,7 @@ console.log("📡 Sending DELETE request with requestBody:", requestBody);
       <div className="">
         <div className="text-black font-mono flex justify-between px-[50px]">
           <div className="flex w-[75%] flex-col">
-            <div className="bg-white flex pl-[20] mb-[7px] rounded-md">
+            <div className="bg-white flex pl-[20px] mb-[7px] rounded-md">
               <div className="flex items-center justify-between h-[50px]  flex-wrap ">
                 <button onClick={openModal} className="flex items-center justify-center hover:border-b-4 hover:border-black border-b-4 border-transparent pb-[9px] pt-[13px] mr-[30px] ">                 
                   <div className="mr-[6px]">🍎</div>FOOD
