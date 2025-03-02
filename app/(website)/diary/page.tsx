@@ -228,7 +228,7 @@ const exerciseTotals = useMemo(() => {
 
 // ✅ คำนวณ remainingCalories
 const totalFoodCalories = Object.values(foodTotals).reduce((acc, group) => acc + group.calories, 0);
-const remainingCalories = dailyCalorieGoal - (totalFoodCalories - exerciseTotals);
+const remainingCalories = (dailyCalorieGoal - (totalFoodCalories - exerciseTotals));
 
 
 const fetchDailyCalorieGoal = async () => {
@@ -851,7 +851,7 @@ console.log("📡 Sending DELETE request with requestBody:", requestBody);
                 <EnergySummary
                   totals={totals}
                   burnedCalories={dailyCalorieGoal}  // เป้าหมายแคลอรี่ที่เผาผลาญ
-                  remainingCalories={remainingCalories}  // แคลอรี่ที่เหลือ
+                  remainingCalories={parseFloat(remainingCalories.toFixed(2))}
                   exerciseTotals={exerciseTotals}
                 />
               </div>
