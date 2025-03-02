@@ -13,7 +13,7 @@ import Link from "next/link";
 interface Food {
   id: number;
   name: string;
-  unit?: string;
+  unit: string;
   mealType: string;
 }
 
@@ -22,7 +22,7 @@ interface FoodEntry {
   food: Food;
   id: number;
   name: string;
-  unit?: string;
+  unit: string;
   quantity:number;
   servingSize: number;
   calories: number;
@@ -230,8 +230,6 @@ const exerciseTotals = useMemo(() => {
 const totalFoodCalories = Object.values(foodTotals).reduce((acc, group) => acc + group.calories, 0);
 const remainingCalories = dailyCalorieGoal - (totalFoodCalories - exerciseTotals);
 
-console.log("⚖️ Remaining Calories:", remainingCalories);
-
 
 const fetchDailyCalorieGoal = async () => {
   try {
@@ -316,6 +314,7 @@ useEffect(() => {
           protein: foodEntry.protein,
           carbs: foodEntry.carbs,
           fat: foodEntry.fat,
+          unit: foodEntry.unit,
         }),
       });
   
@@ -833,7 +832,7 @@ console.log("📡 Sending DELETE request with requestBody:", requestBody);
                           />
                         ) : (
                           <span onClick={() => startEditing(group, index, entry.servingSize!)} className="cursor-pointer">
-                            {entry.servingSize} {entry.unit || "g"}
+                            {entry.servingSize} {entry.food.unit || "g"}
                           </span>
                         )}
                         </div>

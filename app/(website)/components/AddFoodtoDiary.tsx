@@ -11,6 +11,7 @@ interface Food {
   source: string;
   servingSize: number;
   mealType: string;
+  unit:string,
 }
 
 interface AddFoodToDiaryProps {
@@ -100,6 +101,7 @@ const AddFoodToDiary: React.FC<AddFoodToDiaryProps> = ({ isOpen, closeModal, onF
       protein: selectedFood?.protein ? selectedFood.protein * servingSize : 0,
       carbs: selectedFood?.carbs ? selectedFood.carbs * servingSize : 0,
       fat: selectedFood?.fat ? selectedFood.fat * servingSize : 0,
+      unit: selectedFood.unit,
     };
   
     console.log("📝 Request Data:", requestData); // ✅ Debug ดูค่าที่ส่งไปยัง API
