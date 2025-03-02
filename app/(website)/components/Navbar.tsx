@@ -3,6 +3,7 @@ import { FiUser } from "react-icons/fi";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 
 interface JwtPayload {
   userId: bigint;
@@ -12,135 +13,171 @@ interface JwtPayload {
 
 export default function Navbar() {
   const [user, setUser] = useState<JwtPayload | null>(null);
-  const [isPopupOpen, setIsPopupOpen] = useState(false);
-
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const response = await fetch('/api/auth/protected', {
-          method: 'GET',
-          credentials: 'include', // ส่ง httpOnly cookie ไปพร้อมกับ request
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.userId && data.role) {
-            const role = typeof data.role === 'object' ? data.role.name : data.role;
-
-            setUser({
-              userId: data.userId,
-              role: data.role,
-              email: data.email,
-            });
-            if (role.toLowerCase() === 'admin') {
+    const [isPopupOpen, setIsPopupOpen] = useState(false);
+    const [loading, setLoading] = useState<boolean>(true); // สร้าง state สำหรับการโหลด
+    const pathname = usePathname(); // ดึง path ปัจจุบัน เช่น "/diary"
+  
+    useEffect(() => {
+    
+      const fetchUserData = async () => {
+        try {
+          const response = await fetch('/api/auth/protected', {
+            method: 'GET',
+            credentials: 'include', // ส่ง httpOnly cookie ไปพร้อมกับ request
+          });
+  
+          if (response.ok) {
+            const data = await response.json();
+            if (data && data.userId && data.role) {
+              const role = typeof data.role === 'object' ? data.role.name : data.role;
+  
+              setUser({
+                userId: data.userId,
+                role: data.role,
+                email: data.email,
+              });
+              if (role.toLowerCase() === 'admin') {
+              }
+            } else {
+              console.error("Invalid user data from server");
+              setUser(null);
             }
+          } else if (response.status === 401) {
+            console.log("Unauthorized: No valid session");
+            setUser(null);
           } else {
-            console.error("Invalid user data from server");
+            console.error("Unexpected server error:", response.status);
             setUser(null);
           }
-        } else if (response.status === 401) {
-          console.log("Unauthorized: No valid session");
-          setUser(null);
-        } else {
-          console.error("Unexpected server error:", response.status);
+        } catch (error) {
+          console.error("Error fetching user data from server:", error);
           setUser(null);
         }
+      };
+      
+  
+      fetchUserData();
+      setTimeout(() => {
+        setLoading(false); // เปลี่ยนสถานะการโหลดเมื่อโหลดเสร็จ
+      }, 2000);
+      
+    }, [isPopupOpen]);
+  
+    async function handleLogout() {
+      try {
+        const response = await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+  
+        if (!response.ok) {
+          throw new Error('Failed to logout');
+        }
+  
+        // ถ้าการ logout สำเร็จ
+        console.log('Logout successful');
+        window.location.reload();  // หรือคุณอาจจะใช้ redirect ไปหน้าอื่น
       } catch (error) {
-        console.error("Error fetching user data from server:", error);
-        setUser(null);
+        console.error(error);
+        alert('Error: Failed to logout');
+      }
+    }
+  
+    const handleOutsideClick = (e: React.MouseEvent) => {
+      // ถ้าคลิกนอก component ให้ปิด popup
+      if (e.target === e.currentTarget) {
+        setIsPopupOpen(false);  // ปิด popup
       }
     };
-    
-    fetchUserData();
-  }, [isPopupOpen]);
-
-  async function handleLogout() {
-    try {
-      const response = await fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to logout');
+  
+    const handlePopupToggle = () => {
+      setIsPopupOpen(!isPopupOpen);
+    };
+  
+    const handleLoginRedirect = () => {
+      window.location.href = "/login";
+    };
+  
+  
+    useEffect(() => {
+      if (isPopupOpen) {
+        document.body.classList.add("overflow-hidden");
+      } else {
+        document.body.classList.remove("overflow-hidden");
       }
-
-      // ถ้าการ logout สำเร็จ
-      console.log('Logout successful');
-      window.location.reload();  // หรือคุณอาจจะใช้ redirect ไปหน้าอื่น
-    } catch (error) {
-      console.error(error);
-      alert('Error: Failed to logout');
+      return () => document.body.classList.remove("overflow-hidden");
+    }, [isPopupOpen]);
+  
+  
+    if (loading) {
+      return (
+        <div className="flex justify-center items-center h-screen ">
+          {/* แสดง spinner หรือข้อความระหว่างที่โหลด */}
+          <div className="loader text-black">Loading...</div>
+        </div>
+      );
     }
-  }
-
-  const handleOutsideClick = (e: React.MouseEvent) => {
-    // ถ้าคลิกนอก component ให้ปิด popup
-    if (e.target === e.currentTarget) {
-      setIsPopupOpen(false);  // ปิด popup
-    }
-  };
-
-  const handlePopupToggle = () => {
-    setIsPopupOpen(!isPopupOpen);
-  };
-
-  const handleLoginRedirect = () => {
-    window.location.href = "/login";
-  };
-
-  useEffect(() => {
-    if (isPopupOpen) {
-      document.body.classList.add("overflow-hidden");
-    } else {
-      document.body.classList.remove("overflow-hidden");
-    }
-    return () => document.body.classList.remove("overflow-hidden");
-  }, [isPopupOpen]);
   
   return (
     <>
       <div
-        className="w-full h-[100] flex items-center justify-between"
+        className="w-full h-[100px] flex items-center justify-between px-10"
         onClick={handleOutsideClick}
       >
-        <div className="flex items-center ml-[100]  ">
+        <Link href="/">
+        <div className="flex items-center  ">
           <Image
             src="/logo.png" // ใส่ Path ของรูปภาพของคุณ
             alt="FitLifeHub Logo"
-            width={40} // ปรับขนาดของรูปภาพ
-            height={40} // ปรับขนาดของรูปภาพ
+            width={130} // ปรับขนาดของรูปภาพ
+            height={100} // ปรับขนาดของรูปภาพ
             className="mr-2 rounded-[20px]"
           />        
-          <Link href="/"><div className="text-[16px] font-mono text-[#000]">FITLIFE_HUB</div></Link>
         </div>
-        <div className="font-mono text-[#000] h-[100] items-center mr-[30] flex   ">
-          <Link href="/">
-            <button className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold">
-              DASHBOARD
-            </button>
-          </Link>
-          <Link href="/diary">
-            <button className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold">
-              DIARY
-            </button>
-          </Link>
-          <Link href="/posts">
-            <button className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold">
-              POST
-            </button>
-          </Link>
-          <Link href="/BMI">
-            <button className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold">
-              CALCULATOR
-            </button>
-          </Link>
+        </Link>
+        <div className="font-mono text-[#000] h-[100px] items-center flex">
+      <Link href="/">
+        <button
+          className={`py-[10px] px-[50px] text-center mx-[10px] border-b-4 hover:bg-[#0000000a] hover:font-bold hover:text-[#213A58] ${
+            pathname === "/" ? "border-[#213A58] text-[#213A58] font-bold" : "border-transparent " 
+          }`}
+        >
+          DASHBOARD
+        </button>
+      </Link>
+      <Link href="/diary">
+        <button
+          className={`py-[10px] px-[50px] text-center mx-[10px] border-b-4 hover:bg-[#0000000a] hover:font-bold hover:text-[#213A58] ${
+            pathname === "/diary" ? "border-[#213A58] text-[#213A58] font-bold" : "border-transparent"
+          }`}
+        >
+          DIARY
+        </button>
+      </Link>
+      <Link href="/posts">
+        <button
+          className={`py-[10px] px-[50px] text-center mx-[10px] border-b-4 hover:bg-[#0000000a] hover:font-bold hover:text-[#213A58] ${
+            pathname === "/posts" ? "border-[#213A58] text-[#213A58] font-bold" : "border-transparent"
+          }`}
+        >
+          POST
+        </button>
+      </Link>
+      <Link href="/BMI">
+        <button
+          className={`py-[10px] px-[50px] text-center mx-[10px] border-b-4 hover:bg-[#0000000a]  hover:font-bold hover:text-[#213A58] ${
+            pathname === "/BMI" ? "border-[#213A58] text-[#213A58] font-bold  " : "border-transparent  "
+          }`}
+        >
+          CALCULATOR
+        </button>
+      </Link>
           {user ? (
-            <div className="flex items-center relative " >
+            <div className="flex items-center relative ">
               <button
-                className="py-[10] px-[50] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58] mx-[10px] hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold"
+                className="py-[10px] px-[50px] text-center hover:text-[#213A58]  hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold"
                 onClick={handlePopupToggle}
               >
                 Account
@@ -148,7 +185,7 @@ export default function Navbar() {
             </div>
           ) : (
             <button
-              className="h-[40px] w-[40px] text-center rounded-full mx-[10px] flex justify-center items-center"
+              className="h-[40px] w-[40px] text-center rounded-full  flex justify-center items-center"
               onClick={handleLoginRedirect}
             >
               <div className="text-[30px]">
@@ -173,13 +210,13 @@ export default function Navbar() {
             <div>
               <p>Email: {user.email}</p>
               <Link href="/profile">
-                <button className="w-full bg-[#000000] text-white mt-4 p-2 hover:shadow-md hover:shadow-[#000000cc] " >
+                <button className="w-full bg-[#000000] text-white mt-4 p-2 hover:shadow-md hover:shadow-[#000000cc] ">
                   Targets+Profile
                 </button>
               </Link>
               {user.role.toLowerCase() === "admin" && (
                 <Link href="/admin/dashboard">
-                  <button className="w-full bg-[#213A58] text-white mt-4 p-2 hover:shadow-md hover:shadow-[#213A58cc] " >
+                  <button className="w-full bg-[#213A58] text-white mt-4 p-2 hover:shadow-md hover:shadow-[#213A58cc] ">
                     Admin Dashboard
                   </button>
                 </Link>
