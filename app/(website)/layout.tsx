@@ -131,7 +131,7 @@ export default function WebsiteLayout({
         onClick={handleOutsideClick}
       >
         <Link href="/">
-        <div className="flex items-center ml-[100px]">
+        <div className="flex items-center  ">
           <Image
             src="/logo.png" // ใส่ Path ของรูปภาพของคุณ
             alt="FitLifeHub Logo"
@@ -144,7 +144,7 @@ export default function WebsiteLayout({
         <div className="font-mono text-[#000] h-[100px] items-center flex">
       <Link href="/">
         <button
-          className={`py-[10px] px-[50px] text-center mx-[10px] border-b-4 ${
+          className={`py-[10px] px-[50px] text-center mx-[10px] border-b-4 hover:bg-[#0000000a] hover:font-bold hover:text-[#213A58] ${
             pathname === "/" ? "border-[#213A58] text-[#213A58] font-bold" : "border-transparent " 
           }`}
         >
@@ -153,7 +153,7 @@ export default function WebsiteLayout({
       </Link>
       <Link href="/diary">
         <button
-          className={`py-[10px] px-[50px] text-center mx-[10px] border-b-4 ${
+          className={`py-[10px] px-[50px] text-center mx-[10px] border-b-4 hover:bg-[#0000000a] hover:font-bold hover:text-[#213A58] ${
             pathname === "/diary" ? "border-[#213A58] text-[#213A58] font-bold" : "border-transparent"
           }`}
         >
@@ -162,7 +162,7 @@ export default function WebsiteLayout({
       </Link>
       <Link href="/posts">
         <button
-          className={`py-[10px] px-[50px] text-center mx-[10px] border-b-4 ${
+          className={`py-[10px] px-[50px] text-center mx-[10px] border-b-4 hover:bg-[#0000000a] hover:font-bold hover:text-[#213A58] ${
             pathname === "/posts" ? "border-[#213A58] text-[#213A58] font-bold" : "border-transparent"
           }`}
         >
@@ -171,8 +171,8 @@ export default function WebsiteLayout({
       </Link>
       <Link href="/BMI">
         <button
-          className={`py-[10px] px-[50px] text-center mx-[10px] border-b-4 ${
-            pathname === "/BMI" ? "border-[#213A58] text-[#213A58] font-bold" : "border-transparent"
+          className={`py-[10px] px-[50px] text-center mx-[10px] border-b-4 hover:bg-[#0000000a]  hover:font-bold hover:text-[#213A58] ${
+            pathname === "/BMI" ? "border-[#213A58] text-[#213A58] font-bold  " : "border-transparent  "
           }`}
         >
           CALCULATOR
@@ -181,7 +181,7 @@ export default function WebsiteLayout({
           {user ? (
             <div className="flex items-center relative ">
               <button
-                className="py-[10] px-[50px] text-center hover:text-[#213A58] hover:border-b-4 hover:border-[#213A58]  hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold"
+                className="py-[10px] px-[50px] text-center hover:text-[#213A58]  hover:bg-[#0000000a] border-b-4 border-transparent hover:font-bold"
                 onClick={handlePopupToggle}
               >
                 Account
