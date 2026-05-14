@@ -111,7 +111,6 @@ const EnergySummary: React.FC<EnergySummaryProps> = ({
         hoverBackgroundColor: ["#7e7e7e", "#D3D3D3"],
       },
     ],
-    customText:[remainingCalories],
   };
 
   const options = {

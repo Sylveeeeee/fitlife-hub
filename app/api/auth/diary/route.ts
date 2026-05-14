@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
 
     // ✅ ตรวจสอบ request body
     const body = await req.json();
-    const { date, meal_type, food_id, quantity, calories, protein, carbs, fat } = body;
+    const { date, meal_type, food_id, quantity, calories, protein, carbs, fat, unit } = body;
 
     // ✅ ตรวจสอบค่าจาก request body
     if (!date || !meal_type || !food_id || quantity == null || calories == null || protein == null || carbs == null || fat == null) {
@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
         protein,
         carbs,
         fat,
+        unit,
       },
       include: { food: true },
     });

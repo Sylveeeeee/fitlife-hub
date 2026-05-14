@@ -87,12 +87,14 @@ model FoodDiary {
   protein  Decimal @default(0.00) @db.Decimal(5, 2)
   carbs    Decimal @default(0.00) @db.Decimal(5, 2)
   fat      Decimal @default(0.00) @db.Decimal(5, 2)
+  unit     UnitType // เพิ่มฟิลด์ unit จาก Enum
 
   user users @relation(fields: [userId], references: [id], onDelete: Cascade)
   food foods @relation(fields: [foodId], references: [id], onDelete: Cascade)
 
   @@unique([userId, date, mealType, foodId])
 }
+
 
 model diet_goals {
   id             Int       @id @default(autoincrement())
